@@ -1,10 +1,5 @@
-baseurl: http://palexand.github.io/eecs662/
-title: EECS 662
-subtitle: Programming Languages
-where: 2425 LEEP2
-when: 1:00-2:15 TR
-ohrs: 10:45-12:00 TR
+baseurl: http://palexand.github.io/plih/
+title: Programming Languages in Haskell
+subtitle: Support for EECS 662 at KU
 markdown: kramdown
-name: EECS 662
-description: EECS 662 - Programming Languages at Univ of Kansas
-url: http://palexand.github.io/eecs662
+url: http://ku-sldg.github.io/plih

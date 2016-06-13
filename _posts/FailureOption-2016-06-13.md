@@ -1,6 +1,7 @@
 ---
 layout: frontpage
 title: Failure Is an Option
+category: chapter
 ---
 
 # Failure Is an Option

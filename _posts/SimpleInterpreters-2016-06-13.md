@@ -2,6 +2,7 @@
 layout: frontpage
 title: Simple Expression Interpreters
 use_math: true
+category: chapter
 ---
 
 # Simple Expression Interpreters

@@ -1,11 +1,11 @@
 ---
 layout: frontpage
-title: EECS 662 Blog
+title: Chapters
 ---
 
 # EECS 662 Blog
 
-{% for post in site.categories.blog %}
+{% for post in site.categories.chapter %}
 <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
 
 {{ post.content }}

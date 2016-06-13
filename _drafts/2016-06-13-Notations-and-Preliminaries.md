@@ -35,9 +35,13 @@ data AE = Num Int
 
 ### Grammars
 
+Grammars are represented using ::= to define variables and | to express alternative.  Any symbol in all caps is considered a variable.  The following trivial grammar defines an expression languages consisting of sum and difference operations:
+
 {% highlight text %}
-<AE> ::= <num> | <AE> + <AE> | <AE> - <AE>
+AE ::= NUM | AE + AE | AE - AE
 {% endhighlight %}
+
+Pre-defined variables include NUM for integer numbers and NAT for natural numbers.  We're not worried about writing parsers in this book, but specifying them proves useful.
 
 ### Inference Rules
 

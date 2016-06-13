@@ -1,6 +1,7 @@
 ---
 layout: frontpage
 title: Adding Identifiers
+category: chapter
 ---
 
 # Adding Identifiers

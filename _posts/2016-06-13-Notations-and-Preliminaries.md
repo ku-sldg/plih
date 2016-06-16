@@ -37,14 +37,10 @@ data AE = Num Int
 
 Grammars are represented using $::=$ to define variables and $\mid$ to express alternative.  Any symbol in all caps is considered a variable.  The following trivial grammar defines an expression languages consisting of sum and difference operations:
 
-|             |          Grouping           ||  
-First Header  | Second Header | Third Header |  
- ------------ | :-----------: | -----------: |  
-Content       |          *Long Cell*        ||  
-Content       |   Cell    |         Cell |  
-New section   |     More      |         Data |  
-And more      | With an escaped '\|'         ||  
-[Prototype table]
+| First cell|Second cell|Third cell
+| First | Second | Third |
+
+First | Second | | Fourth |
 
 $AE ::=$ | $NUM$ 
 || $AE + AE$ | 

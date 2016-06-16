@@ -35,7 +35,7 @@ data AE = Num Int
 
 ### Grammars
 
-Grammars are represented using $::=$ to define variables and $\mid$ to express alternative.  Any symbol in all caps is considered a variable.  The following trivial grammar defines an expression languages consisting of sum and difference operations:
+Grammars are represented using `::=` to define variables and `|` to express alternative.  Any symbol in all caps is considered a variable.  The following trivial grammar defines an expression languages consisting of sum and difference operations:
 
 {% highlight coq %}
 AE ::= NUM | AE + AE | AE - AE

@@ -43,6 +43,8 @@ Grammars are represented using $::=$ to define variables and $\mid$ to express a
 
 First | Second | | Fourth ||
 
+There is some text here to ensure this is not one table.
+
 $AE ::=$ | $NUM$ 
 || $AE + AE$ | 
 

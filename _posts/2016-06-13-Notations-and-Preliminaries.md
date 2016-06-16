@@ -1,6 +1,6 @@
 ---
 layout: frontpage
-title: Notations and Preliminaris
+title: Notations and Preliminaries
 use_math: true
 category: chapter
 ---
@@ -37,7 +37,7 @@ data AE = Num Int
 
 Grammars are represented using $::=$ to define variables and $\mid$ to express alternative.  Any symbol in all caps is considered a variable.  The following trivial grammar defines an expression languages consisting of sum and difference operations:
 
-{% highlight text %}
+{% highlight coq %}
 AE ::= NUM | AE + AE | AE - AE
 {% endhighlight %}
 

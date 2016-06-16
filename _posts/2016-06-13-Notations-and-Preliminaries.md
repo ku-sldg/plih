@@ -54,24 +54,34 @@ Inference rules define immediate consequences like the definition of `&&`-introd
 A -> B -> A && B
 {% endhighlight %}
 
-This says that if we know $A$ and we know $B$, then we immediately know $A\wedge B$.  More generally:
+This says that if we know `A` and we know `B`, then we immediately know `A && B`.  More generally:
 
-$$\frac{A_0,A_1,\ldots,A_n}{C}$$
+{% highlight text %}
+A0 -> A1 ->...-> An -> C
+{% endhighlight %}
 
-says if $A_0$ through $A_n$ are known to hold, then $C$ is known to hold.  $A_k$ are called _antecedents_ and $C$ is called a _consequent_.
+says if `A0` through `An` are known to hold, then `C` is known to hold.  `Ak` are called _antecedents_ and `C` is called a _consequent_.
 
 A derivation strings inference rules together:
 
-$$\frac{\frac{A\wedge B}{B}\frac{A\wedge B}{A}}{B\wedge A}$$
+{% highlight text %}
+A && B -> B
+A && B -> A
+B -> A -> B && A
+{% endhighlight %}
 
 An inference having no preconditions defines an _axiom_:
 
-$$\frac{}{A}$$
+{% highlight text %}
+A
+{% endhighlight %}
 
-If nothing need be true to know $A$, then $A$ is true.
+If nothing need be true to know `A`, then `A` is true.
 
-If $B$ is derivable from $A$, we say:
+If `B` is derivable from `A`, we say:
 
-$$A\vdash B$$
+{% highlight text %}
+A ->* B
+{% endhighlight %}
 
-where $\vdash$ is called the _syntactic turnstile_.
+where `->*` is the application of zero or many inference rules.

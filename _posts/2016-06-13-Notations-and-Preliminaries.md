@@ -48,9 +48,11 @@ Any symbol in all caps is a meta-variable.  Pre-defined meta-variables include N
 
 ### Inference Rules
 
-Inference rules define immediate consequences like the definition of $\wedge$-introduction:
+Inference rules define immediate consequences like the definition of \&\&-introduction:
 
-$$\frac{A,B}{A\wedge B}$$
+{% highlight text %}
+A -> B -> A && B
+{% endhighlight %}
 
 This says that if we know $A$ and we know $B$, then we immediately know $A\wedge B$.  More generally:
 

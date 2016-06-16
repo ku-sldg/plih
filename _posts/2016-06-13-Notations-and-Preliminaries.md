@@ -37,13 +37,11 @@ data AE = Num Int
 
 Grammars are represented using $::=$ to define variables and $\mid$ to express alternative.  Any symbol in all caps is considered a variable.  The following trivial grammar defines an expression languages consisting of sum and difference operations:
 
-$$
-\begin{tabular}[ll]
+$$\begin{tabular}[ll]
 AE ::= & NUM \\
 & \mid AE + AE \\
 & \mid AE - AE \\
-\end{tabular}
-$$
+\end{tabular}$$
 
 $AE ::=$ | $NUM$
 | $AE + AE$

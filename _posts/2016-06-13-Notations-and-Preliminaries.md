@@ -67,6 +67,6 @@ If nothing need be true to know $A$, then $A$ is true.
 
 If $B$ is derivable from $A$, we say:
 
-$$A\ldash B$$
+$$A\vdash B$$
 
-where $\ldash$ is called the _syntactic turnstile_.
+where $\vdash$ is called the _syntactic turnstile_.

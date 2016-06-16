@@ -48,7 +48,7 @@ Any symbol in all caps is a meta-variable.  Pre-defined meta-variables include N
 
 ### Inference Rules
 
-Inference rules define immediate consequences like the definition of \&\&-introduction:
+Inference rules define immediate consequences like the definition of `&&`-introduction:
 
 {% highlight text %}
 A -> B -> A && B

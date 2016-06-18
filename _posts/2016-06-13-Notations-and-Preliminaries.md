@@ -66,6 +66,6 @@ If nothing need be true to know $A$, then $A$ is true.
 
 A derivation strings inference rules together:
 
-1. $$A \wedge B \vdash B$$  
-2. $$A \wedge B \vdash A$$  
-3. $$B, A \vdash B \wedge A$$  
+1. $A \wedge B \vdash B$
+2. $A \wedge B \vdash A$
+3. $B, A \vdash B \wedge A$

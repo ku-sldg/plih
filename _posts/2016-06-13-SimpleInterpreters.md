@@ -7,8 +7,6 @@ category: chapter
 
 # Simple Expression Interpreters
 
-$$\frac{a \rightarrow v}{(\mathsf{Bind}\; i\; a\; b) \rightarrow [i\mapsto v]b}$$
-
 Description goes here...
 
 ## Concrete Syntax

@@ -13,7 +13,6 @@ This is not even remotely close to done or ready for use.  Plenty of wrong thing
 
 {% for post in site.categories.chapter %}
 <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
-
 {% endfor %}
 
 ---

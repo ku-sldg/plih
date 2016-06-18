@@ -48,11 +48,11 @@ Any symbol in all caps is a meta-variable.  Pre-defined meta-variables include N
 
 ### Inference Rules
 
-Inference rules define immediate consequences like the definition of $\&\&-introduction$:
+Inference rules define immediate consequences like the definition of $\wedge-introduction$:
 
-$$\frac{A, B}{A \&\& B}$$
+$$\frac{A, B}{A \wedge B}$$
 
-This says that if we know $A$ and we know $B$, then we immediately know $A \&\& B$.  More generally:
+This says that if we know $A$ and we know $B$, then we immediately know $A \wedge B$.  More generally:
 
 $$\frac{A_0,A_1,\ldots,A_n}{C}$$
 
@@ -66,6 +66,6 @@ If nothing need be true to know $A$, then $A$ is true.
 
 A derivation strings inference rules together:
 
-$$A \&\& B \vdash B$$
-$$A \&\& B \vdash A$$
-$$B, A \vdash B \&\& A$$
+$$A \wedge B \vdash B$$  
+$$A \wedge B \vdash A$$  
+$$B, A \vdash B \wedge A$$  

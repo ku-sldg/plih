@@ -52,7 +52,7 @@ Inference rules define immediate consequences like the definition of $\&\&-intro
 
 $$\frac{A, B}{A \&\& B}$$
 
-This says that if we know $A$ and we know $B$, then we immediately know $A \&\& $.  More generally:
+This says that if we know $A$ and we know $B$, then we immediately know $A \&\& B$.  More generally:
 
 $$\frac{A_0,A_1,\ldots,A_n}{C}$$
 
@@ -60,12 +60,12 @@ says if $A_0$ through $A_n$ are known to hold, then $C$ is known to hold.  $A_k$
 
 An inference having no preconditions defines an _axiom_:
 
-$\frac{}{A}$
+$$\frac{}{A}$$
 
 If nothing need be true to know $A$, then $A$ is true.
 
 A derivation strings inference rules together:
 
-$A \&\& B \vdash B$
-$A \&\& B \vdash A$
-$B, A \vdash B \&\& A$
+$$A \&\& B \vdash B$$
+$$A \&\& B \vdash A$$
+$$B, A \vdash B \&\& A$$

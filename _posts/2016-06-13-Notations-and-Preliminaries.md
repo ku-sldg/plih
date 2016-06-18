@@ -48,40 +48,24 @@ Any symbol in all caps is a meta-variable.  Pre-defined meta-variables include N
 
 ### Inference Rules
 
-Inference rules define immediate consequences like the definition of `&&`-introduction:
+Inference rules define immediate consequences like the definition of $\&\&-introduction$:
 
-{% highlight text %}
-A -> B -> A && B
-{% endhighlight %}
+$$\frac{A, B}{A \&\& B}$$
 
-This says that if we know `A` and we know `B`, then we immediately know `A && B`.  More generally:
+This says that if we know $A$ and we know $B$, then we immediately know $A \&\& $.  More generally:
 
-{% highlight text %}
-A0 -> A1 ->...-> An -> C
-{% endhighlight %}
+$$\frac{A_0,A_1,\ldots,A_n}{C}$$
 
-says if `A0` through `An` are known to hold, then `C` is known to hold.  `Ak` are called _antecedents_ and `C` is called a _consequent_.
-
-A derivation strings inference rules together:
-
-{% highlight text %}
-A && B -> B
-A && B -> A
-B -> A -> B && A
-{% endhighlight %}
+says if $A_0$ through $A_n$ are known to hold, then $C$ is known to hold.  $A_k$ are called _antecedents_ and $C$ is called a _consequent_.
 
 An inference having no preconditions defines an _axiom_:
 
-{% highlight text %}
-A
-{% endhighlight %}
+$\frac{}{A}$
 
-If nothing need be true to know `A`, then `A` is true.
+If nothing need be true to know $A$, then $A$ is true.
 
-If `B` is derivable from `A`, we say:
+A derivation strings inference rules together:
 
-{% highlight text %}
-A ->* B
-{% endhighlight %}
-
-where `->*` is the application of zero or many inference rules.
+$A \&\& B \vdash B$
+$A \&\& B \vdash A$
+$B, A \vdash B \&\& A$

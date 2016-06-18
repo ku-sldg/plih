@@ -89,6 +89,8 @@ A _bound instance_ of an identifier is use of the identifier in the scope if its
 
 ## Evaluating `bind`
 
+$$\frac{a \rightarrow v}{(\mathsf{Bind}\; i\; a\; b) \rightarrow [i\mapsto v]b}$$
+
 ## The BAE Language
 
 ### Concrete and Abstract Syntax

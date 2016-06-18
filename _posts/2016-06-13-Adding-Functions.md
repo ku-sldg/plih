@@ -7,8 +7,6 @@ category: chapter
 
 # Functions
 
-$$\frac{a \rightarrow v}{(\mathsf{Bind}\; i\; a\; b) \rightarrow [i\mapsto v]b}$$
-
 ## Formal Definition
 
-$$\frac{a \rightarrow v}{(\mathsf{Bind}\; i\; a\; b) \rightarrow [i\mapsto v]b}$$
+$$\frac{a \rightarrow v}{(\mathsf{App} (\mathsf{Fun}\; i\; b) \; a) \rightarrow [i\mapsto v]b}$$

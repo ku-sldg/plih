@@ -62,12 +62,20 @@ parseAEFile = parseFile expr
 
 -- Calculation Function
 
-calc :: AE -> Int
-calc (Num x) = x
-calc (Plus l r) = (calc l) + (calc r)
-calc (Minus l r) = (calc l) - (calc r)
-calc (Mult l r) = (calc l) * (calc r)
-calc (Div l r) = div (calc l) (calc r)
+calc :: AE -> AE
+calc (Num x) = (Num x)
+calc (Plus t1 t2) = let (Num v1) = (calc t1)
+                        (Num v2) = (calc t2)
+                    in (Num (v1+v2))
+calc (Minus t1 t2) = let (Num v1) = (calc t1)
+                         (Num v2) = (calc t2)
+                     in (Num (v1-v2))
+calc (Mult t1 t2) = let (Num v1) = (calc t1)
+                        (Num v2) = (calc t2)
+                    in (Num (v1*v2))
+calc (Div t1 t2) = let (Num v1) = (calc t1)
+                       (Num v2) = (calc t2)
+                   in (Num (div v1 v2))
 
 -- Interpreter = parse + calc
 

@@ -263,7 +263,7 @@ calc :: AE -> AE
 (Num n) = (Num n)
 {% endhighlight %}
 
-We now have an interpreter for numbers, but nothing more.
+We now have an interpreter for literal numbers, but nothing more.
 
 The `Plus` constructor represents a more interesting case.  We have a rule named $PlusE$ that defines interpretation of `t1+t2`:
 
@@ -302,68 +302,112 @@ calc (Minus t1 t2) = let (Num v1) = calc t1
                      in (Num (v1 - v2))
 {% endhighlight %}
 
-The interpreter follows a structure that every interpreter we write and virtually every interpreter written in a functional language will follow.
+The interpreter follows a pattern that every interpreter we write will follow.  Each constructor from the AST definition has a case in the `calc` function that interprets that constructor.  This pattern and the accompanying `data` construct gives us three nice properties - completeness, determinsitic, and normalizing - that are quite useful.
 
----
+Completeness says that every term constructed in `AE` will be interpreted by `calc`.  Can we prove that? As it turns out, the Haskell `data` construct gives us some exceptionally nice properties that give us nice properties for free, without direct proof. Bt definition, every value in the abstract syntax for `AE` is constructed with `Num`, `Plus`, and `Minus`.  There are no other constructions of type `AE`.   This is true of any type defined using `data` in Haskell.  All values of the defined type are constructed with its constructors.  A function that has a case for every constructor, is necessarily complete.
 
-I made a pretty bold statement when I said the interpreter reduces *every* abstract syntax term to a value.  No proofs here so how can that be the case?  As it turns out, the Haskell `data` construct and algebraic types in general give us some exceptionally nice properties that help with these things.
+The Haskell `data` type definition mechanism is an example of *algebraic types* or *constructed types* that are a staple in fununctional languages and becoming increasinly common in traditional programming languages.  We call them *algebraic* because the individual constructors are *products* of values and the type itself is the *sum* of those products.  Don't worry too much about this now, we'll revisit it later when we define our own types.
 
-Every value in the abstract syntax is constructed with `Num`, `Plus`, and `Minus`.  For any algebraic type regardless of language all values of that type are constructed with its defined constructors.  Look carefully at the `calc` function.  There is one case for every constructor.  If all values are build using constructors and every constructor has an interpretation, then our interpreter does in fact cover all syntactic elements of `AE`.
+Deterministic says that if we call `calc` on any term, we will get the same result.  This is an exceptionally important property as we don't want the same call to `calc` resulting in different values.  We know `AE` is deterministic because there is precisely one inference rule for interpreting each element of the concrete syntax.  In turn we know that `calc` is deterministic because there is precisely one case in the definition for each `AE` constructor.  Given `(Num n)` there is one rule and one `calc` case.  Given `Plus` there is one rule and one `calc` case.
 
-Knowing that we have an interpretation for every AST element, we need to know that each case terminates.  Another thing we get from a Haskell `data` construct and algebraic types in general is that the components of a constructor are smaller than the constructor.  This means that each recursive call on the parts of an expression is made on a smaller expression.  One cannot get smaller forever, thus eventually `calc` is called on `Num` causing the interpreter to terminate.
+Normalization says that a call to `calc` on any term constructed in `AE` will terminate.  Again, a pretty bold statement.  Can we prove it?  The elements of a Haskell `data` type specifically and algebraic types generally have are `well-ordered`.  In mathematics, well-ordered means that every subset of a set has a least element.  Getting from well-ordered to guaranteed termination takes a bit of work, but the gist is that components of a constructor are smaller than the constructor itself.  Each recursive call on the parts of a term is made on a smaller term.  Consider `calc (Plus t1 t2)` where `t1` and `t2` can be viewed as smaller than `(Plus t1 t2)`.  Because every set of `AE` terms has a least element, pulling a term apart into its peices will eventually get to that least element.
 
-## Inference Rules and Axioms
-
-$$
-\newcommand\calc{\mathsf{calc}\;}
-\newcommand\parse{\mathsf{parse}\;}
-\newcommand\typeof{\mathsf{typeof}\;}
-\newcommand\interp{\mathsf{interp}\;}
-\newcommand\eval{\mathsf{calc}\;}
-$$
-
-$$\frac{}{\calc v = v}\; [NumE]$$
-
-$$\frac{\calc t_1 = v_1,\; \calc t_2 = v_2}{\calc t_1 + t_2 = v_1+v_2}\; [PlusE]$$
-
-$$\frac{\calc t_1 = v_1,\; \calc t_2 = v_2}{\calc t_1 - t_2 = v_1-v_2}\; [MinusE]$$
+The least elements of `AE` are those constructed by `(Num n)`.  When the interpreter reaches the least element, it cannot go further and terminates.  Every call to `calc` gets closer to the least element.  Note that those those least elements are what we defined as values.  This is not a conicidence.  Not only does `AE` terminate, it always terminates with a value.  Said it terms we all understand, the `AE` interpreter never crashes for any element of `AE1`.
 
 ## All Together Now
 
-Definition of `AE` is complete both semantically and operationally.  The language definition.  First we define a concrete syntax for terms:
+Before we say more about `AE`, lets put all the pieces together into a single definition.  Definition of `AE` is now complete sytactically, semantically and operationally:
+
+* Syntax is defined by the `AE` grammar
+* Semantics is defined by the `AE` inference rules
+* Operations are defined by `calc` and `parse`.
+
+First we defined a concrete syntax for terms:
 
 $$\begin{align*}
-t ::= & \mathsf{NUM} \mid t + t \mid t - t \\
+t ::= & \NUM \mid t + t \mid t - t \\
 \end{align*}$$
 
 and syntactic definition of values:
 
 $$\begin{align*}
-v ::= & \mathsf{NUM} \\
+v ::= & \NUM \\
 \end{align*}$$
 
-Then we define basic inference rules formally defining how `AE` is interpreted:
+Then we defined basic inference rules formally defining how `AE` is interpreted:
 
-$$\frac{t_1 \Downarrow v_1\;\; t_2 \Downarrow v_2}{(t_1 + t_2)\Downarrow v_1+v_2}\; [PlusE]$$
+$$\frac{}{\calc v = v}\; [NumE]$$
 
-$$\frac{t_1 \Downarrow v_1\;\; t_2 \Downarrow v_2}{(t_1 - t_2\Downarrow v_1-v_2}\; [MinusE]$$
+$$\frac{\calc t_1 = v_1,\; \calc t_2 = v_2}{\calc t_1 + t_2 = v_1+v_2}\; [PlusE]$$
 
-We implement a parser from the grammar and an interpreter from the inference rules:
+$$\frac{\calc t_1 = v_1,\; \calc t_2 = v_2}{\calc t_1 + t_2 = v_1-v_2}\; [MinusE]$$
+
+We implemented a parser from the grammar and an interpreter from the inference rules:
 
 {% highlight haskell %}
-calc :: AE -> Int
-calc (Num x) = x
-calc (Plus l r) = (interp l) + (interp r)
-calc (Minus l r) = (interp l) - (interp r)
+calc :: AE -> AE
+calc (Num n) = (Num n)
+calc (Plus t1 t2) = let (Num v1) = calc t1
+                        (Num v2) = calc t2
+                     in (Num (v1 + v2))
+calc (Minus t1 t2) = let (Num v1) = calc t1
+		                 (Num v2) = calc t2
+                     in (Num (v1 - v2))
 {% endhighlight %}
 
-Given the parser and interpreter for `AE`, we can now define a language evaluator that puts everything together:
+Given the parser and interpreter for `AE`, we can now define a language evaluator, `eval`, that puts everything together:
 
 {% highlight haskell %}
-eval = calc . parse
+eval :: String -> AE
+eval = calc . parseAE
 {% endhighlight %}
 
 In words, `eval` is the composition of `parse` and `calc`.  This notation says that `parse` will be called first and the output passed to `calc`.  If `parse` throws an error, `eval` will terminate without passing a value to `calc`.
+
+## Discussion
+
+`AE` is a rather silly language that is less powerful than one of those bank calculators you get when you open a checking account.  It adds and subtracts numbers.  However, we need to start somewhere and `AE` is good for that.
+
+### Complete, Deerministic, and Normalizing
+
+We said earlier that `calc` is complete, deterministic and normalizing.  Complete in that any element of `AE` can be interpretted, deterministic in that there is only one way to interpret any element of `AE`, and normalizing in that every interpretation of and `AE` element terminates.
+
+Unfortunately, these nice properties result from `AE` being such a trivial language.  Completeness and deterministic are properties something we will seek to preserve as we add features.  However,  normalizing will prove problematic when we add recursion and looping.  Some programs such as operating systems shouldn't terminate anyway.  Certainly we would like to ensure that no programs written in our languages crash, but that one will unfortunately go away in the next chapter.
+
+### Induction and Extensionality
+
+There is one property of `AE` structures that underlies most of our discussion.  The `AE` abstract syntax specifically and algebraic types generally have both inductive and extensionality principles.  The inductive principle allows us to prove properties over `AE` and the extensionality principle allows us to determine if two `AE` structures are equivalent.  We won't use either principle yet, so let's define them informally for now.
+
+Induction over `AE` says that some property, $p$, is true for all elements of `AE` if we can:
+
+1. Prove $p$ directly for base cases
+2. Prove $p$ for inductive cases by assuming $p$ for the case's pieces
+
+What are the base and inductive cases?  For `AE`, `Num` is the base case while `Plus` and `Minus` are inductive cases.  `Num` is a base case because it is not constructed from other elements of `AE`.  We can see this in the `data` definition. It is also reflected in the definition of `calc` where there is no recursive call for `Num`.  `Plus` and `Minus` both depend on other `AE` constructions in their definition and `calc` cases.  Stated in terms of the `AE` concrete syntax, the induction principle states that $p$ is true for any `AE` term $t$ when:
+
+$$
+\begin{align*}
+\forall & n . p(n) \\
+\forall & t_1 t_2 . p(t_1) -> p(t_2) -> p(t_1 + t_2) \\
+\forall & t_1 t_2 . p(t_1) -> p(t_2) -> p(t_1 - t_2) \\
+\end{align*}
+$$
+
+Extensionality is simpler to state.  Two terms in `AE` are equivalent if they use the same constructor and their parts are equivalent.  For any $t$ and $t'$, $t=t'$ if one of the following cases applies:
+
+$$
+\begin{align*}
+t_1 + t_2 = t_1' + t_2' <-> t_1=t_1' \wedge t_2=t_2'
+t_1 - t_2 = t_1' - t_2' <-> t_1=t_1' \wedge t_2=t_2'
+\end{align*}
+$$
+
+This if no case applies, then the terms are not equal.  So, $t_1+t_2$ will never be equal to $t_1'-t_2'$.
+
+## Exercises
+
+1. Add multiplication and division to `AE`.  Recall that `div` is the Haskell function for integer division.  Do we lose any of our nice properties by doing this?
+2. Rewrite `AE` replacing the `Plus` and `Minus` constructors in the AST with a single constructor `Binop op t1 t2` where `op` is the represented binary operation.  You will need to change the parser to generate `Binop` rather than `Plus` and `Minus`.  Think carefully about what `op` should be.  If you do it right, you should be able to add any operator to `AE` by simply changing the parser.
 
 ## Attic
 

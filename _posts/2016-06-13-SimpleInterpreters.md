@@ -107,10 +107,11 @@ Concrete syntax is nice on the user side, but painful to work with directly when
 *Abstract Syntax* is a data structure representing parsed terms.  This data structure is far more useful than concrete syntax when writing interpreters and compilers. Programs are data and abstract syntax is the data structure that represents them.  An abstract syntax for `AE` written using a Haskell data type is:
 
 {% highlight haskell %}
-data AE = Num Int
-        | Plus AE AE
-        | Minus AE AE
-          deriving (Show,Eq)
+data AE where
+  Num :: Int -> AE
+  Plus :: AE -> AE -> AE
+  Minus :: AE -> AE -> AE
+  deriving (Show,Eq)
 {% endhighlight %}
 
 where `Num`, `Plus` and `Minus` are the *constructors* of the data type `AE` that correspond with numbers, sums and differences in the `AE` concrete syntax.  We use the term constructor because all values of type `AE` are constructed with one of these operations.  By definition, the `AE` type contains all constructions using `Plus`, `Minus` and `Num`, and no more.
@@ -387,9 +388,9 @@ What are the base and inductive cases?  For `AE`, `Num` is the base case while `
 
 $$
 \begin{align*}
-\forall & n . p(n) \\
-\forall & t_1 t_2 . p(t_1) -> p(t_2) -> p(t_1 + t_2) \\
-\forall & t_1 t_2 . p(t_1) -> p(t_2) -> p(t_1 - t_2) \\
+\forall & n \cdot p(n) \\
+\forall & t_1 t_2 \cdot p(t_1) \rightarrow p(t_2) \rightarrow p(t_1 + t_2) \\
+\forall & t_1 t_2 \cdot p(t_1) \rightarrow p(t_2) \rightarrow p(t_1 - t_2) \\
 \end{align*}
 $$
 
@@ -397,8 +398,8 @@ Extensionality is simpler to state.  Two terms in `AE` are equivalent if they us
 
 $$
 \begin{align*}
-t_1 + t_2 = t_1' + t_2' <-> t_1=t_1' \wedge t_2=t_2'
-t_1 - t_2 = t_1' - t_2' <-> t_1=t_1' \wedge t_2=t_2'
+t_1 + t_2 = t_1' + t_2' \leftrightarrow t_1=t_1' \wedge t_2=t_2' \\
+t_1 - t_2 = t_1' - t_2' \leftrightarrow t_1=t_1' \wedge t_2=t_2' \\
 \end{align*}
 $$
 
@@ -408,65 +409,5 @@ This if no case applies, then the terms are not equal.  So, $t_1+t_2$ will never
 
 1. Add multiplication and division to `AE`.  Recall that `div` is the Haskell function for integer division.  Do we lose any of our nice properties by doing this?
 2. Rewrite `AE` replacing the `Plus` and `Minus` constructors in the AST with a single constructor `Binop op t1 t2` where `op` is the represented binary operation.  You will need to change the parser to generate `Binop` rather than `Plus` and `Minus`.  Think carefully about what `op` should be.  If you do it right, you should be able to add any operator to `AE` by simply changing the parser.
-
-## Attic
-
-{% highlight haskell %}
-data (Show a,Eq a) => Expr a
-      = Val a
-      | Add (Expr a) (Expr a)
-      | Sub (Expr a) (Expr a)
-        deriving (Eq,Show)
-{% endhighlight %}
-
-A language representing the states of a stop light, the *Stop Light Language* (`SLL`), is finite:
-
-{% highlight text %}
-<SLL> ::= <C> + <C>
-<C> ::= red | green | yellow
-{% endhighlight %}
-
-where _<C> + <C>_ is a pair of stoplight colors representing both sides of the light.  _SLL_ does not refer to itself in its own definition and is finite.
-
-The strings:
-
-{% highlight text %}
-red+red  
-green+yellow  
-yellow+yellow  
-{% endhighlight %}
-
-are all terms in _SLL_.  In contrast:
-
-{% highlight text %}
-red+red+red  
-green  
-yellow+blue  
-{% endhighlight %}
-
-are not terms in _SSL_.
-
-Similarly, an abstract syntax for `SLL` is:
-
-{% highlight haskell %}
-data C = red | green | yellow deriving (Show,Eq)
-data SSL = Sum C C deriving (Show,Eq)
-{% endhighlight %}
-
-The `SSL` abstract syntax is interesting in that it defines `C` then builds `SSL` from it.  Will this data type work just as well?
-
-{% highlight haskell %}
-data SSL = red | green | yellow | Sum SSL SSL deriving (Show,Eq)
-{% endhighlight %}
-
----
-
-$$\frac{}{(\mathsf{Num}\; n \Downarrow n)}\; [NumE]$$
-
-$$\frac{t_1 \Downarrow v_1\;\; t_2 \Downarrow v_2}{(\mathsf{Plus}\; t_1\; t_2)\Downarrow v_1+v_2}\; [PlusE]$$
-
-$$\frac{t_1 \Downarrow v_1\;\; t_2 \Downarrow v_2}{(\mathsf{Minus}\; t_1\; t_2\Downarrow v_1-v_2}\; [MinusE]$$
-
----
 
 [^1]: Three Letter Acronym

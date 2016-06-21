@@ -4,6 +4,17 @@ title: Notations and Preliminaries
 use_math: true
 category: chapter
 ---
+$$
+\newcommand\calc{\mathsf{calc}\;}
+\newcommand\parse{\mathsf{parse}\;}
+\newcommand\typeof{\mathsf{typeof}\;}
+\newcommand\interp{\mathsf{interp}\;}
+\newcommand\eval{\mathsf{calc}\;}
+\newcommand\NUM{\mathsf{NUM}\;}
+\newcommand\NAT{\mathsf{NAT}\;}
+$$
+
+
 # What you should know
 
 ## Haskell
@@ -37,14 +48,18 @@ data AE = Num Int
 
 Grammars are represented using `::=` to define variables and `|` to express alternative.  Any symbol in all caps is considered a variable.  The following trivial grammar defines an expression languages consisting of sum and difference operations:
 
-{% highlight text %}
-AE ::= NUM
-       | AE + AE
-       | AE - AE
-       | if0 AE then AE else AE
-{% endhighlight %}
+$$
+\begin{align*}
+t ::= & \NUM \\
+      & \mid t + t \\
+      & \mid t - t \\
+      & \mid if0\; t\; then\; t\; else\; t \\
+\end{align*}
+$$
 
-Any symbol in all caps is a meta-variable.  Pre-defined meta-variables include NUM for integer numbers and NAT for natural numbers.  We're not worried about writing parsers in this book, but specifying them proves useful.
+Any symbol to the left of the `::=` definition symbol is a meta-variable defined by the definition to the right.  The symbol $t$ represents anything defined by the expression to the right.  Note also that any subscripted or superscripted $t$ such as $t_k$ or $t'$ is definitionally the same as $t$.
+
+There are a few pre-defined meta-variables that include $\NUM$ for integer numbers and $\NAT$ for natural numbers.  We're not worried about writing parsers in this book, but specifying them proves useful.
 
 ### Inference Rules
 

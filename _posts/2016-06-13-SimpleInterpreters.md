@@ -125,7 +125,7 @@ From this point forward I will use TLA[^1] *AST* when referring to abstract synt
 A *parser* is a program that translates concrete syntax into an AST.  It checks the syntax of its input, generates error messages if the syntax is bad, and generates an AST if the syntax is good. The signature of a parser for the _AE_ language is:
 
 {% highlight haskell %}
-parse :: String -> AE
+parseAE :: String -> AE
 {% endhighlight %}
 
 Give `parse` a string and it will return an `AE` if it does not crash.  More generally, the parser for any language will be from a string to the datatype for that language's abstract syntax.
@@ -139,32 +139,15 @@ import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
-import qualified Text.ParserCombinators.Parsec.Token as Token
+import Text.ParserCombinators.Parsec.Token
+import ParserUtils
 {% endhighlight %}
 
-The definition `tokens` constructs a data structure representing a _lexer_ that converts a string into a sequence of tokens for parsing.  Here we tell Parsec that we will create a language using `javaStyle` as a basis adding `+` and `-` as reserved operations:
+The `ParserUtils` has a few definitions that make defining parsers a bit simpler specific to this text.  You need to have `ParserUtils` in the same directory as your Haskell source or installed in a place where GHCI can find it.
 
-{% highlight haskell %}
-tokenDef =
-  javaStyle { Token.reservedOpNames = [ "+","-"] }
-{% endhighlight %}
+The biggest thing `ParserUtils` provides is a standard lexer that we can use for all our projects.  A lexer is simply a parser that converts a stream of characters into a stream of tokens that are language parser can understand.  What we get from `ParserUtils` is collection of token parsers for reserved operations, parenthesis, numbers and white space.
 
-The lexer itself is created using the `makeTokenParser` called on the `tokens` structure we just created:
-
-{% highlight haskell %}
-lexer = Token.makeTokenParser tokenDef
-{% endhighlight %}
-
-What we get is collection of token parsers for reserved operations, parenthesis, numbers and white space:
-
-{% highlight haskell %}
-reservedOp = Token.reservedOp lexer
-parens = Token.parens lexer
-integer = Token.integer lexer
-whiteSpace = Token.whiteSpace lexer
-{% endhighlight %}
-
-Now we can create the parser itself. The parser, called `expr` is of  type `Parser AE`.  Note that this is a data structure, not a function.  As is typical for monadic things it must be run later.  More on that as we get deeper into interpreter.  For right now, our parser for _AE_ will be constructed using `buildExpressionParser` on operators `operatiors` and `terms` there we're about to define.
+The parser we will create, called `expr` is of type `Parser AE` - a parser that generates `AE` structures.  Our parser for `AE` will be constructed using `buildExpressionParser` on operators defined by `operators` and terms defined by `terms` that we're about to create:
 
 {% highlight haskell %}
 expr :: Parser AE
@@ -174,22 +157,22 @@ expr = buildExpressionParser operators term
 First let's define the operators table that will be used to generate expressions.  The operators table is a list of lists that define individual operations.  Looking at the first operator definition tells us quite a bit about the operation:
 
 {% highlight haskell %}
-Infix (reservedOp "+" >> return (Plus )) AssocLeft
+inFix "+" Plus AssocLeft
 {% endhighlight %}
 
-`x + y` is an infix operation that is translated into `Plus x y` and is left associative.  For now, we'll leave out details.  It is sufficient to know that the `Infix` constructor creates the operation from a parser for `+` that returns an application of `Plus`.  `AssocLeft indicates the operator is left associative in the absence of parenthesis.  In other words:
+The `inFix` function is defined in `ParserUtils` to simplify defining inFix operations.  Command tells us that `t1 + t2` is an infix operation that is translated into `Plus (parseAE t1) (ParseAE t2)` and is left associative.  For now, we'll leave out details of what Parsec is doing.  It is sufficient to know that the `inFix` function creates a parser for `t1+t2` that returns an application of `Plus` to parsing `t1` and `t2`.  `AssocLeft` indicates the operator is left associative in the absence of parenthesis.  In other words:
 
 {% highlight text %}
 x + 3 - y + 7 == ((x+3) - y) + 7
 {% endhighlight %}
 
-There are two operations in _AE_, so there are two `Infix` applications in a list.  The list itself tells the parser generator that `+` and `-` have the same precedent.  We'll see examples with different precendent as our languages grow more complex.
+There are two operations in _AE_, so there are two `inFix` applications in a list.  The list itself tells the parser generator that `+` and `-` have the same precedent.  We'll see examples with different precendent as our languages grow more complex.  `opTable` is a list of lists where each internal list contains operators of the same precedence.  `+` and `-` are in a list together indicating they are at the same precedence level.
 
 [Expression Parser Documentation](https://hackage.haskell.org/package/parsec-3.1.9/docs/Text-Parsec-Expr.html)  
 
 {% highlight haskell %}
-opTable = [ [Infix (reservedOp "+" >> return Plus) AssocLeft,
-             Infix (reservedOp "-" >> return Minus) AssocLeft ]
+opTable = [ inFix "+" Plus AssocLeft,
+            inFix "-" Minus AssocLeft ]
             ]
 {% endhighlight %}
 
@@ -197,7 +180,7 @@ Now we have operators, but we don't have base terms for them to operate over.  I
 
 {% highlight haskell %}
 numExpr :: Parser AE
-numExpr = do i <- integer
+numExpr = do i <- integer lexer
              return (Num (fromInteger i))
 {% endhighlight %}
 
@@ -206,7 +189,7 @@ This Haskell expression uses the monadic `do` syntax to sequence operations.  In
 A `term` in our language is either a parenthesized expression or a number.  This is exactly what the definition for `term` says.  The `<|>` operation is an or operation for parsers.  A `term` is either a parenthesized expression or an integer.  This capability for building parsers from smaller parsers is my reason for selecting Parsec.  Now that we have a basic parser in place, you should find it relatively easy to extend it in this manner to include new terms.
 
 {% highlight haskell %}
-term = parens expr <|> numExpr
+term = parens lexer expr <|> numExpr
 {% endhighlight %}
 
 Looking back at the definition of `expr` puts the entire thing together.  `exper` is a parser that returns `AE` and is built from `opTable` defining operations over `terms`.
@@ -240,6 +223,8 @@ parseFile p file =
 {% endhighlight %}
 
 The built in function `parse` is called with an argument representing the parser.  In our case, this is `expr`.  So `parse expr` is parsing using the definition we created earlier.  This is classic monadic programming.  We'll come back to this later, but keep in mind that parsers are structures that are run by the `parse` function to perform their work.
+
+If the construction of the `AE` parser bothers you, it is save to simply use it for the time being.  We'll learn more about extending and writing parsers as we move along.  Don't get caught up in it now.
 
 ## Interpreters
 

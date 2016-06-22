@@ -42,23 +42,23 @@ parseAE = parseString expr
 
 parseAEFile = parseFile expr
 
--- Calculation Function
+-- Evaluation Function
 
-calc :: AE -> AE
-calc (Num x) = (Num x)
-calc (Plus t1 t2) = let (Num v1) = (calc t1)
-                        (Num v2) = (calc t2)
+eval :: AE -> AE
+eval (Num x) = (Num x)
+eval (Plus t1 t2) = let (Num v1) = (eval t1)
+                        (Num v2) = (eval t2)
                     in (Num (v1+v2))
-calc (Minus t1 t2) = let (Num v1) = (calc t1)
-                         (Num v2) = (calc t2)
+eval (Minus t1 t2) = let (Num v1) = (eval t1)
+                         (Num v2) = (eval t2)
                      in (Num (v1-v2))
-calc (Mult t1 t2) = let (Num v1) = (calc t1)
-                        (Num v2) = (calc t2)
+eval (Mult t1 t2) = let (Num v1) = (eval t1)
+                        (Num v2) = (eval t2)
                     in (Num (v1*v2))
-calc (Div t1 t2) = let (Num v1) = (calc t1)
-                       (Num v2) = (calc t2)
+eval (Div t1 t2) = let (Num v1) = (eval t1)
+                       (Num v2) = (eval t2)
                    in (Num (div v1 v2))
 
--- Interpreter = parse + calc
+-- Interpreter = parse + eval
 
-interp = calc . parseAE
+interp = eval . parseAE

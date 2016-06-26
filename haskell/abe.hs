@@ -30,7 +30,18 @@ data ABE where
   IsZero :: ABE -> ABE
   If :: ABE -> ABE -> ABE -> ABE
   deriving (Show,Eq)
-                    
+
+pprint :: ABE -> String
+pprint (Num n) = show n
+pprint (Boolean b) = show b
+pprint (Plus n m) = "(" ++ pprint n ++ " + " ++ pprint m ++ ")"
+pprint (Minus n m) = "(" ++ pprint n ++ " - " ++ pprint m ++ ")"
+pprint (And n m) = "(" ++ pprint n ++ " && " ++ pprint m ++ ")"
+pprint (Leq n m) = "(" ++ pprint n ++ " <= " ++ pprint m ++ ")"
+pprint (IsZero m) = "(isZero " ++ pprint m ++ ")"
+pprint (If c n m) = "(if " ++ pprint c ++ " then " ++ pprint n ++ " else " ++ pprint m ++ ")"
+
+
 -- Parser
 
 expr :: Parser ABE
@@ -133,6 +144,39 @@ interp e = let p=(parseABE e) in
              then (eval p)
              else error "This should never happen"
 
+typeof' :: ABE -> Either TABE String
+typeof' (Num x) = (Left TNum)
+typeof' (Plus l r) = let l' = (typeof' l)
+                         r' = (typeof' r)
+                     in if l'==(Left TNum) && r'==(Left TNum)
+                        then (Left TNum)
+                        else Right "Type Mismatch in +"
+typeof' (Minus l r) = let l' = (typeof' l)
+                          r' = (typeof' r)
+                      in if l'==(Left TNum) && r'==(Left TNum)
+                         then (Left TNum)
+                         else Right "Type Mismatch in -"
+typeof' (Boolean b) = (Left TBool)
+typeof' (And l r) = if (typeof' l) == (Left TBool) && (typeof' r) == (Left TBool)
+                    then (Left TBool)
+                    else Right "Type mismatch in &&"
+typeof' (Leq l r) = if (typeof' l) == (Left TNum) && (typeof' r) == (Left TNum)
+                    then (Left TBool)
+                    else Right "Type mismatch in <="
+typeof' (IsZero v) = if (typeof' v) == (Left TNum)
+                     then (Left TBool)
+                     else Right "Type mismatch in IsZero"
+typeof' (If c t e) = if (typeof' c) == (Left TBool)
+                        && (typeof' t)==(typeof' e)
+                     then (typeof' t)
+                     else Right "Type mismatch in if"
+
+interp' :: String -> ABE
+interp' e = let p=(parseABE e) in
+            case (typeof' p) of
+              (Left _) -> eval p
+              (Right m) -> error m
+
 -- QuickCheck
 
 instance Arbitrary ABE where
@@ -182,18 +226,13 @@ genABE 0 =
   do term <- oneof [genNum,genBool]
      return term
 genABE n =
-  do term <- oneof [genNum,(genPlus (n-1)),(genMinus (n-1))]
+  do term <- oneof [genNum,(genPlus (n-1))
+                   ,(genMinus (n-1))
+                   ,(genAnd (n-1))
+                   ,(genLeq (n-1))
+                   ,(genIsZero (n-1))
+                   ,(genIf (n-1))]
      return term
-
-pprint :: ABE -> String
-pprint (Num n) = show n
-pprint (Boolean b) = show b
-pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
-pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
-pprint (And n m) = "(" ++ pprint n ++ "&&" ++ pprint m ++ ")"
-pprint (Leq n m) = "(" ++ pprint n ++ "<=" ++ pprint m ++ ")"
-pprint (IsZero m) = "(isZero" ++ pprint m ++ ")"
-pprint (If c n m) = "(if " ++ pprint c ++ " then " ++ pprint m ++ "else" ++ pprint m ++ ")"
 
 testParser :: Int -> IO ()
 testParser n = quickCheckWith stdArgs {maxSuccess=n} (\t -> parseABE (pprint t) == t)
@@ -201,3 +240,19 @@ testParser n = quickCheckWith stdArgs {maxSuccess=n} (\t -> parseABE (pprint t) 
 testEval :: Int -> IO ()
 testEval n = quickCheckWith stdArgs {maxSuccess=n} (\t -> eval (parseABE (pprint t)) == (eval t))
 
+testTypeof :: Int -> IO ()
+testTypeof n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> let ty = typeof t
+         in ty == TNum || ty == TBool)
+
+testTypeof' :: Int -> IO ()
+testTypeof' n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t-> case typeof' t of
+      (Left _) -> True
+      (Right _) -> True)
+
+testEval' :: Int -> IO ()
+testEval' n = quickCheckWith stdArgs {maxSuccess=n}
+              (\t -> case typeof' t of
+                       (Left _) -> eval (parseABE (pprint t)) == (eval t)
+                       (Right _) -> True)

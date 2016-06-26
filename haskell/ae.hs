@@ -1,5 +1,10 @@
 {-# LANGUAGE GADTs #-}
 
+import System.Random
+import Test.QuickCheck
+import Test.QuickCheck.Gen
+import Test.QuickCheck.Function
+import Test.QuickCheck.Monadic
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
@@ -19,6 +24,11 @@ data AE where
   Mult :: AE -> AE -> AE
   Div :: AE -> AE -> AE
   deriving (Show,Eq)
+
+pprint :: AE -> String
+pprint (Num n) = show n
+pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
+pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
 
 -- Parser
 
@@ -62,3 +72,31 @@ eval (Div t1 t2) = let (Num v1) = (eval t1)
 -- Interpreter = parse + eval
 
 interp = eval . parseAE
+
+--
+
+instance Arbitrary AE where
+  arbitrary =
+    sized $ \n -> genAE (rem n 10)
+
+genNum =
+  do t <- choose (0,100)
+     return (Num t)
+
+genPlus n =
+  do s <- genAE n
+     t <- genAE n
+     return (Plus s t)
+
+genMinus n =
+  do s <- genAE n
+     t <- genAE n
+     return (Minus s t)
+
+genAE :: Int -> Gen AE
+genAE 0 = 
+  do term <- genNum
+     return term
+genAE n =
+  do term <- oneof [genNum,(genPlus (n-1)),(genMinus (n-1))]
+     return term

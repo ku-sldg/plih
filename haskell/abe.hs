@@ -135,8 +135,6 @@ interp e = let p=(parseABE e) in
 
 -- QuickCheck
 
-mer x = rem x 10
-
 instance Arbitrary ABE where
   arbitrary =
     sized $ \n -> genABE (rem n 10)

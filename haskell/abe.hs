@@ -196,8 +196,8 @@ pprint (IsZero m) = "(isZero" ++ pprint m ++ ")"
 pprint (If c n m) = "(if " ++ pprint c ++ " then " ++ pprint m ++ "else" ++ pprint m ++ ")"
 
 testParser :: Int -> IO ()
-testParser n = quickCheckWith stdArgs { maxSuccess=n} (\n -> parseABE (pprint n) == n)
+testParser n = quickCheckWith stdArgs {maxSuccess=n} (\t -> parseABE (pprint t) == t)
 
 testEval :: Int -> IO ()
-testEval n = quickCheckWith stdArgs { maxSuccess=n} (\n -> eval (parseABE (pprint n)) == (eval n))
+testEval n = quickCheckWith stdArgs {maxSuccess=n} (\t -> eval (parseABE (pprint t)) == (eval t))
 

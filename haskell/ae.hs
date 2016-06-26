@@ -73,7 +73,7 @@ eval (Div t1 t2) = let (Num v1) = (eval t1)
 
 interp = eval . parseAE
 
---
+-- Generator
 
 instance Arbitrary AE where
   arbitrary =
@@ -100,3 +100,13 @@ genAE 0 =
 genAE n =
   do term <- oneof [genNum,(genPlus (n-1)),(genMinus (n-1))]
      return term
+
+-- QuickCheck
+
+testParser :: Int -> IO ()
+testParser n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> parseAE (pprint t) == t)
+
+testEval :: Int -> IO ()
+testEval n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> eval (parseAE (pprint t)) == (eval t))

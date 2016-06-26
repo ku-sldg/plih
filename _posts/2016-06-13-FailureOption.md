@@ -129,17 +129,29 @@ data ABE where
 
 ## Parsing
 
+Updating the `AE` parser to operate on `ABE` demonstrates a pattern we will use extensively.  The definition of `expr` does not change - it will still be our parser and is built from opTable and terms.
+
 {% highlight haskell %}
 expr :: Parser ABE
-expr = buildExpressionParser operators term
+expr = buildExpressionParser opTable term
+{% endhighlight %}
 
-operators = [ [ inFix "+" Plus AssocLeft
+The addition of new operators allows us to look at more functionality in the operator specification.  You see first the definitions for plus and minus from `AE` together in a list indicating they have the same precedent.  Then you see definitions for `isZero` and `<=` in a list immediately below.  These operators have precent immediately lower than `+` and `-`.  For example, `isZero x - y` will be parsed as `(isZero (x-y))` because `-` has higher precedence than `isZero`.  Finally, `&&` is in its own list following the numeric operations indicating that it has yet lower precedence.  So, `true && isZero (x-y)` parses as `(true && (isZero (x-y))).
+
+{% highlight haskell %}
+opTable = [ [ inFix "+" Plus AssocLeft
               , inFix "-" Minus AssocLeft ]
+            , [ inFix "<=" Leq AssocLeft
+	          , preFix "isZero" IsZero ]
             , [ inFix "&&" And AssocLeft ]
-            , [ inFix "<=" Leq AssocLeft ]
-            , [ preFix "isZero" IsZero ]
             ]
+{% endhighlight %}
 
+One final addition is the first appearance of the `preFix` operator function.  As you might guess, this creates a prefix operation in a similar manner as `inFix`.  There is also a `postFix` function should you find a need for it.
+
+If you haven't bought in to the Parsec approach, hopefully the next extension will start to convert you.  Here we define parsers for each individual term that operators can operate over.  In `AE` this was only integers, but in `ABE` we add Boolean values and `if`.  The first three parsers operate over number and boolean constants.  We're using the `integer` parser that is built in Parsec for numbers.  For `true` and `false` we use the `reserved` parser that operates over reserved words that are enumerated in `PaserUtils`.  `trueExpr` parses the reserved word `true` and returns the abstract syntax `(Boolean True)` representing the appropriate constant.  Similarly for `falseExpr`.  Anytime you need to parse a reserved work or constant, these built-in parsers can be modified.  Remember however that `lexer` is defined in `ParserUtils` and must be modified if you want to include keywords that are not already included.
+
+{% highlight haskell %}
 numExpr :: Parser ABE
 numExpr = do i <- integer lexer
              return (Num (fromInteger i))
@@ -151,7 +163,21 @@ trueExpr = do i <- reserved lexer "true"
 falseExpr :: Parser ABE
 falseExpr = do i <- reserved lexer "false"
                return (Boolean False)
+{% endhighlight %}
 
+The parser for `if` is a hint of Parsec's power.  It uses the Haskell `do` notation to compose a collection of smaller parsers.  Within the `do` notation, expressions are evaluated sequentially and results bound to variables using `<-`.  The `ifExpr` parser executes the following parsers in sequence:
+
+1. Parse an "if" using `reserved`
+2. Parse an expression and store the result in `c`
+3. Parse a "then" using `reserved`
+4. Parse an expression and store the result in `t`
+5. Parse an "else" using reserved
+6. Parse an expression and store the result in `e`
+7. Return the AST result `(if c t e)`
+
+Here's the actual code:
+
+{% highlight haskell %}
 ifExpr :: Parser ABE
 ifExpr = do reserved lexer "if"
             c <- expr
@@ -160,15 +186,23 @@ ifExpr = do reserved lexer "if"
             reserved lexer "else"
             e <- expr
             return (If c t e)
+{% endhighlight %}
 
+Now we put the whole thing together to define `term`.  The `<|>` notation should be interpreted as or.  This the `term` parser looks for an expression in parenthesis, a number, a true or false, or an  if expression.  The `parens` parser is another built-in parser that puts things in parenthesis.  So `parens lexer expr` looks for `(expr)`.  The other parsers are what we built above.
+
+{% highlight haskell %}
 term = parens lexer expr
        <|> numExpr
        <|> trueExpr
        <|> falseExpr
        <|> ifExpr
+{% endhighlight %}
 
--- Parser invocation
+Looking back at the definition of `expr` it defines a complete parser using `term` and `opTable`.  Expressions can be used in operations and operations in expressions.  Plus, we've now got a parsing infrastructure that can be easily extended without much discussion moving forward.
 
+We'll invoke our new parser the same as always:
+
+{% highlight haskell %}
 parseABE = parseString expr
 
 parseABEFile = parseFile expr
@@ -176,24 +210,29 @@ parseABEFile = parseFile expr
 
 ## Interpreter
 
+Finally.  We have abstract syntax generated from concrete syntax and can now write our interpreter.  This involves extending the `AE` `eval` function to include new cases for the new Boolean operations.   The initial 
+
 {% highlight haskell %}
 eval :: ABE -> ABE
 eval (Num x) = (Num x)
-eval (Plus l r) = let (Num l') = (eval l)
-                      (Num r') = (eval r)
-                      in (Num (l'+r'))
-eval (Minus l r) = let (Num l') = (eval l)
-                       (Num r') = (eval r)
-                       in (Num (l'-r'))
+eval (Plus t1 t2) = let (Num v1) = (eval t1)
+                        (Num v2) = (eval t2)
+                    in (Num (v1+v2))
+eval (Minus t1 t2) = let (Num v1) = (eval t1)
+                         (Num v2) = (eval t2)
+                     in (Num (v1-v2))
+{% endhighlight %}
+
+{% highlight haskell %}
 eval (Boolean b) = (Boolean b)
-eval (And l r) = let (Boolean l') = (eval l)
-                     (Boolean r') = (eval r)
-                 in (Boolean (l' && r'))
-eval (Leq l r) = let (Num l') = (eval l)
-                     (Num r') = (eval r)
-                 in (Boolean (l' <= r'))
-eval (IsZero v) = let (Num v') = (eval v)
-                  in (Boolean (v' == 0))
-eval (If c t e) = let (Boolean c') = (eval c)
-                  in if c' then (eval t) else (eval e)
+eval (And t1 t2) = let (Boolean v1) = (eval t1)
+                       (Boolean v2) = (eval t2)
+                   in (Boolean (v1 && v2))
+eval (Leq t1 t2) = let (Num v1) = (eval t1)
+                       (Num v2) = (eval t2)
+                   in (Boolean (v1 <= v2))
+eval (IsZero t) = let (Num v) = (eval t)
+                  in (Boolean (v == 0))
+eval (If t1 t2 t3) = let (Boolean v) = (eval t1)
+                     in if v then (eval t2) else (eval t3)
 {% endhighlight %}

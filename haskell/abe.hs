@@ -1,5 +1,10 @@
 {-# LANGUAGE GADTs #-}
 
+import System.Random
+import Test.QuickCheck
+import Test.QuickCheck.Gen
+import Test.QuickCheck.Function
+import Test.QuickCheck.Monadic
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
@@ -29,13 +34,13 @@ data ABE where
 -- Parser
 
 expr :: Parser ABE
-expr = buildExpressionParser operators term
+expr = buildExpressionParser opTable term
 
-operators = [ [ inFix "+" Plus AssocLeft
+opTable = [ [ inFix "+" Plus AssocLeft
               , inFix "-" Minus AssocLeft ]
+            , [ inFix "<=" Leq AssocLeft
+              , preFix "isZero" IsZero ]
             , [ inFix "&&" And AssocLeft ]
-            , [ inFix "<=" Leq AssocLeft ]
-            , [ preFix "isZero" IsZero ]
             ]
 
 numExpr :: Parser ABE
@@ -75,23 +80,23 @@ parseABEFile = parseFile expr
 
 eval :: ABE -> ABE
 eval (Num x) = (Num x)
-eval (Plus l r) = let (Num l') = (eval l)
-                      (Num r') = (eval r)
-                      in (Num (l'+r'))
-eval (Minus l r) = let (Num l') = (eval l)
-                       (Num r') = (eval r)
-                       in (Num (l'-r'))
+eval (Plus t1 t2) = let (Num v1) = (eval t1)
+                        (Num v2) = (eval t2)
+                    in (Num (v1+v2))
+eval (Minus t1 t2) = let (Num v1) = (eval t1)
+                         (Num v2) = (eval t2)
+                     in (Num (v1-v2))
 eval (Boolean b) = (Boolean b)
-eval (And l r) = let (Boolean l') = (eval l)
-                     (Boolean r') = (eval r)
-                 in (Boolean (l' && r'))
-eval (Leq l r) = let (Num l') = (eval l)
-                     (Num r') = (eval r)
-                 in (Boolean (l' <= r'))
-eval (IsZero v) = let (Num v') = (eval v)
-                  in (Boolean (v' == 0))
-eval (If c t e) = let (Boolean c') = (eval c)
-                  in if c' then (eval t) else (eval e)
+eval (And t1 t2) = let (Boolean v1) = (eval t1)
+                       (Boolean v2) = (eval t2)
+                   in (Boolean (v1 && v2))
+eval (Leq t1 t2) = let (Num v1) = (eval t1)
+                       (Num v2) = (eval t2)
+                   in (Boolean (v1 <= v2))
+eval (IsZero t) = let (Num v) = (eval t)
+                  in (Boolean (v == 0))
+eval (If t1 t2 t3) = let (Boolean v) = (eval t1)
+                     in if v then (eval t2) else (eval t3)
 
 
 typeof :: ABE -> TABE
@@ -127,3 +132,74 @@ interp e = let p=(parseABE e) in
              if ((t==TBool) || (t==TNum))
              then (eval p)
              else error "This should never happen"
+
+-- QuickCheck
+
+mer x = rem x 10
+
+instance Arbitrary ABE where
+  arbitrary =
+    sized $ \n -> genABE (rem n 10)
+
+genNum =
+  do t <- choose (0,100)
+     return (Num t)
+
+genBool =
+  do t <- choose (True,False)
+     return (Boolean t)
+
+genPlus n =
+  do s <- genABE n
+     t <- genABE n
+     return (Plus s t)
+
+genMinus n =
+  do s <- genABE n
+     t <- genABE n
+     return (Minus s t)
+
+genAnd n =
+  do s <- genABE n
+     t <- genABE n
+     return (And s t)
+
+genLeq n =
+  do s <- genABE n
+     t <- genABE n
+     return (Leq s t)
+
+genIsZero n =
+  do s <- genABE n
+     return (IsZero s)
+
+genIf n =
+  do s <- genABE n
+     t <- genABE n
+     u <- genABE n
+     return (If s t u)
+
+genABE :: Int -> Gen ABE
+genABE 0 = 
+  do term <- oneof [genNum,genBool]
+     return term
+genABE n =
+  do term <- oneof [genNum,(genPlus (n-1)),(genMinus (n-1))]
+     return term
+
+pprint :: ABE -> String
+pprint (Num n) = show n
+pprint (Boolean b) = show b
+pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
+pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
+pprint (And n m) = "(" ++ pprint n ++ "&&" ++ pprint m ++ ")"
+pprint (Leq n m) = "(" ++ pprint n ++ "<=" ++ pprint m ++ ")"
+pprint (IsZero m) = "(isZero" ++ pprint m ++ ")"
+pprint (If c n m) = "(if " ++ pprint c ++ " then " ++ pprint m ++ "else" ++ pprint m ++ ")"
+
+testParser :: Int -> IO ()
+testParser n = quickCheckWith stdArgs { maxSuccess=n} (\n -> parseABE (pprint n) == n)
+
+testEval :: Int -> IO ()
+testEval n = quickCheckWith stdArgs { maxSuccess=n} (\n -> eval (parseABE (pprint n)) == (eval n))
+

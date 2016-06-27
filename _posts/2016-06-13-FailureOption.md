@@ -210,7 +210,7 @@ parseABEFile = parseFile expr
 
 ## Interpreter
 
-Finally.  We have abstract syntax generated from concrete syntax and can now write our interpreter.  This involves extending the `AE` `eval` function to include new cases for the new Boolean operations.   The initial 
+Finally.  We have abstract syntax generated from concrete syntax and can now write our interpreter.  This involves extending the `AE` `eval` function to include new cases for the new Boolean operations.  The initial definition is:
 
 {% highlight haskell %}
 eval :: ABE -> ABE
@@ -222,6 +222,10 @@ eval (Minus t1 t2) = let (Num v1) = (eval t1)
                          (Num v2) = (eval t2)
                      in (Num (v1-v2))
 {% endhighlight %}
+
+The additional cases are largely as one would anticipate.  `And` `Leq` and `IsZero` each evaluate their arguments and return an appropriate result.  The only real change is operations can now return types that differ from their argument types.  This is not a big change, but operations are no longer closed.
+
+The `If` construct differs in that not arguments are evaluated before the `If`.  The condition is evaluated an the Haskell `if` expression used to evaluate the appropriate `then` or `else` expression.  Note that in both `ABE` and Haskell `if` is an expression that returns a value when calculated.  This is in contrast to languages like C or Java where `if` is a command that sequences execution.  We'll revisit this concept later.
 
 {% highlight haskell %}
 eval (Boolean b) = (Boolean b)
@@ -236,3 +240,9 @@ eval (IsZero t) = let (Num v) = (eval t)
 eval (If t1 t2 t3) = let (Boolean v) = (eval t1)
                      in if v then (eval t2) else (eval t3)
 {% endhighlight %}
+
+## Testing
+
+Let's fire up QuickCheck and see what we have.  Remember that all `AE` programs famously ran to termination and produced a value.  Will the same thing hold true for `ABE` programs?  I suspect you can easily figure the answer, but let's follow a rigorous process to see why.  The process will be useful to us when our languages become more complex.
+
+

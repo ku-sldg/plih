@@ -350,6 +350,62 @@ interp = eval . parseAE
 
 In words, `interp` is the composition of `parseAE` and `eval`.  This notation says that `parse` will be called first and the output passed to `eval`.  If `parseAE` throws an error, `interp` will terminate without passing a value to `eval`.
 
+## Testing
+
+Haskell provides [QuickCheck](https://hackage.haskell.org/package/QuickCheck-2.8.2/docs/Test-QuickCheck.html) a domain-specific language widely used for testing and adapted to many other languages.  Like Parsec, QuickCheck takes a bit of time to learn, but is a worthwhile tool to have available.
+
+What QuickCheck does is rather ingenious.  Let's assume that we've written a function and would like to test that a property holds for a set of arbitrary inputs to that function.  As a concrete example, let's define a function `f x = x * x` and a property `p v = v >= 0`.  `f` is the *function under test* and `p` is the *property being tested*.  Note the signatures of `f` and `p`:
+
+{% highlight haskell %}
+f::Int -> Int
+f x = (x * x)
+
+p::Int -> Bool
+p v = v >= 0
+{% endhighlight %}
+
+If we want to say that `p` holds for all `f`, we would prove the following property:
+
+$$\forall x:Int \cdot (p (f x))$$
+
+This tells us that for every integer $x$, $g$ holds for $f x$.  (This is actually an easy proof, but for discussion let's assume we  have only testing available to us.)
+
+To test `p` we can easily write a function:
+
+{% highlight haskell %}
+\x -> (p (f x))
+{% endhighlight %}
+
+and call that function with numerous random values of `x`.  The more  tests run, the more confident we are in the result.
+
+This is precisely what QuickCheck does.  Specifically:
+
+{% highlight haskell %}
+quickCheck (\x -> (p (f x)))
+{% endhighlight %}
+
+will generate 100 arbitrary `Int` values and call `(\x -> (p (f x)))` on each.  In this case, the square of every integer is greater than or equal to zero, and we get the result:
+
+{% highlight haskell %}
++++ OK, passed 100 tests.
+{% endhighlight %}
+
+Choosing a test that is false for some integers:
+
+{% highlight haskell %}
+p' v = (v /= 100)
+{% endhighlight %}
+
+causes QuickCheck to display a counterexample:
+
+{% highlight haskell %}
+quickCheck (\x-> (p' (f x)))
+*** Failed! Falsifiable (after 18 tests and 1 shrink): 
+10
+{% endhighlight %}
+
+In this case, 100 random tests were enough to discover that 100 is the square of 10 and the test condition is thus false.
+
 ## Discussion
 
 `AE` is a rather silly language that is less powerful than one of those bank calculators you get when you open a checking account.  It adds and subtracts numbers.  However, we need to start somewhere and `AE` is good for that.

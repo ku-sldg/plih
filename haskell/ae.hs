@@ -1,21 +1,32 @@
 {-# LANGUAGE GADTs #-}
 
+-- Imports for QuickCheck
 import System.Random
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Function
 import Test.QuickCheck.Monadic
+
+-- Imports for Parsec
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Token
 
+-- Imports for PLIH
 import ParserUtils
 
+--
 -- Simple caculator with no variables
+--
+-- Author: Perry Alexander
+-- Date: Mon Jun 27 13:34:57 CDT 2016
+--
+-- Source files for the Arithmetic Expressions (AE) language from PLIH
+--
 
--- AST
+-- AST Definition
 
 data AE where
   Num :: Int -> AE
@@ -25,12 +36,14 @@ data AE where
   Div :: AE -> AE -> AE
   deriving (Show,Eq)
 
+-- AST Pretty Printer
+
 pprint :: AE -> String
 pprint (Num n) = show n
 pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
 pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
 
--- Parser
+-- Parser (Requires ParserUtils and Parsec)
 
 expr :: Parser AE
 expr = buildExpressionParser operators term
@@ -73,7 +86,9 @@ eval (Div t1 t2) = let (Num v1) = (eval t1)
 
 interp = eval . parseAE
 
--- Generator
+-- Testing (Requires QuickCheck 2)
+
+-- Arbitrary AST Generator
 
 instance Arbitrary AE where
   arbitrary =
@@ -101,7 +116,7 @@ genAE n =
   do term <- oneof [genNum,(genPlus (n-1)),(genMinus (n-1))]
      return term
 
--- QuickCheck
+-- QuickCheck 
 
 testParser :: Int -> IO ()
 testParser n = quickCheckWith stdArgs {maxSuccess=n}
@@ -110,3 +125,7 @@ testParser n = quickCheckWith stdArgs {maxSuccess=n}
 testEval :: Int -> IO ()
 testEval n = quickCheckWith stdArgs {maxSuccess=n}
   (\t -> eval (parseAE (pprint t)) == (eval t))
+
+f x = x * x
+p x = x >= 0
+p' v = (v /= 100)

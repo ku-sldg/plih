@@ -478,7 +478,9 @@ genPlusSecond =
      return (Plus s t)
 {% endhighlight %}
 
-If we do the same thing with `genMinusSecond` we will now generate arbitrary `ABE` terms.  Unfortunately, those arbitrary `ABE` terms are  of *arbitrary size*.  Mathematically this is perfectly fine as really big things don't bother us.  Pragmatically this is not perfectly fine as `genABEFirst` can now generate arbitrarily huge test cases.
+If we do the same thing with `genMinusSecond` we will now generate arbitrary `ABE` terms.  Unfortunately, those arbitrary `ABE` terms are  of *arbitrary size*.  Mathematically this is perfectly fine as really big things don't bother us.  Pragmatically this is not perfectly fine as `genABEFirst` can now generate arbitrarily huge test cases.  If you want to see what this does, use `sample` to generate a few test cases and be prepared to terminate your Haskell process!
+
+How do we make our generator for `AE` not go into the weeds generating huge test cases?  The easiest way is to add a size limit to the `AE` generator function by adding a size parameter to `genAE` that is decremented on each call to `genAE`.
 
 Here's all the code for our generators and making `AE` and instance of `Abitrary` in one place:
 

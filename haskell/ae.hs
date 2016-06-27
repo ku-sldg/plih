@@ -109,7 +109,7 @@ genMinus n =
      return (Minus s t)
 
 genAE :: Int -> Gen AE
-genAE 0 = 
+genAE 0 =
   do term <- genNum
      return term
 genAE n =

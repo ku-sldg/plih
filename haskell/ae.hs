@@ -92,7 +92,7 @@ interp = eval . parseAE
 
 instance Arbitrary AE where
   arbitrary =
-    sized $ \n -> genAE (rem n 10)
+    sized $ \n -> genAE ((rem n 10) + 10)
 
 genNum =
   do t <- choose (0,100)
@@ -125,7 +125,3 @@ testParser n = quickCheckWith stdArgs {maxSuccess=n}
 testEval :: Int -> IO ()
 testEval n = quickCheckWith stdArgs {maxSuccess=n}
   (\t -> eval (parseAE (pprint t)) == (eval t))
-
-f x = x * x
-p x = x >= 0
-p' v = (v /= 100)

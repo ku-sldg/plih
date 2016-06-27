@@ -406,6 +406,8 @@ quickCheck (\x-> (p' (f x)))
 
 In this case, 100 random tests were enough to discover that 100 is the square of 10 and the test condition is thus false.
 
+### Arbitrary and Generators
+
 Part of the magic of QuickCheck is the ability to generate random test cases.  In this example, QuickCheck must generate random `Int` values.  Because `Int` is a commonly used type, the ability to generate random `Int` values is built-in to QuickCheck.  In contrast `AE` is a custom, user-defined type that is not built-in.
 
 QuickCheck requires that the domain of any function it is called on be an instance of class `Arbitrary` providing a function `arbitrary` that generates an arbitrary value of that type.  We must make  `AE` and instance of `Arbitrary`:
@@ -482,7 +484,46 @@ If we do the same thing with `genMinusSecond` we will now generate arbitrary `AB
 
 How do we make our generator for `AE` not go into the weeds generating huge test cases?  The easiest way is to add a size limit to the `AE` generator function by adding a size parameter to `genAE` that is decremented on each call to `genAE`.
 
-Here's all the code for our generators and making `AE` and instance of `Abitrary` in one place:
+Let's start with `genAE` by adding a size parameter, `n` and a base case when `n` hits zero:
+
+{% highlight haskell %}
+genAE :: Int -> Gen AE
+genAE 0 =
+  do term <- genNum
+     return term
+genAE n =
+  do term <- oneof [genNum,(genPlus (n-1)),(genMinus (n-1))]
+     return term
+{% endhighlight %}
+
+This new function takes a size counter and produces a generator.  If the size counter is zero, then the generator will only produce a number and will not recurse.  If the size counter is not zero, then the generator will produce an arbitrary while decrementing the size counter.  `genPlus` and `genMinus` must be similarly extended to include the size counter:
+
+{% highlight haskell %}
+genPlus n =
+  do s <- genAE n
+     t <- genAE n
+     return (Plus s t)
+{% endhighlight %}
+
+The counter is simply passed to `genAE` where it will be decremented in any mutually recursive call to `genPlus` or `genMinus`.  Note that it is always an option to call `genNum` when the counter is not zero.  This allows for any term whose size is less than the counter, not just equal to it.
+
+Now we make `AE` and instance of `Arbitrary` by using `genAE` to define the `arbitrary` function:
+
+{% highlight haskell %}
+instance Arbitrary AE where
+  arbitrary =
+    sized $ \n -> genAE (rem n 10)
+{% endhighlight %}
+
+What's going on here is obfuscated by underlying construction of generators, but let's see if we can make sense of it. `sized` is a function that accepts a argument of type `Int -> Gen a`.  `sized` then chooses an arbitrary positive integer and calls its argument on that value to produce a generator.  In effect, the parameter `n` is an arbitrary value that we can use to produce a generator.  We could just us `n` as an argument to `genAE`.  What I've done is use the `rem` function to convert `n` into an arbitrary value less than 10.  This is a bit of overkill, but demonstrates how we can use `sized` to arbitrarily size a structure.  Another alternative would define `arbitrary` this way:
+
+{% highlight haskell %}
+arbitrary = sized $ \n -> genAE (rem n 10) + 10
+{% endhighlight %}
+
+In this case the arbitrary values would have a maximum size ranging from 10 to 19.  There are all kinds of games one can play to generate interesting arbitrary cases.
+
+Before we go one, here's all the code for our generators and making `AE` and instance of `Abitrary` in one place:
 
 {% highlight haskell %}
 instance Arbitrary AE where
@@ -510,6 +551,24 @@ genAE 0 =
 genAE n =
   do term <- oneof [genNum,(genPlus (n-1)),(genMinus (n-1))]
      return term
+{% endhighlight %}
+
+An idiom is emerging even in this simple interpreter that merits attention.  We defined our parser, interpreter, generator, and pretty printer the same way.  Define the function for each individual case, then put the cases together to define the overall function.  Remember this.  It will serve you well.
+
+### QuickCheck
+
+Now that we can generate arbitrary `AE` values, we can start our testing.
+
+{% highlight haskell %}
+testParser :: Int -> IO ()
+testParser n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> parseAE (pprint t) == t)
+{% endhighlight %}
+
+{% highlight haskell %}
+testEval :: Int -> IO ()
+testEval n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> eval (parseAE (pprint t)) == (eval t))
 {% endhighlight %}
 
 ## Discussion

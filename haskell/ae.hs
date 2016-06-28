@@ -122,6 +122,6 @@ testParser :: Int -> IO ()
 testParser n = quickCheckWith stdArgs {maxSuccess=n}
   (\t -> parseAE (pprint t) == t)
 
-testEval :: Int -> IO ()
-testEval n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> eval (parseAE (pprint t)) == (eval t))
+testEval' :: Int -> IO ()
+testEval' n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (interp $ pprint t) == (eval t))

@@ -263,10 +263,12 @@ genABE n =
 -- QuickCheck 
 
 testParser :: Int -> IO ()
-testParser n = quickCheckWith stdArgs {maxSuccess=n} (\t -> parseABE (pprint t) == t)
+testParser n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> parseABE (pprint t) == t)
 
 testEval :: Int -> IO ()
-testEval n = quickCheckWith stdArgs {maxSuccess=n} (\t -> eval (parseABE (pprint t)) == (eval t))
+testEval n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> eval (parseABE (pprint t)) == (eval t))
 
 testTypeof :: Int -> IO ()
 testTypeof n = quickCheckWith stdArgs {maxSuccess=n}

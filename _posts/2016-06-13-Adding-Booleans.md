@@ -304,6 +304,7 @@ genABE n =
                    ,(genIsZero (n-1))
                    ,(genIf (n-1))]
      return term
+{% endhighlight %}
 
 Note what's going on here.  For the base case, we use `oneof` to generate either a number or a boolean.  For the recursive case, we simply add generators for new terms to the argment to `oneof` adding them to the `ABE` generator.  That's it.  We're done.
 

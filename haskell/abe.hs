@@ -125,6 +125,9 @@ eval (IsZero t) = let (Num v) = (eval t)
 eval (If t1 t2 t3) = let (Boolean v) = (eval t1)
                      in if v then (eval t2) else (eval t3)
 
+-- Interpreter
+
+interp = eval . parseABE
 
 -- Type Derivation Function
 
@@ -157,12 +160,12 @@ typeof (If c t e) = if (typeof c) == TBool
 
 -- Interpreter
 
-interp :: String -> ABE
-interp e = let p=(parseABE e) in
-           let t=typeof p in
-             if ((t==TBool) || (t==TNum))
-             then (eval p)
-             else error "This should never happen"
+typedInterp :: String -> ABE
+typedInterp e = let p=(parseABE e) in
+                  let t=typeof p in
+                    if ((t==TBool) || (t==TNum))
+                    then (eval p)
+                    else error "This should never happen"
 
 -- Alternative Type Derivation Function
 
@@ -195,11 +198,11 @@ typeof' (If c t e) = if (typeof' c) == (Left TBool)
 
 -- Alternative Interpreter Function
 
-interp' :: String -> ABE
-interp' e = let p=(parseABE e) in
-            case (typeof' p) of
-              (Left _) -> eval p
-              (Right m) -> error m
+typedInterp' :: String -> ABE
+typedInterp' e = let p=(parseABE e) in
+                   case (typeof' p) of
+                     (Left _) -> eval p
+                     (Right m) -> error m
 
 -- Testing (Requires QuickCheck 2)
 
@@ -268,7 +271,7 @@ testParser n = quickCheckWith stdArgs {maxSuccess=n}
 
 testEval :: Int -> IO ()
 testEval n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> eval (parseABE (pprint t)) == (eval t))
+  (\t -> (interp $ pprint t) == (eval t))
 
 testTypeof :: Int -> IO ()
 testTypeof n = quickCheckWith stdArgs {maxSuccess=n}

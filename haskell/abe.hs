@@ -1,19 +1,33 @@
 {-# LANGUAGE GADTs #-}
 
+-- Imports for QuickCheck
 import System.Random
 import Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Function
 import Test.QuickCheck.Monadic
+
+-- Imports for Parsec
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Token
 
+-- Imports for PLIH
 import ParserUtils
 
--- Calculator language extended with type derivation function
+--
+-- Calculator language extended with Booleans
+--
+-- Author: Perry Alexander
+-- Date: Mon Jun 27 20:16:55 CDT 2016
+--
+-- Source files for the Arithmetic Boolean Expressions (ABE) language
+-- from PLIH
+--
+
+-- AST Definition
 
 data TABE where
   TNum :: TABE
@@ -31,6 +45,8 @@ data ABE where
   If :: ABE -> ABE -> ABE -> ABE
   deriving (Show,Eq)
 
+-- AST Pretty Printer
+
 pprint :: ABE -> String
 pprint (Num n) = show n
 pprint (Boolean b) = show b
@@ -42,7 +58,7 @@ pprint (IsZero m) = "(isZero " ++ pprint m ++ ")"
 pprint (If c n m) = "(if " ++ pprint c ++ " then " ++ pprint n ++ " else " ++ pprint m ++ ")"
 
 
--- Parser
+-- Parser (Requires ParserUtils and Parsec)
 
 expr :: Parser ABE
 expr = buildExpressionParser opTable term
@@ -87,7 +103,7 @@ parseABE = parseString expr
 
 parseABEFile = parseFile expr
 
--- Interpreter
+-- Evaluation Function
 
 eval :: ABE -> ABE
 eval (Num x) = (Num x)
@@ -109,6 +125,8 @@ eval (IsZero t) = let (Num v) = (eval t)
 eval (If t1 t2 t3) = let (Boolean v) = (eval t1)
                      in if v then (eval t2) else (eval t3)
 
+
+-- Type Derivation Function
 
 typeof :: ABE -> TABE
 typeof (Num x) = TNum
@@ -137,12 +155,16 @@ typeof (If c t e) = if (typeof c) == TBool
                     then (typeof t)
                     else error "Type mismatch in if"
 
+-- Interpreter
+
 interp :: String -> ABE
 interp e = let p=(parseABE e) in
            let t=typeof p in
              if ((t==TBool) || (t==TNum))
              then (eval p)
              else error "This should never happen"
+
+-- Alternative Type Derivation Function
 
 typeof' :: ABE -> Either TABE String
 typeof' (Num x) = (Left TNum)
@@ -171,13 +193,17 @@ typeof' (If c t e) = if (typeof' c) == (Left TBool)
                      then (typeof' t)
                      else Right "Type mismatch in if"
 
+-- Alternative Interpreter Function
+
 interp' :: String -> ABE
 interp' e = let p=(parseABE e) in
             case (typeof' p) of
               (Left _) -> eval p
               (Right m) -> error m
 
--- QuickCheck
+-- Testing (Requires QuickCheck 2)
+
+-- Arbitrary AST Generator
 
 instance Arbitrary ABE where
   arbitrary =
@@ -233,6 +259,8 @@ genABE n =
                    ,(genIsZero (n-1))
                    ,(genIf (n-1))]
      return term
+
+-- QuickCheck 
 
 testParser :: Int -> IO ()
 testParser n = quickCheckWith stdArgs {maxSuccess=n} (\t -> parseABE (pprint t) == t)

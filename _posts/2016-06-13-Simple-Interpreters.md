@@ -414,10 +414,6 @@ Lots of definitions to get us started:
 
 ## Source
 
-[Source]({{site.baseurl}}/haskell/ae.hs)
-
-{% highlight haskell %}
-{% include {{site.baseurl}}/haskell/ae.hs %}
-{% endhighlight %}
+Download [source]({{site.baseurl}}/haskell/ae.hs) for all interpreter code from this chapter.
 
 [^1]: Three Letter Acronym

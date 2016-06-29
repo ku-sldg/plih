@@ -416,4 +416,8 @@ Lots of definitions to get us started:
 
 [Source]({{site.baseurl}}/haskell/ae.hs)
 
+{% highlight haskell %}
+{% include_relative {{site.baseurl}}/haskell/ae.hs %}
+{% endhighlight %}
+
 [^1]: Three Letter Acronym

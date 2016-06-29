@@ -414,6 +414,6 @@ Lots of definitions to get us started:
 
 ## Source
 
-[Source]({{site.baseurl}})/haskell/ae.hs
+[Source]({{site.baseurl}}/haskell/ae.hs)
 
 [^1]: Three Letter Acronym

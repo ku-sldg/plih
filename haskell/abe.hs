@@ -129,6 +129,80 @@ eval (If t1 t2 t3) = let (Boolean v) = (eval t1)
 
 interp = eval . parseABE
 
+-- Evaluator with Dynamic Error 
+
+evalErr :: ABE -> Either ABE String
+evalErr (Num x) = (Left (Num x))
+evalErr (Plus t1 t2) =
+  let r1 = (evalErr t1)
+      r2 = (evalErr t2)
+  in case r1 of
+       (Right m) -> r1
+       (Left (Num v1)) -> case r2 of
+                            (Right m) -> r2
+                            (Left (Num v2)) -> (Left (Num (v1+v2)))
+                            (Left _) -> (Right "Type Error in +")
+       (Left _) -> (Right "Type Error in +")
+evalErr (Minus t1 t2) = 
+  let r1 = (evalErr t1)
+      r2 = (evalErr t2)
+  in case r1 of
+       (Right m) -> r1
+       (Left (Num v1)) -> case r2 of
+                            (Right m) -> r2
+                            (Left (Num v2)) -> (Left (Num (v1-v2)))
+                            (Left _) -> (Right "Type Error in -")
+       (Left _) -> (Right "Type Error in -")
+evalErr (Boolean b) = (Left (Boolean b))
+evalErr (And t1 t2) =
+  let r1 = (evalErr t1)
+      r2 = (evalErr t2)
+  in case r1 of
+       (Right m) -> r1
+       (Left (Boolean v1)) -> case r2 of
+                                (Right m) -> r2
+                                (Left (Boolean v2)) -> (Left (Boolean (v1 && v2)))
+                                (Left _) -> (Right "Type Error in &&")
+       (Left _) -> (Right "Type Error in &&")
+evalErr (Leq t1 t2) = 
+  let r1 = (evalErr t1)
+      r2 = (evalErr t2)
+  in case r1 of
+       (Right m) -> r1
+       (Left (Num v1)) -> case r2 of
+                            (Right m) -> r2
+                            (Left (Num v2)) -> (Left (Boolean (v1 <= v2)))
+                            (Left _) -> (Right "Type Error in <=")
+       (Left _) -> (Right "Type Error in <=")
+evalErr (IsZero t) =
+  let r = (evalErr t)
+  in case r of
+       (Right m) -> r
+       (Left (Num v)) -> (Left (Boolean (v == 0)))
+       (Left _) -> (Right "Type error in isZero")
+evalErr (If t1 t2 t3) =
+  let r = (evalErr t1)
+  in case r of
+       (Right _) -> r
+       (Left (Boolean v)) -> if v then (evalErr t2) else (evalErr t3)
+       (Left _) -> (Right "Type error in if")
+
+-- Interpreter
+
+interpErr = evalErr . parseABE
+
+testEvalErr :: Int -> IO ()
+testEvalErr n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (interpErr $ pprint t) == (evalErr t))
+
+testEvals :: Int -> IO ()
+testEvals n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (let r = (evalErr t) in
+            case r of
+              (Left v) -> v == (eval t)
+              (Right v) -> True))
+
+
 -- Type Derivation Function
 
 typeof :: ABE -> TABE

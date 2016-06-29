@@ -390,9 +390,30 @@ $$
 
 This if no case applies, then the terms are not equal.  So, $t_1+t_2$ will never be equal to $t_1'-t_2'$.
 
+## Definitions
+
+Lots of definitions to get us started:
+
+* Concrete Syntax - The textual form of a language used by programmers to write code
+* Abstract Syntax - The data structure representation of a language used by tools
+* Parser - Translates from concrete syntax to abstract syntax
+* Evaluation - Converts abstract syntax into a value.
+* Value - A good result from evaluation
+* Interpreter - Any program that translates syntax from one form into another
+* Algebraic Type - Uses sums and products to define types.  Haskell's `data` system defines algebraic types
+* Termination - Halting
+* Deterministic - Every invocation with the same inputs generates the same outputs
+* Normalization - Every invocation halts
+- Induction - Proof principle commonly used for countably infinite structures
+- Extensionality - Proof principle used to show two structures are equal.
+
 ## Exercises
 
 1. Add multiplication and division to `AE`.  Recall that `div` is the Haskell function for integer division.  Do we lose any of our nice properties by doing this?
 2. Rewrite `AE` replacing the `Plus` and `Minus` constructors in the AST with a single constructor `Binop op t1 t2` where `op` is the represented binary operation.  You will need to change the parser to generate `Binop` rather than `Plus` and `Minus`.  Think carefully about what `op` should be.  If you do it right, you should be able to add any operator to `AE` by simply changing the parser.
+
+## Source
+
+[Source]({{site.baseurl}})/haskell/ae.hs
 
 [^1]: Three Letter Acronym

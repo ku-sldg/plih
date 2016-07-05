@@ -1,14 +1,31 @@
 {-# LANGUAGE GADTs #-}
 
+-- Imports for QuickCheck
+import System.Random
+import Test.QuickCheck
+import Test.QuickCheck.Gen
+import Test.QuickCheck.Function
+import Test.QuickCheck.Monadic
+
+-- Imports for Parsec
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Token
 
+-- Imports for PLIH
 import ParserUtils
 
--- Calculator language extended with an environment to hold defined variables
+--
+-- Simple caculator with variables
+--
+-- Author: Perry Alexander
+-- Date: Tue Jul  5 11:41:01 CDT 2016
+--
+-- Source files for the Function Arithmetic Expressions (FAE) language from
+-- PLIH
+--
 
 data BAE where
   Num :: Int -> BAE

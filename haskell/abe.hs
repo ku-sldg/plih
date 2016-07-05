@@ -202,81 +202,42 @@ testEvals n = quickCheckWith stdArgs {maxSuccess=n}
               (Left v) -> v == (eval t)
               (Right v) -> True))
 
-
 -- Type Derivation Function
 
-typeof :: ABE -> TABE
-typeof (Num x) = TNum
+typeof :: ABE -> Either TABE String
+typeof (Num x) = (Left TNum)
 typeof (Plus l r) = let l' = (typeof l)
                         r' = (typeof r)
-                    in if l'==TNum && r'==TNum
-                       then TNum
-                       else error "Type Mismatch in +"
+                    in if l'==(Left TNum) && r'==(Left TNum)
+                       then (Left TNum)
+                       else Right "Type Mismatch in +"
 typeof (Minus l r) = let l' = (typeof l)
                          r' = (typeof r)
-                     in if l'==TNum && r'==TNum
-                        then TNum
-                        else error "Type Mismatch in -"
-typeof (Boolean b) = TBool
-typeof (And l r) = if (typeof l) == TBool && (typeof r) == TBool
-                   then TBool
-                   else error "Type mismatch in &&"
-typeof (Leq l r) = if (typeof l) == TNum && (typeof r) == TNum
-                   then TBool
-                   else error "Type mismatch in <="
-typeof (IsZero v) = if (typeof v) == TNum
-                    then TBool
-                    else error "Type mismatch in IsZero"
-typeof (If c t e) = if (typeof c) == TBool
-                       && (typeof t)==(typeof e)
-                    then (typeof t)
-                    else error "Type mismatch in if"
-
--- Interpreter
-
-typedInterp :: String -> ABE
-typedInterp e = let p=(parseABE e) in
-                  let t=typeof p in
-                    if ((t==TBool) || (t==TNum))
-                    then (eval p)
-                    else error "This should never happen"
-
--- Alternative Type Derivation Function
-
-typeof' :: ABE -> Either TABE String
-typeof' (Num x) = (Left TNum)
-typeof' (Plus l r) = let l' = (typeof' l)
-                         r' = (typeof' r)
                      in if l'==(Left TNum) && r'==(Left TNum)
                         then (Left TNum)
-                        else Right "Type Mismatch in +"
-typeof' (Minus l r) = let l' = (typeof' l)
-                          r' = (typeof' r)
-                      in if l'==(Left TNum) && r'==(Left TNum)
-                         then (Left TNum)
-                         else Right "Type Mismatch in -"
-typeof' (Boolean b) = (Left TBool)
-typeof' (And l r) = if (typeof' l) == (Left TBool) && (typeof' r) == (Left TBool)
+                        else Right "Type Mismatch in -"
+typeof (Boolean b) = (Left TBool)
+typeof (And l r) = if (typeof l) == (Left TBool) && (typeof r) == (Left TBool)
+                   then (Left TBool)
+                   else Right "Type mismatch in &&"
+typeof (Leq l r) = if (typeof l) == (Left TNum) && (typeof r) == (Left TNum)
+                   then (Left TBool)
+                   else Right "Type mismatch in <="
+typeof (IsZero v) = if (typeof v) == (Left TNum)
                     then (Left TBool)
-                    else Right "Type mismatch in &&"
-typeof' (Leq l r) = if (typeof' l) == (Left TNum) && (typeof' r) == (Left TNum)
-                    then (Left TBool)
-                    else Right "Type mismatch in <="
-typeof' (IsZero v) = if (typeof' v) == (Left TNum)
-                     then (Left TBool)
-                     else Right "Type mismatch in IsZero"
-typeof' (If c t e) = if (typeof' c) == (Left TBool)
-                        && (typeof' t)==(typeof' e)
-                     then (typeof' t)
-                     else Right "Type mismatch in if"
+                    else Right "Type mismatch in IsZero"
+typeof (If c t e) = if (typeof c) == (Left TBool)
+                       && (typeof t)==(typeof e)
+                    then (typeof t)
+                    else Right "Type mismatch in if"
 
 -- Alternative Interpreter Function
 
-typedInterp' :: String -> ABE
-typedInterp' e = let p=(parseABE e) in
-                   case (typeof' p) of
-                     (Left _) -> eval p
-                     (Right m) -> error m
+interpTyped :: String -> Either ABE String
+interpTyped e = let p=(parseABE e) in
+                  case (typeof p) of
+                    (Left _) -> (Left (eval p))
+                    (Right m) -> (Right m)
 
 -- Testing (Requires QuickCheck 2)
 
@@ -349,17 +310,45 @@ testEval n = quickCheckWith stdArgs {maxSuccess=n}
 
 testTypeof :: Int -> IO ()
 testTypeof n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> let ty = typeof t
-         in ty == TNum || ty == TBool)
-
-testTypeof' :: Int -> IO ()
-testTypeof' n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t-> case typeof' t of
+  (\t-> case typeof t of
       (Left _) -> True
       (Right _) -> True)
 
-testEval' :: Int -> IO ()
-testEval' n = quickCheckWith stdArgs {maxSuccess=n}
-              (\t -> case typeof' t of
-                       (Left _) -> eval (parseABE (pprint t)) == (eval t)
-                       (Right _) -> True)
+testTypedEval :: Int -> IO ()
+testTypedEval n =
+  quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> case typeof t of
+           (Left _) -> eval (parseABE (pprint t)) == (eval t)
+           (Right _) -> True)
+
+eqInterp :: Either ABE String -> Either ABE String -> Bool
+eqInterp s t =
+  case s of
+    (Left x) -> case t of
+                  (Left y) -> x == y
+                  (Right _) -> False
+    (Right x) -> case t of
+                   (Left y) -> False
+                   (Right _) -> True
+
+testTypedErrEval :: Int -> IO ()
+testTypedErrEval n =
+  quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> let t' = pprint t in (eqInterp (interpTyped t') (interpErr t')))
+
+testErrThenTyped :: Int -> IO ()
+testErrThenTyped n =
+  quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> let t' = pprint t in
+           case (interpErr t') of
+             (Left v) -> (Left v) == interpTyped t'
+             (Right _) -> True)
+               
+testTypedThenErr :: Int -> IO ()
+testTypedThenErr n =
+  quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> let t' = pprint t in
+           case (interpTyped t') of
+             (Left v) -> (Left v) == interpErr t'
+             (Right _) -> True)
+

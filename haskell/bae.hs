@@ -23,7 +23,7 @@ import ParserUtils
 -- Author: Perry Alexander
 -- Date: Tue Jul  5 11:41:01 CDT 2016
 --
--- Source files for the Function Arithmetic Expressions (FAE) language from
+-- Source files for the Binding Arithmetic Expressions (BAE) language from
 -- PLIH
 --
 
@@ -34,6 +34,14 @@ data BAE where
   Bind :: String -> BAE -> BAE -> BAE
   Id :: String -> BAE
   deriving (Show,Eq)
+
+
+pprint :: BAE -> String
+pprint (Num n) = show n
+pprint (Id s) = s
+pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
+pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
+pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b ++ ")"
 
 -- Parser
 

@@ -416,4 +416,6 @@ Lots of definitions to get us started:
 
 Download [source]({{site.baseurl}}/haskell/ae.hs) for all interpreter code from this chapter.
 
+## Notes
+
 [^1]: Three Letter Acronym

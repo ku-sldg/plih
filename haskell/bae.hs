@@ -35,7 +35,6 @@ data BAE where
   Id :: String -> BAE
   deriving (Show,Eq)
 
-
 pprint :: BAE -> String
 pprint (Num n) = show n
 pprint (Id s) = s
@@ -97,6 +96,8 @@ evals (Plus l r) = (evals l) + (evals r)
 evals (Minus l r) = (evals l) - (evals r)
 evals (Bind i v b) = (evals (subst i (Num (evals v)) b))
 evals (Id id) = error "Undeclared Variable"
+
+interps = evals . parseBAE
 
 -- Evaluation
 
@@ -176,3 +177,11 @@ testParser n = quickCheckWith stdArgs {maxSuccess=n}
 testEval :: Int -> IO ()
 testEval n = quickCheckWith stdArgs {maxSuccess=n}
   (\t -> (interp $ pprint t) == (eval [] t))
+
+testEvals :: Int -> IO ()
+testEvals n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (interps $ pprint t) == (evals t))
+
+testCompare :: Int -> IO ()
+testCompare n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (eval [] t) == (evals t))

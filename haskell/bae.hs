@@ -102,19 +102,19 @@ evals (Id id) = error "Undeclared Variable"
 
 type Env = [(String,Int)]
     
-eval :: BAE -> Env -> Int
-eval (Num x) env = x
-eval (Plus l r) env = (eval l env) + (eval r env)
-eval (Minus l r) env = (eval l env) - (eval r env)
-eval (Bind i v b) env =
-  let v' = eval v env in
-    eval b ((i,v'):env)
-eval (Id id) env = case (lookup id env) of
+eval :: Env -> BAE -> Int
+eval env (Num x) = x
+eval env (Plus l r) = (eval env l) + (eval env r)
+eval env (Minus l r) = (eval env l) - (eval env r)
+eval env (Bind i v b) =
+  let v' = eval env v in
+    eval ((i,v'):env) b
+eval env (Id id) = case (lookup id env) of
                      Just x -> x
                      Nothing -> error "Varible not found"
                                             
 
-interp = eval . parseBAE
+interp = (eval []) . parseBAE
 
 
 -- Testing (Requires QuickCheck 2)
@@ -123,55 +123,56 @@ interp = eval . parseBAE
 
 instance Arbitrary BAE where
   arbitrary =
-    sized $ \n -> genBAE ((rem n 10) + 10)
+    sized $ \n -> genBAE ((rem n 10) + 10) []
 
 genNum =
   do t <- choose (0,100)
      return (Num t)
 
-genPlus n =
-  do s <- genBAE n
-     t <- genBAE n
+genPlus n e =
+  do s <- genBAE n e
+     t <- genBAE n e
      return (Plus s t)
 
-genMinus n =
-  do s <- genBAE n
-     t <- genBAE n
+genMinus n e =
+  do s <- genBAE n e
+     t <- genBAE n e
      return (Minus s t)
 
 genName =
-  do i <- choose ('a','e')
+  do i <- choose ('v','z')
      return [i]
 
-genId =
-  do n <- genName
+genId e =
+  do n <- elements e
      return (Id n)
 
-genBind n =
+genBind n e =
   do i <- genName
-     v <- genBAE n
-     b <- genBAE n
+     v <- genBAE n e
+     b <- genBAE n (i:e)
      return (Bind i v b)
      
-
-genBAE :: Int -> Gen BAE
-genBAE 0 =
-  do term <- genNum
+genBAE :: Int -> [String] -> Gen BAE
+genBAE 0 e =
+  do term <- oneof (case e of
+                      [] -> [genNum]
+                      _ -> [genNum
+                           , (genId e)])
      return term
-genBAE n =
+genBAE n e =
   do term <- oneof [genNum
-                   , (genPlus (n-1))
-                   , (genMinus (n-1))
-                   , (genBind (n-1))
-                   , genId]
+                   , (genPlus (n-1) e)
+                   , (genMinus (n-1) e)
+                   , (genBind (n-1) e)]
      return term
 
 -- QuickCheck 
 
---testParser :: Int -> IO ()
---testParser n = quickCheckWith stdArgs {maxSuccess=n}
---  (\t -> parseBAE (pprint t) == t)
+testParser :: Int -> IO ()
+testParser n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> parseBAE (pprint t) == t)
 
---testEval :: Int -> IO ()
---testEval n = quickCheckWith stdArgs {maxSuccess=n}
---  (\t -> (interp $ pprint t) == (eval t))
+testEval :: Int -> IO ()
+testEval n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (interp $ pprint t) == (eval [] t))

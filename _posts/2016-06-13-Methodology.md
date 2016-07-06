@@ -41,6 +41,14 @@ Before charging forward into our next interpreter, let's pause for a moment and 
 8. Typeof
 9. Generator
 
+Abbreviated
+
+1. Abstract Syntax
+2. Evaluation rules
+3. Type rules
+4. Evaluation relation
+5. Typeof relation
+
 ## Concrete Syntax
 
 Define a formal grammar by adding new constructs

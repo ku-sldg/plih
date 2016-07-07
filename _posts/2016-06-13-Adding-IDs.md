@@ -143,19 +143,62 @@ The additions to `AE` that give us `BAE` are the `Bind` constructor and the `Id`
 The answer to precise definition is the mathematics of inference rules.  To define `bind` evaluation we will add one new inference rule:
 
 $$
-\frac{\eval a == v}{\eval (\bbind\; i\; = a\;\iin s) == [i\mapsto v]s}\;[BindE]
+\frac{\eval a = v}{\eval (\bbind\; i\; = a\;\iin s) = \eval [i\mapsto v]s}\;[BindE]
 $$
 
-$BindE$ is not significantly different from earlier evaluation rules with the exception of a new notation.  The antecedent requires the argument, $a$, evaluate to $v$.  The notation $[i\mapsto v]s$ is a standard form for *substitution*.  Specifically, $[i\mapsto v]s$ means $s$ with all free instances of $i$ replaced by $v$.
+$BindE$ is not significantly different from earlier evaluation rules with the exception of a new notation for substitution.  The antecedent requires the argument, $a$, evaluate to $v$.  The consequent uses the standard notation $[i\mapsto v]s$ for specify that $i$ is replaced by $v$ in $s$.  Specifically, $[i\mapsto v]s$ is defined as $s$ with all free instances of $i$ replaced by $v$.  When evaluating `bind`, the `bind` itself falls away and instances of its identifier are replaced with its value.
+
+### Substitution
+
+Let's spend a bit of time to understand the definition of substitution and why it is the operation we want.  The notation $[i\mapsto v]s$ says that $i$ is replaced by $v$ in $s$.  A simple derivation of the value of `bind x=5 in x+7` works like this:
+
+{% highlight text %}
+eval bind x=5 in x+7 
+== eval [x->5]x+7 [BindE]
+== eval 5+7 [Substitution]
+== 12 [PlusE]
+{% endhighlight %}
+
+The $BindE$ rule transforms `bind` into a substitution by dropping the `bind` and performing substitution.  Dropping the `bind` and binding instance makes any bound instance free.  In the previous example, `x` is a bound instance in the `bind` expression.  When `bind` is dropped, `x` becomes free.  Substituting `[x->5]x+7` now replaces free `x` instances with 5 resulting in `5+7`.
+
+Let's try another example with a nested `bind`:
+
+{% highlight text %}
+eval bind x=5 in
+       x + bind x=7 in x
+== eval [x->5]x + bind x=7 in x [BindE]
+== eval 5 + bind x=7 in x [Substitution]
+== eval 5 + eval bind x=7 in x [PlusE]
+== eval 5 + eval [x->7]x [BindE]
+== eval 5 + eval 7 [substitution]
+== 5 + 7 [NumE]
+== 12 [PlusE]
+{% endhighlight %}
+
+Once again the outermost `bind` is dropped and substitution performed over the term `x + bind x=7 in x`.  Only the first instance of `x` is free - the second instance is in the scope of the nested `bind`.  If we didn't include the condition that identifiers must be free when replaced, the second `x` would be replaced with 
+the first even though it is a different identifier instance.
+
+A third example uses the bound identifier in the definition of a nested identifier:
+
+{% highlight text %}
+eval bind x=5 in
+       x + bind y=7+x in y
+== [x->5]x + bind y=7+x in y
+== 5 + bind y=7+5 in y
+== 5 + [y->12]y
+== 5 + 12
+== 17
+{% endhighlight %}
+
+Here the `x` used in defining a value for `y` becomes free when the binding instance for `x` is dropped.  Thus, the free `x` in the defining expression is replaced by 5.
 
 ### Evaluation
 
 #### Immediate Substitution
 
-`[x->v]s` is defined as _replace all free instances of `x` in `s` with `v`_ and is typically referred to as _substitution_.
+To define `eval` for `BAE` we need to first define substitution.  The function `subst x v s` will implement the substitition $[x\mapsto v]s$.  Once again we treat our program as a data structure and define `subst` over the `BAE` data type.
 
 {% highlight haskell %}
-
 subst :: String -> BAE -> BAE -> BAE
 subst _ _ (Num x) = (Num x)
 subst i v (Plus l r) = (Plus (subst i v l) (subst i v r))
@@ -166,7 +209,37 @@ subst i v (Bind i' v' b') = if i==i'
 subst i v (Id i') = if i==i'
                     then v
                     else (Id i')
-       
+{% endhighlight %}
+
+The cases for numbers and binary operations are trivial.  Substitution has no effect on numbers as they represent constant values.  For addition and subtraction, we simply call substitution recursively on the two expression terms.
+
+Substituting over an identifier compares the identifier name with the name being substituted for.  If the names are the same, the identifier is replaced with the substituted value.  If the names are not the same, the identifier is left alone.
+
+{% highlight haskell %}
+subst i v (Id i') = if i==i'
+                    then v
+                    else (Id i')
+{% endhighlight %}
+
+How do we determine if an identifier is bound or free?  This is determined by where the identifier occurs and not the identifier itself.  Then `Bind` case takes care of this by turning off substitution for the binding instance it creates.  If the identifier being replaced is the same as the bound instance, then no substitution is performed in the `bind` body.  If the identifier being replace is not the same as the bound instance, substitution is performed on the bound body.  Substitution is always performed on the binding instance's value expression.
+
+{% highlight haskell %}
+subst i v (Bind i' v' b') = if i==i'
+                            then (Bind i' (subst i v v') b')
+                            else (Bind i' (subst i v v') (subst i v b'))
+{% endhighlight %}
+
+Note that the scope of an identifier bound by `bind` is the expression *following* the `in` keyword.  The value expression is explicitly not a part of the scope.  Aside from impacting substitution, this means that a bound instance cannot be used in its own definition. For example:
+
+{% highlight haskell %}
+let x=x+x in x
+{% endhighlight %}
+
+will not evaluate because the `x` in the value for `x` is free.  It has no binding instance and will never be replaced during evaluation.
+
+With `subst` defined we can easily define `evals`, an evaluator that performs substitution is specified by inference rules.  Cases for `Num`, `Plus` and `Minus` are unchanged from `AE`.  The case for `Bind` is implemented by substitution.  Specifically, the defined identifier is replaced by the value expression in the `bind` body.
+
+{% highlight haskell %}
 evals :: BAE -> Int
 evals (Num x) = x
 evals (Plus l r) = (evals l) + (evals r)
@@ -174,6 +247,10 @@ evals (Minus l r) = (evals l) - (evals r)
 evals (Bind i v b) = (evals (subst i (Num (evals v)) b))
 evals (Id id) = error "Undeclared Variable"
 {% endhighlight %}
+
+The interesting case is for `Id` where an error is raised for an undeclared variable.  Why is this?  In this interpreter, identifiers are replaced immediately following their definition.
+
+An interpreter composes the `BAE` parser with our evaluator:
 
 {% highlight haskell %}
 interps = evals . parseBAE

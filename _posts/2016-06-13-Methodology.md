@@ -1,6 +1,6 @@
 ---
 layout: frontpage
-title: Adding Identifiers
+title: Methodology
 use_math: true
 category: chapter
 ---

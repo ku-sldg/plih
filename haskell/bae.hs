@@ -91,8 +91,8 @@ subst i v (Id i') = if i==i'
                     else (Id i')
        
 evals :: BAE -> Int
-evals (Num x) = x
-evals (Plus l r) = (evals l) + (evals r)
+evals (Num x) =  x
+evals (Plus l r) = (evals l) +  (evals r)
 evals (Minus l r) = (evals l) - (evals r)
 evals (Bind i v b) = (evals (subst i (Num (evals v)) b))
 evals (Id id) = error "Undeclared Variable"

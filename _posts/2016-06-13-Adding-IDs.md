@@ -112,11 +112,7 @@ The parentheses close the scope of the inner `x` before the last line.  The body
 
 This is not a good way to define the semantics of `bind`.  It is confusing and ambiguous.  We need an alternative definition that captures how `bind` evaluates in a precise manner.
 
-## The BAE Language
-
-We're now ready to define our new language of Arithmetic Expressions with Bindings (`BAE`).
-
-### Concrete and Abstract Syntax
+## Concrete and Abstract Syntax
 
 The concrete syntax for this new language is a simple extension of `AE` that includes identifiers and `bind`.  Note that we are back to `AE` without Booleans:
 
@@ -138,7 +134,7 @@ data BAE where
 
 The additions to `AE` that give us `BAE` are the `Bind` constructor and the `Id` constructor.  `Id` is defined over a string in the same way that `Num` is defined over numbers.  `Bind` accepts a string representing the new identifier, an expression representing the identifier value, and a scope for the identifier.
 
-### Defining Evaluation
+## Defining Evaluation
 
 The answer to precise definition is the mathematics of inference rules.  To define `bind` evaluation we will add one new inference rule:
 
@@ -148,7 +144,7 @@ $$
 
 $BindE$ is not significantly different from earlier evaluation rules with the exception of a new notation for substitution.  The antecedent requires the argument, $a$, evaluate to $v$.  The consequent uses the standard notation $[i\mapsto v]s$ for specify that $i$ is replaced by $v$ in $s$.  Specifically, $[i\mapsto v]s$ is defined as $s$ with all free instances of $i$ replaced by $v$.  When evaluating `bind`, the `bind` itself falls away and instances of its identifier are replaced with its value.
 
-### Substitution
+## Substitution
 
 Let's spend a bit of time to understand the definition of substitution and why it is the operation we want.  The notation $[i\mapsto v]s$ says that $i$ is replaced by $v$ in $s$.  A simple derivation of the value of `bind x=5 in x+7` works like this:
 
@@ -192,9 +188,7 @@ eval bind x=5 in
 
 Here the `x` used in defining a value for `y` becomes free when the binding instance for `x` is dropped.  Thus, the free `x` in the defining expression is replaced by 5.
 
-### Evaluation
-
-#### Immediate Substitution
+## Using Substitution
 
 To define `eval` for `BAE` we need to first define substitution.  The function `subst x v s` will implement the substitition $[x\mapsto v]s$.  Once again we treat our program as a data structure and define `subst` over the `BAE` data type.
 
@@ -256,30 +250,134 @@ An interpreter composes the `BAE` parser with our evaluator:
 interps = evals . parseBAE
 {% endhighlight %}
 
+## Generating Test Cases
 
-#### Deferred substitution
+To test our interpreters, we need to extend the generator use for `AE` to include `bind` and identifiers.
+
+Generating random names can be done in several ways.  Rather than generating arbitrary length strings, let's generate single character identifier names using `choose` to select a character and return the character converted to a string:
 
 {% highlight haskell %}
-type Env = [(String,Int)]
+genName =
+  do i <- choose ('a','z')
+     return [i]
 {% endhighlight %}
 
+`genName` will select a name from the range a to z and return it as a string.
+
+Generating an ID from a name is done in the same way we generated numbers from integers.  Simply take a string, `n` and return `(Id n)`:
+
 {% highlight haskell %}
-eval :: Env -> BAE -> Int
-eval env (Num x) = x
-eval env (Plus l r) = (eval env l) + (eval env r)
-eval env (Minus l r) = (eval env l) - (eval env r)
-eval env (Bind i v b) =
-  let v' = eval env v in
-    eval ((i,v'):env) b
-eval env (Id id) = case (lookup id env) of
-                     Just x -> x
-                     Nothing -> error "Varible not found"
+genId e =
+  do n <- choose ('a')
+     return (Id n)
+
+`genID` now generates completely arbitrary identifier names.
+
+The final term type is `Bind` and we'll generate it much the same way as other multi-argument forms.  `genBind` generates a name for the bound id, an expression for the bound id value, and an expression for the body.  The `Bind` constructor puts the elements together to generate an arbitrary `Bind` construction:
+
+genBind n e =
+  do i <- genName
+     v <- genBAE n
+     b <- genBAE n
+     return (Bind i v b)
 {% endhighlight %}
-                                            
+
+We can integrate both the `Id` and `Bind` generators into the arbitrary expression generator by adding them to the `oneof` argument lists for the base case and inductive case respectively.
+
+Now for a QuickCheck test:
+
 {% highlight haskell %}
-interp = (eval []) . parseBAE
+testEvals n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (interps $ pprint t) == (evals t))
 {% endhighlight %}
-                     
+
+What happens is an almost immediate testing failure resulting from an undefined identifier.  An example `BAE` instance that causes such a failure is:
+
+{% highlight haskell %}
+(Plus (Id "x") (Num 3))
+{% endhighlight %}
+
+It is almost impossible to get QuickCheck to find an arbitrary term without a free identifier.  Our arbitrary `Id` generator produces `Id` instances without regard to whether the `Id` is a bound instance.  No term will evaluate unless its identifiers are all bound.  What we want is a generator for arbitrary *bound* instances.
+
+Thankfully this is not a difficult feature to add.  What we will do is input a list of bound identifiers to the `BAE` term generator:
+
+{% highlight haskell %}
+genBAE :: Int -> [String] -> Gen BAE
+genBAE 0 e =
+  do term <- oneof (case e of
+                      [] -> [genNum]
+                      _ -> [genNum
+                           , (genId e)])
+     return term
+genBAE n e =
+  do term <- oneof [genNum
+                   , (genPlus (n-1) e)
+                   , (genMinus (n-1) e)
+                   , (genBind (n-1) e)]
+     return term
+{% endhighlight %}
+
+`genBind` will still generate an arbitrary symbol as its binding instance name.  When `genBind` calls `genBAE` to generate its body, the new identifier is added to a list of previously bound identifiers.
+
+{% highlight haskell %}
+genBind n e =
+  do i <- genName
+     v <- genBAE n e
+     b <- genBAE n (i:e)
+     return (Bind i v b)
+{% endhighlight %}
+
+Now when `genId` is called it is given a list of bound identifiers.  Rather than using `choose` over a range of characters, the `elements` generator is used to select an arbitrary element of the bound identifier list:
+
+{% highlight haskell %}
+genId e =
+  do n <- elements e
+     return (Id n)
+{% endhighlight %}
+
+Our new arbitrary term generator produces only terms that include bound identifiers.  We can QuickCheck `evals` to determine if it crashes as we did earlier versions of `eval`:
+
+{% highlight haskell %}
+testEvals :: Int -> IO ()
+testEvals n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (interps $ pprint t) == (evals t))
+{% endhighlight %}
+
+## Discussion
+
+Let's assume the interpreter defined by `interps` is a faithful implementation of the `BAE` language and examine how it executes. Each time a `bind` is encountered, `evals` executes `subst` on the body of the `bind` expression.  Although this is technically correct following precisely what the semantics require, it is not efficient.
+
+As an example, consider this intentionally obnoxious code fragment from `BAE`:
+
+{% highlight text %}
+let w=5 in
+  let x=7+w in
+    let y=14+x+w in
+      let z=5+x+w+y in
+        w+x+y+z 
+{% endhighlight %}
+
+To execute this code, `evals` would start by replacing `w` with 5 throughout the body of the outer `let`.  This results in:
+
+{% highlight text %}
+let x=7+5 in
+  let y=14+x+5 in
+    let z=5+x+5+y in
+      5+x+y+z 
+{% endhighlight %}
+
+Each `bind` body and value expression are visited and `w` replaced with `5`.  Now we evaluate the outer `bind` body the same way, replacing `x` by 12.
+
+{% highlight text %}
+let y=14+12+5 in
+  let z=5+12+5+y in
+    5+12+y+z 
+{% endhighlight %}
+
+Do you see the problem?  Every inner `bind` body and value expression are visited a second time to perform the second replacement.  The process now repeats for `y` and `z` causing the innermost body to be processed 4 times and the innermost `bind` value expression 3 times.  For this tiny code fragment, there is no problem.  For complex code, imagine visiting the entire executable program once for each identifier evaluated!  We must find a more efficient way.
+
+As inefficient as they are, `interps` and `evals` as are still useful. `interps` and `evals` define a *normative* interpreter for `BAE`.  Normative in the sense that the interpreter is correct, but is not optimized or made efficient in any way.  It serves as an ideal model for evaluating `BAE`.  In some communities normative implementations are called *golden* and used to evaluate other implementations.  We'll see that at work when we test our interpreters.
+
 ## Definitions
 
 * Instance - Any usage of an identifier
@@ -296,3 +394,4 @@ interp = (eval []) . parseBAE
 Download [source]({{site.baseurl}}/haskell/bae.hs) for all interpreter code from this chapter.
 
 ## Notes
+

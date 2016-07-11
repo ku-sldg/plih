@@ -134,6 +134,45 @@ data BAE where
 
 The additions to `AE` that give us `BAE` are the `Bind` constructor and the `Id` constructor.  `Id` is defined over a string in the same way that `Num` is defined over numbers.  `Bind` accepts a string representing the new identifier, an expression representing the identifier value, and a scope for the identifier.
 
+## Parsing and Printing
+
+Parsing `BAE` expressions is a simple extension of parsing 	`AE`.  We need only add parsers for the and `id` and `bind` cases:
+
+{% highlight haskell %}
+identExpr :: Parser BAE
+identExpr = do i <- identifier lexer
+               return (Id i)
+
+bindExpr :: Parser BAE
+bindExpr = do reserved lexer "bind"
+              i <- identifier lexer
+              reservedOp lexer "="
+              v <- expr
+              reserved lexer "in"
+              e <- expr
+              return (Bind i v e)
+{% endhighlight %}
+
+Both cases are routine.  `identExpr` simply calls the built-in `identifier` parser and returns the result lifted into the `BAE` AST using `Id`.  `bindExpr` calls the identifier and `expr` parsers in sequence then `Bind` to create the term AST. Both cases are integrated into the main `term` parser in the same way as other expressions:
+
+{% highlight haskell %}
+term = parens lexer expr
+       <|> numExpr
+       <|> identExpr
+       <|> bindExpr
+{% endhighlight %}
+
+In the previous description, I used the term *lift* for the first time.  When we lift a term we are transforming a term from the host language into the external language.  The opposite of lift is *lower*.
+
+As one would expect, pretty printing `BAE` requires adding only two cases to the `BAE` pretty printer:
+
+{% highlight haskell %}
+pprint (Num n) = show n
+pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b ++ ")"
+{% endhighlight %}
+
+Testing the parser and pretty printer is done exactly as it was with `BAE`.  We'll skip that here, but it is included in this chapter's source code.
+
 ## Defining Evaluation
 
 The answer to precise definition is the mathematics of inference rules.  To define `bind` evaluation we will add one new inference rule:
@@ -386,6 +425,8 @@ As inefficient as they are, `interps` and `evals` as are still useful. `interps`
 * Bound Instance - An instance of an identifier occurring the scope of a binding instance for that identifier
 * Free - An instance of an identifier occurring outside the scope of a binding instance for that identifier
 * Substitution - Replacing an identifier by its value.  The notation $[i\mapsto v]s$ means *replace free instances of i by v in s*.
+* Lift - Moving a term from the host language to the external language
+* Lower - Moving a term from the external language into the host language.
 
 ## Exercises
 

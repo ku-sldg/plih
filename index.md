@@ -11,7 +11,19 @@ This is not even remotely close to done or ready for use.  Plenty of wrong thing
 
 ---
 
-{% for post in site.categories.chapter %}
+{% for post in site.categories.ch0 %}
+## <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
+{% endfor %}
+
+---
+
+{% for post in site.categories.ch1 %}
+## <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
+{% endfor %}
+
+---
+
+{% for post in site.categories.ch2 %}
 ## <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
 {% endfor %}
 

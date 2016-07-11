@@ -2,7 +2,7 @@
 layout: frontpage
 title: Notations and Preliminaries
 use_math: true
-category: chapter
+categories: chapter ch0
 ---
 $$
 \newcommand\calc{\mathsf{calc}\;}

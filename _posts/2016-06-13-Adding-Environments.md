@@ -2,7 +2,7 @@
 layout: frontpage
 title: Adding Environments
 use_math: true
-category: chapter
+categories: chapter ch2
 ---
 
 $$

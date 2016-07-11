@@ -2,7 +2,7 @@
 layout: frontpage
 title: Adding Functions
 use_math: true
-category: chapter
+categories: chapter ch2
 ---
 
 # Functions

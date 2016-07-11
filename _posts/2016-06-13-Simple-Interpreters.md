@@ -2,7 +2,7 @@
 layout: frontpage
 title: Simple Expression Interpreters
 use_math: true
-category: chapter
+categories: chapter ch1
 ---
 
 $$

@@ -389,6 +389,8 @@ As inefficient as they are, `interps` and `evals` as are still useful. `interps`
 
 ## Exercises
 
+1. Write a version of `evals` called `evalsErr` that uses the `Either` construct to return either a `BAE` construct or an error message.  How many different error messages need we return?
+
 ## Source
 
 Download [source]({{site.baseurl}}/haskell/bae.hs) for all interpreter code from this chapter.

@@ -13,3 +13,6 @@ collections:
   ids:
     output: true
     title: Identifiers
+  funs:
+    output: true
+    title: Functions

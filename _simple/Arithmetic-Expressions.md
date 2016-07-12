@@ -1,6 +1,6 @@
 ---
 layout: frontpage
-title: Simple Expression Interpreters
+title: Arithmetic Expressions
 use_math: true
 categories: chapter ch1
 ---

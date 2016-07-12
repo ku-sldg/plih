@@ -16,3 +16,7 @@ collections:
   funs:
     output: true
     title: Functions
+  state:
+    output: true
+    title: State
+    

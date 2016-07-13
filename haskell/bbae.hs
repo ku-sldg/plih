@@ -46,7 +46,21 @@ data BBAE where
   IsZero :: BBAE -> BBAE
   If :: BBAE -> BBAE -> BBAE -> BBAE
   deriving (Show,Eq)
-                    
+
+-- AST Pretty Printer
+
+pprint :: BBAE -> String
+pprint (Num n) = show n
+pprint (Boolean b) = show b
+pprint (Plus n m) = "(" ++ pprint n ++ " + " ++ pprint m ++ ")"
+pprint (Minus n m) = "(" ++ pprint n ++ " - " ++ pprint m ++ ")"
+pprint (And n m) = "(" ++ pprint n ++ " && " ++ pprint m ++ ")"
+pprint (Leq n m) = "(" ++ pprint n ++ " <= " ++ pprint m ++ ")"
+pprint (IsZero m) = "(isZero " ++ pprint m ++ ")"
+pprint (If c n m) = "(if " ++ pprint c ++ " then " ++ pprint n ++ " else " ++ pprint m ++ ")"
+pprint (Id s) = s
+pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b ++ ")"
+
 -- Parser
 expr :: Parser BBAE
 expr = buildExpressionParser opTable term
@@ -113,67 +127,172 @@ parseBBAEFile = parseFile expr
 type Env = [(String,BBAE)]
 type Cont = [(String,TBBAE)]
     
-calc :: BBAE -> Env -> BBAE
-calc (Num x) env = (Num x)
-calc (Plus l r) env = let (Num l') = (calc l env)
-                          (Num r') = (calc r env)
+eval ::  Env -> BBAE -> BBAE
+eval env (Num x) = (Num x)
+eval env (Plus l r) = let (Num l') = (eval env l)
+                          (Num r') = (eval env r)
                       in (Num (l'+r'))
-calc (Minus l r) env = let (Num l') = (calc l env)
-                           (Num r') = (calc r env)
+eval env (Minus l r) = let (Num l') = (eval env l)
+                           (Num r') = (eval env r)
                        in (Num (l'-r'))
-calc (Bind i v b) env = let v' = calc v env in
-                          calc b ((i,v'):env)
-calc (Id id) env = case (lookup id env) of
+eval env (Bind i v b) = let v' = eval env v in
+                          eval ((i,v'):env) b
+eval env (Id id) = case (lookup id env) of
                      Just x -> x
                      Nothing -> error "Varible not found"
-calc (Boolean b) env = (Boolean b)
-calc (And l r) env = let (Boolean l') = (calc l env)
-                         (Boolean r') = (calc r env)
+eval env (Boolean b) = (Boolean b)
+eval env (And l r) = let (Boolean l') = (eval env l)
+                         (Boolean r') = (eval env r)
                       in (Boolean (l' && r'))
-calc (Leq l r) env = let (Num l') = (calc l env)
-                         (Num r') = (calc r env)
+eval env (Leq l r) = let (Num l') = (eval env l)
+                         (Num r') = (eval env r)
                       in (Boolean (l' <= r'))
-calc (IsZero v) env = let (Num v') = (calc v env)
+eval env (IsZero v) = let (Num v') = (eval env v)
                       in (Boolean (v' == 0))
-calc (If c t e) env = let (Boolean c') = (calc c env)
-                      in if c' then (calc t env) else (calc e env)
+eval env (If c t e) = let (Boolean c') = (eval env c)
+                      in if c' then (eval env t) else (eval env e)
+
+interp = (eval []) . parseBBAE
 
 
-typeof :: BBAE -> Cont -> TBBAE
-typeof (Num x) cont = TNum
-typeof (Plus l r) cont = let l' = (typeof l cont)
-                             r' = (typeof r cont)
-                         in if l'==TNum && r'==TNum
-                            then TNum
-                            else error "Type Mismatch in +"
-typeof (Minus l r) cont = let l' = (typeof l cont)
-                              r' = (typeof r cont)
-                          in if l'==TNum && r'==TNum
-                             then TNum
-                             else error "Type Mismatch in -"
-typeof (Bind i v b) cont = let v' = typeof v cont in
-                             typeof b ((i,v'):cont)
-typeof (Id id) cont = case (lookup id cont) of
-                        Just x -> x
-                        Nothing -> error "Varible not found"
-typeof (Boolean b) cont = TBool
-typeof (And l r) cont = if (typeof l cont) == TBool && (typeof r cont) == TBool
-                        then TBool
-                        else error "Type mismatch in &&"
-typeof (Leq l r) cont = if (typeof l cont) == TNum && (typeof r cont) == TNum
-                        then TBool
-                        else error "Type mismatch in <="
-typeof (IsZero v) cont = if (typeof v cont) == TNum
-                         then TBool
-                         else error "Type mismatch in IsZero"
-typeof (If c t e) cont = if (typeof c cont) == TBool
-                            && (typeof t cont)==(typeof e cont)
-                         then (typeof t cont)
-                         else error "Type mismatch in if"
+typeof :: Cont -> BBAE -> Either String TBBAE
+typeof cont (Num x) = (Right TNum)
+typeof cont (Plus l r) = let l' = (typeof cont l)
+                             r' = (typeof cont r)
+                         in if l'==(Right TNum) && r'==(Right TNum)
+                            then (Right TNum)
+                            else (Left "Type Mismatch in +")
+typeof cont (Minus l r) = let l' = (typeof cont l)
+                              r' = (typeof cont r)
+                          in if l'==(Right TNum) && r'==(Right TNum)
+                             then (Right TNum)
+                             else (Left "Type Mismatch in -")
+typeof cont (Bind i v b) = let v' = typeof cont v in
+                             case v' of
+                               (Right v'') -> typeof ((i,v''):cont) b
+                               (Left _) -> v'
+typeof cont (Id id) = case (lookup id cont) of
+                        Just x -> (Right x)
+                        Nothing -> (Left "Varible not found")
+typeof cont (Boolean b) = (Right TBool)
+typeof cont (And l r) = if (typeof cont l) == (Right TBool)
+                           && (typeof cont r) == (Right TBool)
+                        then (Right TBool)
+                        else (Left "Type mismatch in &&")
+typeof cont (Leq l r) = if (typeof cont l) == (Right TNum)
+                           && (typeof cont r) == (Right TNum)
+                        then (Right TBool)
+                        else (Left "Type mismatch in <=")
+typeof cont (IsZero v) = if (typeof cont v) == (Right TNum)
+                         then (Right TBool)
+                         else (Left "Type mismatch in IsZero")
+typeof cont (If c t e) = if (typeof cont c) == (Right TBool)
+                            && (typeof cont t)==(typeof cont e)
+                         then (typeof cont e)
+                         else (Left "Type mismatch in if")
 
-eval :: String -> BBAE
-eval e = let p=(parseBBAE e) in
-           let t=typeof p [] in
-             if ((t==TBool) || (t==TNum))
-             then (calc p [])
-             else error "This should never happen"
+interpTyped :: String -> Either String BBAE
+interpTyped e = let p=(parseBBAE e) in
+                  case (typeof [] p) of
+                    (Right _) -> (Right (eval [] p))
+                    (Left m) -> (Left m)
+
+-- Arbitrary AST Generator
+
+instance Arbitrary BBAE where
+  arbitrary =
+    sized $ \n -> genBBAE (rem n 10) []
+
+genNum =
+  do t <- choose (0,100)
+     return (Num t)
+
+genId e =
+  do n <- elements e
+     return (Id n)
+
+genPlus n e =
+  do s <- genBBAE n e
+     t <- genBBAE n e
+     return (Plus s t)
+
+genMinus n e =
+  do s <- genBBAE n e
+     t <- genBBAE n e
+     return (Minus s t)
+
+genAnd n e =
+  do s <- genBBAE n e
+     t <- genBBAE n e
+     return (And s t)
+
+genLeq n e =
+  do s <- genBBAE n e
+     t <- genBBAE n e
+     return (Leq s t)
+
+genIsZero n e =
+  do s <- genBBAE n e
+     return (IsZero s)
+
+genIf n e =
+  do s <- genBBAE n e
+     t <- genBBAE n e
+     u <- genBBAE n e
+     return (If s t u)
+
+genBind n e =
+  do i <- genName
+     v <- genBBAE n e
+     b <- genBBAE n (i:e)
+     return (Bind i v b)
+
+genName =
+  do i <- choose ('v','z')
+     return [i]
+
+genBool =
+  do t <- choose (True,False)
+     return (Boolean t)
+
+genBBAE :: Int -> [String] -> Gen BBAE
+genBBAE 0 e = 
+  do term <- oneof (case e of
+                      [] -> [genNum,genBool]
+                      _ -> [genNum
+                           , genBool
+                           , (genId e)])
+     return term
+genBBAE n e =
+  do term <- oneof [genNum
+                   , (genPlus (n-1) e)
+                   , (genMinus (n-1) e)
+                   , (genAnd (n-1) e)
+                   , (genLeq (n-1) e)
+                   , (genIsZero (n-1) e)
+                   , (genIf (n-1) e)]
+     return term
+
+-- QuickCheck 
+
+testParser :: Int -> IO ()
+testParser n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> parseBBAE (pprint t) == t)
+
+testEval :: Int -> IO ()
+testEval n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (interp $ pprint t) == (eval [] t))
+
+testTypeof :: Int -> IO ()
+testTypeof n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t-> case (typeof [] t) of
+      (Right _) -> True
+      (Left _) -> True)
+
+testTypedEval :: Int -> IO ()
+testTypedEval n =
+  quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> case typeof [] t of
+           (Right _) -> (eval [] (parseBBAE (pprint t))) == (eval [] t)
+           (Left _) -> True)
+

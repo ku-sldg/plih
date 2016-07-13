@@ -131,61 +131,61 @@ interp = eval . parseABE
 
 -- Evaluator with Dynamic Error 
 
-evalErr :: ABE -> Either ABE String
-evalErr (Num x) = (Left (Num x))
+evalErr :: ABE -> Either String ABE
+evalErr (Num x) = (Right (Num x))
 evalErr (Plus t1 t2) =
   let r1 = (evalErr t1)
       r2 = (evalErr t2)
   in case r1 of
-       (Right m) -> r1
-       (Left (Num v1)) -> case r2 of
-                            (Right m) -> r2
-                            (Left (Num v2)) -> (Left (Num (v1+v2)))
-                            (Left _) -> (Right "Type Error in +")
-       (Left _) -> (Right "Type Error in +")
+       (Left m) -> r1
+       (Right (Num v1)) -> case r2 of
+                            (Left m) -> r2
+                            (Right (Num v2)) -> (Right (Num (v1+v2)))
+                            (Right _) -> (Left "Type Error in +")
+       (Right _) -> (Left "Type Error in +")
 evalErr (Minus t1 t2) = 
   let r1 = (evalErr t1)
       r2 = (evalErr t2)
   in case r1 of
-       (Right m) -> r1
-       (Left (Num v1)) -> case r2 of
-                            (Right m) -> r2
-                            (Left (Num v2)) -> (Left (Num (v1-v2)))
-                            (Left _) -> (Right "Type Error in -")
-       (Left _) -> (Right "Type Error in -")
-evalErr (Boolean b) = (Left (Boolean b))
+       (Left m) -> r1
+       (Right (Num v1)) -> case r2 of
+                            (Left m) -> r2
+                            (Right (Num v2)) -> (Right (Num (v1-v2)))
+                            (Right _) -> (Left "Type Error in -")
+       (Right _) -> (Left "Type Error in -")
+evalErr (Boolean b) = (Right (Boolean b))
 evalErr (And t1 t2) =
   let r1 = (evalErr t1)
       r2 = (evalErr t2)
   in case r1 of
-       (Right m) -> r1
-       (Left (Boolean v1)) -> case r2 of
-                                (Right m) -> r2
-                                (Left (Boolean v2)) -> (Left (Boolean (v1 && v2)))
-                                (Left _) -> (Right "Type Error in &&")
-       (Left _) -> (Right "Type Error in &&")
+       (Left m) -> r1
+       (Right (Boolean v1)) -> case r2 of
+                                (Left m) -> r2
+                                (Right (Boolean v2)) -> (Right (Boolean (v1 && v2)))
+                                (Right _) -> (Left "Type Error in &&")
+       (Right _) -> (Left "Type Error in &&")
 evalErr (Leq t1 t2) = 
   let r1 = (evalErr t1)
       r2 = (evalErr t2)
   in case r1 of
-       (Right m) -> r1
-       (Left (Num v1)) -> case r2 of
-                            (Right m) -> r2
-                            (Left (Num v2)) -> (Left (Boolean (v1 <= v2)))
-                            (Left _) -> (Right "Type Error in <=")
-       (Left _) -> (Right "Type Error in <=")
+       (Left m) -> r1
+       (Right (Num v1)) -> case r2 of
+                            (Left m) -> r2
+                            (Right (Num v2)) -> (Right (Boolean (v1 <= v2)))
+                            (Right _) -> (Left "Type Error in <=")
+       (Right _) -> (Left "Type Error in <=")
 evalErr (IsZero t) =
   let r = (evalErr t)
   in case r of
-       (Right m) -> r
-       (Left (Num v)) -> (Left (Boolean (v == 0)))
-       (Left _) -> (Right "Type error in isZero")
+       (Left m) -> r
+       (Right (Num v)) -> (Right (Boolean (v == 0)))
+       (Right _) -> (Left "Type error in isZero")
 evalErr (If t1 t2 t3) =
   let r = (evalErr t1)
   in case r of
-       (Right _) -> r
-       (Left (Boolean v)) -> if v then (evalErr t2) else (evalErr t3)
-       (Left _) -> (Right "Type error in if")
+       (Left _) -> r
+       (Right (Boolean v)) -> if v then (evalErr t2) else (evalErr t3)
+       (Right _) -> (Left "Type error in if")
 
 -- Interpreter
 
@@ -199,45 +199,45 @@ testEvals :: Int -> IO ()
 testEvals n = quickCheckWith stdArgs {maxSuccess=n}
   (\t -> (let r = (evalErr t) in
             case r of
-              (Left v) -> v == (eval t)
-              (Right v) -> True))
+              (Right v) -> v == (eval t)
+              (Left v) -> True))
 
 -- Type Derivation Function
 
-typeof :: ABE -> Either TABE String
-typeof (Num x) = (Left TNum)
+typeof :: ABE -> Either String TABE
+typeof (Num x) = (Right TNum)
 typeof (Plus l r) = let l' = (typeof l)
                         r' = (typeof r)
-                    in if l'==(Left TNum) && r'==(Left TNum)
-                       then (Left TNum)
-                       else Right "Type Mismatch in +"
+                    in if l'==(Right TNum) && r'==(Right TNum)
+                       then (Right TNum)
+                       else Left "Type Mismatch in +"
 typeof (Minus l r) = let l' = (typeof l)
                          r' = (typeof r)
-                     in if l'==(Left TNum) && r'==(Left TNum)
-                        then (Left TNum)
-                        else Right "Type Mismatch in -"
-typeof (Boolean b) = (Left TBool)
-typeof (And l r) = if (typeof l) == (Left TBool) && (typeof r) == (Left TBool)
-                   then (Left TBool)
-                   else Right "Type mismatch in &&"
-typeof (Leq l r) = if (typeof l) == (Left TNum) && (typeof r) == (Left TNum)
-                   then (Left TBool)
-                   else Right "Type mismatch in <="
-typeof (IsZero v) = if (typeof v) == (Left TNum)
-                    then (Left TBool)
-                    else Right "Type mismatch in IsZero"
-typeof (If c t e) = if (typeof c) == (Left TBool)
+                     in if l'==(Right TNum) && r'==(Right TNum)
+                        then (Right TNum)
+                        else Left "Type Mismatch in -"
+typeof (Boolean b) = (Right TBool)
+typeof (And l r) = if (typeof l) == (Right TBool) && (typeof r) == (Right TBool)
+                   then (Right TBool)
+                   else Left "Type mismatch in &&"
+typeof (Leq l r) = if (typeof l) == (Right TNum) && (typeof r) == (Right TNum)
+                   then (Right TBool)
+                   else Left "Type mismatch in <="
+typeof (IsZero v) = if (typeof v) == (Right TNum)
+                    then (Right TBool)
+                    else Left "Type mismatch in IsZero"
+typeof (If c t e) = if (typeof c) == (Right TBool)
                        && (typeof t)==(typeof e)
                     then (typeof t)
-                    else Right "Type mismatch in if"
+                    else Left "Type mismatch in if"
 
 -- Alternative Interpreter Function
 
-interpTyped :: String -> Either ABE String
+interpTyped :: String -> Either String ABE
 interpTyped e = let p=(parseABE e) in
                   case (typeof p) of
-                    (Left _) -> (Left (eval p))
-                    (Right m) -> (Right m)
+                    (Right _) -> (Right (eval p))
+                    (Left m) -> (Left m)
 
 -- Testing (Requires QuickCheck 2)
 
@@ -311,25 +311,25 @@ testEval n = quickCheckWith stdArgs {maxSuccess=n}
 testTypeof :: Int -> IO ()
 testTypeof n = quickCheckWith stdArgs {maxSuccess=n}
   (\t-> case typeof t of
-      (Left _) -> True
-      (Right _) -> True)
+      (Right _) -> True
+      (Left _) -> True)
 
 testTypedEval :: Int -> IO ()
 testTypedEval n =
   quickCheckWith stdArgs {maxSuccess=n}
   (\t -> case typeof t of
-           (Left _) -> eval (parseABE (pprint t)) == (eval t)
-           (Right _) -> True)
+           (Right _) -> eval (parseABE (pprint t)) == (eval t)
+           (Left _) -> True)
 
-eqInterp :: Either ABE String -> Either ABE String -> Bool
+eqInterp :: Either String ABE -> Either String ABE -> Bool
 eqInterp s t =
   case s of
-    (Left x) -> case t of
-                  (Left y) -> x == y
-                  (Right _) -> False
     (Right x) -> case t of
-                   (Left y) -> False
-                   (Right _) -> True
+                  (Right y) -> x == y
+                  (Left _) -> False
+    (Left x) -> case t of
+                   (Right y) -> False
+                   (Left _) -> True
 
 testTypedErrEval :: Int -> IO ()
 testTypedErrEval n =
@@ -341,14 +341,65 @@ testErrThenTyped n =
   quickCheckWith stdArgs {maxSuccess=n}
   (\t -> let t' = pprint t in
            case (interpErr t') of
-             (Left v) -> (Left v) == interpTyped t'
-             (Right _) -> True)
+             (Right v) -> (Right v) == interpTyped t'
+             (Left _) -> True)
                
 testTypedThenErr :: Int -> IO ()
 testTypedThenErr n =
   quickCheckWith stdArgs {maxSuccess=n}
   (\t -> let t' = pprint t in
            case (interpTyped t') of
-             (Left v) -> (Left v) == interpErr t'
-             (Right _) -> True)
+             (Right v) -> (Right v) == interpErr t'
+             (Left _) -> True)
 
+-- Monadic Evaluator
+
+evalM :: ABE -> Either String ABE
+evalM (Num x) = (Right (Num x))
+evalM (Boolean x) = (Right (Boolean x))
+evalM (Plus t1 t2) = do
+  t1' <- (evalM t1)
+  t2' <- (evalM t2)
+  case t1' of
+    (Num v1) -> case t2' of
+                  (Num v2) -> (Right (Num (v1+v2)))
+                  (Boolean _) -> (Left "Type Error in +")
+    (Boolean _) -> (Left "Type Error in +")
+evalM (Minus t1 t2) = do
+  t1' <- (evalM t1)
+  t2' <- (evalM t2)
+  case t1' of
+    (Num v1) -> case t2' of
+                  (Num v2) -> (Right (Num (v1-v2)))
+                  (Boolean _) -> (Left "Type Error in -")
+    (Boolean _) -> (Left "Type Error in -")
+evalM (And t1 t2) = do
+  t1' <- (evalM t1)
+  t2' <- (evalM t2)
+  case t1' of
+    (Boolean v1) -> case t2' of
+                  (Boolean v2) -> (Right (Boolean (v1 && v2)))
+                  (Num _) -> (Left "Type Error in &&")
+    (Num _) -> (Left "Type Error in &&")
+evalM (Leq t1 t2) = do
+  t1' <- (evalM t1)
+  t2' <- (evalM t2)
+  case t1' of
+    (Num v1) -> case t2' of
+                  (Num v2) -> (Right (Boolean (v1 <= v2)))
+                  (Boolean _) -> (Left "Type Error in <=")
+    (Boolean _) -> (Left "Type Error in +")
+evalM (IsZero t) = do
+  t' <- (evalM t)
+  case t' of
+    (Num v) -> (Right (Boolean (v == 0)))
+    (Boolean _) -> (Left "Type Error in isZero")
+evalM (If t1 t2 t3) = do
+  t1' <- (evalM t1)
+  case t1' of
+    (Num v) -> (Left "Type Error in if")
+    (Boolean v) ->  if v then (evalM t2) else (evalM t3)
+
+testEvalM :: Int -> IO ()
+testEvalM n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (evalM $ parseABE $ pprint t) == (evalM t))

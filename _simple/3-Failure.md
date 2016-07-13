@@ -47,15 +47,15 @@ We will update our `ABE` evaluator to catch errors and run time rather than fall
 Let's change the type signature of the `ABE` `eval` function just a bit and define a new function called `evalErr` that returns either a n `ABE` term or a string representing an error:
 
 {% highlight haskell %}
-evalErr :: ABE -> Either ABE String
+evalErr :: ABE -> Either String ABE
 {% endhighlight %}
 
-If you're not familiar with the `Either` type constructor, there is ample documentation of its use.  In this example it provides two constructors, `Left` and `Right` that contain an `ABE` value and a `String` respectively.  We'll use the `Either` type to return either an `ABE` value, `v` (`Left v`) or a string error message, `s` (`Right s`).  We can then use a `case` expression to discriminate between values.  Any time we call `evalError` we can do something like this:
+If you're not familiar with the `Either` type constructor, there is ample documentation of its use.  In this example it provides two constructors, `Right` and `Left` that contain an `ABE` value and a `String` respectively.  We'll use the `Either` type to return either an `ABE` value, `v` (`Right v`) or a string error message, `s` (`Left s`).  We can then use a `case` expression to discriminate between values.  Any time we call `evalError` we can do something like this:
 
 {% highlight haskell %}
 case (evalErr t) of
-  (Left v) -> actions taken for a value v
-  (Right m) -> actions taken for an error message m
+  (Right v) -> actions taken for a value v
+  (Left m) -> actions taken for an error message m
 {% endhighlight %}
 
 We're going to use this pattern extensively in our new definition of `evalErr`.
@@ -63,11 +63,11 @@ We're going to use this pattern extensively in our new definition of `evalErr`.
 Start with the two easy cases for number and Boolean constants.
 
 {% highlight haskell %}
-evalErr (Num t) = (Left (Num t))
-evalErr (Boolean b) = (Left (Boolean b))
+evalErr (Num t) = (Right (Num t))
+evalErr (Boolean b) = (Right (Boolean b))
 {% endhighlight %}
 
-In `eval`, both numbers and Booleans evaluate to themselves and cannot crash.  Thus, in `evalErr` we don't need to deal with errors.  The return value is `(Left (Num t))`, with `Left` indicating a value and `(Num t)` being the value.
+In `eval`, both numbers and Booleans evaluate to themselves and cannot crash.  Thus, in `evalErr` we don't need to deal with errors.  The return value is `(Right (Num t))`, with `Right` indicating a value and `(Num t)` being the value.
 
 Constant cases are not particularly interesting, so let's look at `isZero`.  Unlike the constant cases, `isZero` can fail when evaluating its argument or when its arguments is not a number:
 
@@ -75,18 +75,18 @@ Constant cases are not particularly interesting, so let's look at `isZero`.  Unl
 evalErr (IsZero t) =
   let r = (evalErr t)
   in case r of
-       (Right m) -> r
-       (Left (Num v)) -> (Left (Boolean (v == 0)))
-       (Left _) -> (Right "Type error in isZero")
+       (Left m) -> r
+       (Right (Num v)) -> (Right (Boolean (v == 0)))
+       (Right _) -> (Left "Type error in isZero")
 {% endhighlight %}
 
 What's happening here?  First the argument to `IsZero` is evaluated and assigned to `r`.  By definition we know that `r` is now either a value or some error message.  We'll use our pattern from above to decide what we're looking at.
 
-The first option is `(Right m)`.  This occurs when evaluating `t` results in an error.  If this is the case, we have no work to do and we simply return the error message for the calling function to deal with.
+The first option is `(Left m)`.  This occurs when evaluating `t` results in an error.  If this is the case, we have no work to do and we simply return the error message for the calling function to deal with.
 
-The second option is `(Left (Num v))`.  If this pattern matches we know two things.  First, that `evalErr t` returned a value and that value is a `Num`.  This is the success case and we return `(Left (Boolean (v==0)))`.  `Left` because we have a value, `Boolean` to construct a Boolean value, and `v==0` to calculate the Boolean value.
+The second option is `(Right (Num v))`.  If this pattern matches we know two things.  First, that `evalErr t` returned a value and that value is a `Num`.  This is the success case and we return `(Right (Boolean (v==0)))`.  `Right` because we have a value, `Boolean` to construct a Boolean value, and `v==0` to calculate the Boolean value.
 
-The final option is `(Left _)`.  If this pattern matches we know the previous pattern did not.  Thus, we have a value and that value is not a number.  In this case we create an error message and return it as `(Right "Type error in isZero")`.  `Right` because we have an error and `"Type error in isZero"` as the error value.
+The final option is `(Right _)`.  If this pattern matches we know the previous pattern did not.  Thus, we have a value and that value is not a number.  In this case we create an error message and return it as `(Left "Type error in isZero")`.  `Left` because we have an error and `"Type error in isZero"` as the error value.
 
 To summarize, evaluating `IsZero` requires evaluating its argument and taking one of three actions:
 
@@ -101,16 +101,16 @@ evalErr (Plus t1 t2) =
   let r1 = (evalErr t1)
       r2 = (evalErr t2)
   in case r1 of
-       (Right m) -> r1
-       (Left (Num v1)) -> case r2 of
-                            (Right m) -> r2
-                            (Left (Num v2)) -> (Left (Num (v1+v2)))
-                            (Left _) -> (Right "Type Error in +")
-       (Left _) -> (Right "Type Error in +")
+       (Left m) -> r1
+       (Right (Num v1)) -> case r2 of
+                            (Left m) -> r2
+                            (Right (Num v2)) -> (Right (Num (v1+v2)))
+                            (Right _) -> (Left "Type Error in +")
+       (Right _) -> (Left "Type Error in +")
 
 {% endhighlight %}
 
-There is no magic here!  We calculate the values of both arguments and store the results in `r1` and `r2` respectively.  Then we apply the same pattern as `IsZero` and determine if the first argument is an error, number, or something else.  In the error and something else cases, we do exactly what we did previously.  In the number case, we repeat the same process for `r2` and do the same thing.  In the error and something else cases, we do exactly what we did previously.  IN the number case, we calculate the result of `Plus` and return it as `(Left (Num (v1+v2)))`.  The other binary operations follow similarly.
+There is no magic here!  We calculate the values of both arguments and store the results in `r1` and `r2` respectively.  Then we apply the same pattern as `IsZero` and determine if the first argument is an error, number, or something else.  In the error and something else cases, we do exactly what we did previously.  In the number case, we repeat the same process for `r2` and do the same thing.  In the error and something else cases, we do exactly what we did previously.  IN the number case, we calculate the result of `Plus` and return it as `(Right (Num (v1+v2)))`.  The other binary operations follow similarly.
 
 The remaining operation is `if` that is treated like a one parameter expression.  The condition is evaluated and the outcome handled using the same pattern as other expressions.  If the condition evaluates to a Boolean, them we choose the expression to evaluate based on the Boolean value.  The final code has the following form:
 
@@ -118,9 +118,9 @@ The remaining operation is `if` that is treated like a one parameter expression.
 evalErr (If t1 t2 t3) =
   let r = (evalErr t1)
   in case r of
-       (Right _) -> r
-       (Left (Boolean v)) -> if v then (evalErr t2) else (evalErr t3)
-       (Left _) -> (Right "Type error in if")
+       (Left _) -> r
+       (Right (Boolean v)) -> if v then (evalErr t2) else (evalErr t3)
+       (Right _) -> (Left "Type error in if")
 {% endhighlight %}
 
 Once the interpreter is completed, we can define an interpreter function in a manner similar to the original interpreter function for `eval`:
@@ -149,24 +149,24 @@ However, we can do more.  Let's compare `eval` and `evalErr` to assess whether o
 \t -> eval t == evalErr t
 {% endhighlight %}
 
-because the return type of `eval` is different than the return type of `evalErr` and `eval` still crashes.  What we care about are cases when `eval` should not crash and produce a value.  We can't test for  `eval` not crashing, but we can test for when `evalErr` produces a value rather than an error.  Remember `Left` and `Right`?  When `evalErr` returns a `Left` value we know it produced a value and `eval` should also produce a value.  When `evalErr` returns a `Right` we know it produced an error message and we should not evaluate `eval`.  Here's a function to do just this:
+because the return type of `eval` is different than the return type of `evalErr` and `eval` still crashes.  What we care about are cases when `eval` should not crash and produce a value.  We can't test for  `eval` not crashing, but we can test for when `evalErr` produces a value rather than an error.  Remember `Right` and `Left`?  When `evalErr` returns a `Right` value we know it produced a value and `eval` should also produce a value.  When `evalErr` returns a `Left` we know it produced an error message and we should not evaluate `eval`.  Here's a function to do just this:
 
 {% highlight haskell %}
   (\t -> (let r = (evalErr t) in
             case r of
-              (Left v) -> v == (eval t)
-              (Right v) -> True))
+              (Right v) -> v == (eval t)
+              (Left v) -> True))
 {% endhighlight %}
 
-The `case` performs exactly the check we need.  `Left` compares the value generated with the results of `eval` on `t`.  `Right` just returns  `True`.  Why?  QuickCheck checks to see if the conjunction of all tests succeed.  `True` causes QuickCheck to, in essense, ignore the case.  Exactly what we want.  Here's the QuickCheck function:
+The `case` performs exactly the check we need.  `Right` compares the value generated with the results of `eval` on `t`.  `Left` just returns  `True`.  Why?  QuickCheck checks to see if the conjunction of all tests succeed.  `True` causes QuickCheck to, in essense, ignore the case.  Exactly what we want.  Here's the QuickCheck function:
 
 {% highlight haskell %}
 testEvals :: Int -> IO ()
 testEvals n = quickCheckWith stdArgs {maxSuccess=n}
   (\t -> (let r = (evalErr t) in
             case r of
-              (Left v) -> v == (eval t)
-              (Right v) -> True))
+              (Right v) -> v == (eval t)
+              (Left v) -> True))
 {% endhighlight %}
 
 Running `testEvals` on a thousand test cases should generate no errors.
@@ -246,8 +246,8 @@ $\tnum$ and $\tbool$ from our mathematical definitions correspond with `TNum` an
 Given an `ABE` expression, `typeof` will return its type if it is well-typed and fail if it is not.  The cases for `Num` and `Boolean` are trivial and simply return their associated types, `TNum` and `TBool` respectively:
 
 {% highlight haskell %}
-typeof (Num x) = (Left TNum)
-typeof (Boolean b) = (Left TBool)
+typeof (Num x) = (Right TNum)
+typeof (Boolean b) = (Right TBool)
 {% endhighlight %}
 
 They are both identical to their associated type rules from above.
@@ -257,38 +257,38 @@ They are both identical to their associated type rules from above.
 {% highlight haskell %}
 typeof (Plus l r) = let l' = (typeof l)
                         r' = (typeof r)
-                     in if l'==(Left TNum) && r'==(Left TNum)
-                        then (Left TNum)
-                        else Right "Type Mismatch in +"
+                     in if l'==(Right TNum) && r'==(Right TNum)
+                        then (Right TNum)
+                        else Left "Type Mismatch in +"
 typeof (Minus l r) = let l' = (typeof l)
                          r' = (typeof r)
-                     in if l'==(Left TNum) && r'==(Left TNum)
-                        then (Left TNum)
-                        else Right "Type Mismatch in -"
+                     in if l'==(Right TNum) && r'==(Right TNum)
+                        then (Right TNum)
+                        else Left "Type Mismatch in -"
 {% endhighlight %}
 
 More of the same for `And`, `Leq` and `IsZero`.  Each Haskell case for `typeof` virtually identical to its associated type rule:
 
 {% highlight haskell %}
-typeof (And l r) = if (typeof l) == (Left TBool)
-                      && (typeof r) == (Left TBool)
-                   then (Left TBool)
-                   else Right "Type mismatch in &&"
-typeof (Leq l r) = if (typeof l) == (Left TNum) && (typeof r) == (Left TNum)
-                   then (Left TBool)
-                   else Right "Type mismatch in <="
-typeof (IsZero v) = if (typeof v) == (Left TNum)
-                    then (Left TBool)
-                    else Right "Type mismatch in IsZero"
+typeof (And l r) = if (typeof l) == (Right TBool)
+                      && (typeof r) == (Right TBool)
+                   then (Right TBool)
+                   else Left "Type mismatch in &&"
+typeof (Leq l r) = if (typeof l) == (Right TNum) && (typeof r) == (Right TNum)
+                   then (Right TBool)
+                   else Left "Type mismatch in <="
+typeof (IsZero v) = if (typeof v) == (Right TNum)
+                    then (Right TBool)
+                    else Left "Type mismatch in IsZero"
 {% endhighlight %}
 
 Finally `if` and we're done.  `if` checks the types of its conditional to determine if it is Boolean and they checks to see if the types of the true and false conditions are the same.  If so, the type is returned:
 
 {% highlight haskell %}
-typeof (If c t e) = if (typeof c) == (Left TBool)
+typeof (If c t e) = if (typeof c) == (Right TBool)
                        && (typeof t)==(typeof e)
                      then (typeof t)
-                     else Right "Type mismatch in if"
+                     else Left "Type mismatch in if"
 {% endhighlight %}
 
 The result is the following `typeof` definition:
@@ -327,14 +327,14 @@ typeof (If c t e) = if (typeof c) == TBool
 The `typeof` function gives the type of an `ABE` expression if it is well-typed and generates an error message if it is not.  We can now predict type errors before we evaluate an `ABE` expression.  We call `typeof` before `eval` and only call `eval` if `typeof` results in a type.  Here is one way to do that:
 
 {% highlight haskell %}
-interpTyped :: String -> Either ABE String
+interpTyped :: String -> Either String ABE
 interpTyped e = let p=(parseABE e) in
                   case (typeof p) of
-                    (Left _) -> (Left eval p)
-                    (Right m) -> (Right m)
+                    (Right _) -> (Right eval p)
+                    (Left m) -> (Left m)
 {% endhighlight %}
 
-`interpTyped` is does exactly what we need.  It parses and calls `typeof` on its input argument.  The `case` chooses between `Left` that contains a type and `Right` that contains an error message.  `eval` is called on the parsed input if a type is returned while an error message is simply returned in the error case.  Note that we're using `Either` the same way we did with the runtime error interpreter.  This is simply for consistency and will help us when  we start testing.
+`interpTyped` is does exactly what we need.  It parses and calls `typeof` on its input argument.  The `case` chooses between `Right` that contains a type and `Left` that contains an error message.  `eval` is called on the parsed input if a type is returned while an error message is simply returned in the error case.  Note that we're using `Either` the same way we did with the runtime error interpreter.  This is simply for consistency and will help us when  we start testing.
 
 ### QuickCheck
 
@@ -346,8 +346,8 @@ The first property we would like to check is whether `typeof` statically predict
 testTypedEval :: Int -> IO ()
 testTypedEval n = quickCheckWith stdArgs {maxSuccess=n}
                   (\t -> case typeof t of
-                           (Left _) -> eval (parseABE (pprint t)) == (eval t)
-                           (Right _) -> True)
+                           (Right _) -> eval (parseABE (pprint t)) == (eval t)
+                           (Left _) -> True)
 {% endhighlight %}
 
 Note that we're calling `eval` as before by parsing the printed arbitrary term.  This is not entirely necessary, but allows us to do some sanity checking in this set of tests.
@@ -355,12 +355,12 @@ Note that we're calling `eval` as before by parsing the printed arbitrary term. 
 Note that `typeof` may still not be correct even though it prevents crashs.  If our `typeof` function were defined as:
 
 {% highlight haskell %}
-typeof e = (Right "Ha!")
+typeof e = (Left "Ha!")
 {% endhighlight %}
 
 it would pass the above test!  Thus, it is not sufficient to run just this test.  Correctness testing is also necessary.
 
-When we wrote `evalErr` we tested it against our original evaluation function.  Let's test our `interpErr` function against `interpTyped` to see if the type checker catches the same errors that are caught at run time.  Let's try the simple solution first and compare the results of the two interpreters on the same input.  Recall that we defined both to return `Either ABE String` so we can simply compare their results directly:
+When we wrote `evalErr` we tested it against our original evaluation function.  Let's test our `interpErr` function against `interpTyped` to see if the type checker catches the same errors that are caught at run time.  Let's try the simple solution first and compare the results of the two interpreters on the same input.  Recall that we defined both to return `Either String ABE` so we can simply compare their results directly:
 
 {% highlight haskell %}
 (\t -> (interpTyped t) == (interpErr t))
@@ -371,15 +371,15 @@ Even a small number of test cases reveals a problem.  If both interpreters produ
 Instead of using strict equality, we can use a weaker comparison:
 
 {% highlight haskell %}
-eqInterp :: Either ABE String -> Either ABE String -> Bool
+eqInterp :: Either String ABE -> Either String ABE -> Bool
 eqInterp s t =
   case s of
-    (Left x) -> case t of
-                  (Left y) -> x == y
-                  (Right _) -> False
     (Right x) -> case t of
-                   (Left y) -> False
-                   (Right _) -> True
+                  (Right y) -> x == y
+                  (Left _) -> False
+    (Left x) -> case t of
+                   (Right y) -> False
+                   (Left _) -> True
 {% endhighlight %}
 
 In `eqInterp` interpretation results are compared directly for values and specific messages ignored for errors.  We can now use this in a proposition for checking:
@@ -432,16 +432,16 @@ testErrThenTyped n =
   quickCheckWith stdArgs {maxSuccess=n}
   (\t -> let t' = pprint t in
            case (interpErr t') of
-             (Left v) -> (Left v) == interpTyped t'
-             (Right _) -> True)
+             (Right v) -> (Right v) == interpTyped t'
+             (Left _) -> True)
                
 testTypedThenErr :: Int -> IO ()
 testTypedThenErr n =
   quickCheckWith stdArgs {maxSuccess=n}
   (\t -> let t' = pprint t in
            case (interpTyped t') of
-             (Left v) -> (Left v) == interpErr t'
-             (Right _) -> True)
+             (Right v) -> (Right v) == interpErr t'
+             (Left _) -> True)
 {% endhighlight %}
 
 Running each on 1000 cases reveals the first property does not hold, while the second does.  Static type checking is *more conservative* that run-type type checking.  An interesting result that we will revisit later.
@@ -478,6 +478,6 @@ Download [source]({{site.baseurl}}/haskell/abe.hs) for all interpreter code from
 
 ## Notes
 
-[^1]:Modulo error messages implies the values are the same except for differences in the specific message.  (Right "Error message 1") and (Right "Different error message") are equivalent modulo error message.
+[^1]:Modulo error messages implies the values are the same except for differences in the specific message.  (Left "Error message 1") and (Left "Different error message") are equivalent modulo error message.
 
 [^2]:The `ABET` is a tribute to my friend and colleague Nancy Kinnersley who passed away this past summer.  She was committed to service through the ABET accreditation organization.  Seems only fitting.

@@ -352,7 +352,7 @@ testTypedThenErr n =
              (Right v) -> (Right v) == interpErr t'
              (Left _) -> True)
 
--- Monadic Evaluator
+-- Monadic Evaluator (Currently not included in PLIH)
 
 evalM :: ABE -> Either String ABE
 evalM (Num x) = (Right (Num x))
@@ -400,6 +400,8 @@ evalM (If t1 t2 t3) = do
     (Num v) -> (Left "Type Error in if")
     (Boolean v) ->  if v then (evalM t2) else (evalM t3)
 
+interpM = evalM . parseABE
+
 testEvalM :: Int -> IO ()
 testEvalM n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> (evalM $ parseABE $ pprint t) == (evalM t))
+  (\t -> (interpM $ pprint t) == (evalM t))

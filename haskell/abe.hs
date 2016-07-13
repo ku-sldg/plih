@@ -64,11 +64,11 @@ expr :: Parser ABE
 expr = buildExpressionParser opTable term
 
 opTable = [ [ inFix "+" Plus AssocLeft
-              , inFix "-" Minus AssocLeft ]
-            , [ inFix "<=" Leq AssocLeft
-              , preFix "isZero" IsZero ]
-            , [ inFix "&&" And AssocLeft ]
-            ]
+            , inFix "-" Minus AssocLeft ]
+          , [ inFix "<=" Leq AssocLeft
+            , preFix "isZero" IsZero ]
+          , [ inFix "&&" And AssocLeft ]
+          ]
 
 numExpr :: Parser ABE
 numExpr = do i <- integer lexer

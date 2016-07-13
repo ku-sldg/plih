@@ -42,7 +42,7 @@ pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
 pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
 pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b ++ ")"
 
--- Parser
+-- Parser (Requires ParserUtils and Parsec)
 
 expr :: Parser BAE
 expr = buildExpressionParser operators term

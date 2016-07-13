@@ -177,9 +177,9 @@ $$\frac{\typeof t_0 = \tbool,\;\typeof t_1 = T,\;\typeof t_2 = T
 
 Two new type rules are added for identifiers and `bind`.
 
-$$\frac{(i,T)\in \Gamma}{\typeof i = T}\[IdT\]$$
+$$\frac{(i,T)\in \Gamma}{\typeof i = T}\;[IdT]$$
 
-$$\frac{\typeof v=T}{\typeof let i=v in b = \typeof (i,T):\Gamma b}$$
+$$\frac{\typeof v=T}{\typeof \bbind i=v \iin b = \typeof (i,T):\Gamma b}\;[BindT]$$
 
 ## Typeof Definition
 

@@ -45,9 +45,9 @@ pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b +
 -- Parser (Requires ParserUtils and Parsec)
 
 expr :: Parser BAE
-expr = buildExpressionParser operators term
+expr = buildExpressionParser opTable term
 
-operators = [ [ inFix "+" Plus AssocLeft
+opTable = [ [ inFix "+" Plus AssocLeft
               , inFix "-" Minus AssocLeft ]
             ]
 

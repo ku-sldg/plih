@@ -152,10 +152,10 @@ However, we can do more.  Let's compare `eval` and `evalErr` to assess whether o
 because the return type of `eval` is different than the return type of `evalErr` and `eval` still crashes.  What we care about are cases when `eval` should not crash and produce a value.  We can't test for  `eval` not crashing, but we can test for when `evalErr` produces a value rather than an error.  Remember `Right` and `Left`?  When `evalErr` returns a `Right` value we know it produced a value and `eval` should also produce a value.  When `evalErr` returns a `Left` we know it produced an error message and we should not evaluate `eval`.  Here's a function to do just this:
 
 {% highlight haskell %}
-  (\t -> (let r = (evalErr t) in
-            case r of
-              (Right v) -> v == (eval t)
-              (Left v) -> True))
+(\t -> (let r = (evalErr t) in
+          case r of
+            (Right v) -> v == (eval t)
+            (Left v) -> True))
 {% endhighlight %}
 
 The `case` performs exactly the check we need.  `Right` compares the value generated with the results of `eval` on `t`.  `Left` just returns  `True`.  Why?  QuickCheck checks to see if the conjunction of all tests succeed.  `True` causes QuickCheck to, in essense, ignore the case.  Exactly what we want.  Here's the QuickCheck function:

@@ -45,7 +45,6 @@ data FBAE where
                     
 -- Parser
 
-
 expr :: Parser FBAE
 expr = buildExpressionParser operators term
 
@@ -120,6 +119,21 @@ parseFBAE = parseString expr
 
 parseFBAEFile = parseFile expr
 
+-- Pretty Printer
+
+pprint :: FBAE -> String
+pprint (Num n) = show n
+pprint (Id s) = s
+pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
+pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
+pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b ++ ")"
+pprint (Lambda s t b) = "(lambda " ++ "(" ++ s ++ " : " ++ pprintTy t ++ ") " ++ pprint b ++ ")"
+pprint (App l r) = "(app " ++ pprint l ++ " " ++ pprint r ++ ")"
+
+pprintTy :: TFBAE -> String
+pprintTy TNum = "Nat"
+pprintTy (t1 :->: t2) = "(" ++ pprintTy t1 ++ " -> " ++ pprintTy t2 ++ ")"
+
 -- Substitution
 
 subst :: String -> FBAE -> FBAE -> FBAE
@@ -133,22 +147,22 @@ subst i v (Id i') = if i==i'
                     then v
                     else (Id i')
        
-calcs :: FBAE -> FBAE
-calcs (Num x) = (Num x)
-calcs (Plus l r) = let (Num l') = (calcs l)
-                       (Num r') = (calcs r)
+evals :: FBAE -> FBAE
+evals (Num x) = (Num x)
+evals (Plus l r) = let (Num l') = (evals l)
+                       (Num r') = (evals r)
                    in (Num (l' + r'))
-calcs (Minus l r) = let (Num l') = (calcs l)
-                        (Num r') = (calcs r)
+evals (Minus l r) = let (Num l') = (evals l)
+                        (Num r') = (evals r)
                     in (Num (l' - r'))
-calcs (Bind i v b) = (calcs (subst i (calcs v) b))
-calcs (Lambda i t b) = (Lambda i t b)
-calcs (App f a) = let (Lambda i t b) = (calcs f)
-                      a' = (calcs a)
-                  in calcs (subst i (calcs a) b)
-calcs (If c t e) = let (Num c') = (calcs c)
-                   in if c'==0 then (calcs t) else (calcs e)
-calcs (Id id) = error "Undeclared Variable"
+evals (Bind i v b) = (evals (subst i (evals v) b))
+evals (Lambda i t b) = (Lambda i t b)
+evals (App f a) = let (Lambda i t b) = (evals f)
+                      a' = (evals a)
+                  in evals (subst i (evals a) b)
+evals (If c t e) = let (Num c') = (evals c)
+                   in if c'==0 then (evals t) else (evals e)
+evals (Id id) = error "Undeclared Variable"
 
 -- Interpreter
 
@@ -156,25 +170,25 @@ type Env = [(String,FBAE)]
 type Cont = [(String,TFBAE)]
 
          
-calc :: Env -> FBAE -> FBAE
-calc env (Num x) = (Num x)
-calc env (Plus l r) = let (Num l') = (calc env l)
-                          (Num r') = (calc env r)
+eval :: Env -> FBAE -> FBAE
+eval env (Num x) = (Num x)
+eval env (Plus l r) = let (Num l') = (eval env l)
+                          (Num r') = (eval env r)
                       in (Num (l'+r'))
-calc env (Minus l r) = let (Num l') = (calc env l)
-                           (Num r') = (calc env r)
+eval env (Minus l r) = let (Num l') = (eval env l)
+                           (Num r') = (eval env r)
                        in (Num (l'-r'))
-calc env (Bind i v b) = let v' = calc env v in
-                          calc ((i,v'):env) b
-calc env (Lambda i t b) = (Lambda i t b)
-calc env (App f a) = let (Lambda i t b) = (calc env f)
-                         a' = (calc env a)
-                     in calc ((i,a'):env) b
-calc env (Id id) = case (lookup id env) of
+eval env (Bind i v b) = let v' = eval env v in
+                          eval ((i,v'):env) b
+eval env (Lambda i t b) = (Lambda i t b)
+eval env (App f a) = let (Lambda i t b) = (eval env f)
+                         a' = (eval env a)
+                     in eval ((i,a'):env) b
+eval env (Id id) = case (lookup id env) of
                      Just x -> x
                      Nothing -> error "Varible not found"
-calc env (If c t e) = let (Num c') = (calc env c)
-                      in if c'==0 then (calc env t) else (calc env e)
+eval env (If c t e) = let (Num c') = (eval env c)
+                      in if c'==0 then (eval env t) else (eval env e)
 
 -- Type inference
 
@@ -199,16 +213,19 @@ typeof cont (If c t e) = if (typeof cont c) == TNum
                          else error "Type mismatch in if"
 typeof cont (Lambda x t b) = let tyB = typeof ((x,t):cont) b
                              in t :->: tyB
-typeof cont (App x y) = let tyXd :->: tyXr = typeof cont x
+typeof cont (App x y) = let tyX = typeof cont x
                             tyY = typeof cont y
-                        in if tyXd==tyY
-                           then tyXr
-                           else error "Type mismatch in app"
+                        in case typeof cont x of
+                             tyXd :->: tyXr ->
+                               if tyXd==tyY
+                               then tyXr
+                               else error "Type mismatch in app"
+                             _ -> error "First argument not lambda in app"
 
 typecheck :: FBAE -> FBAE
 typecheck e = if (typeof [] e)==TNum then e else error "This should never happen"
 
-eval = (calc []) . typecheck . parseFBAE
+interp = (eval []) . typecheck . parseFBAE
 
 -- Testing (Requires QuickCheck 2)
 
@@ -296,7 +313,8 @@ genTFBAE n = oneof [genType, genFunType (n-1)]
 -- Generate Terms from Types
 
 genTy :: Int -> [(String,TFBAE)] -> TFBAE -> Gen FBAE
-genTy 0 _ _ = genNum
+genTy 0 e TNum = genNum
+genTy 0 e (tyd :->: tyr) = genTLambda 0 e tyd tyr
 genTy n e TNum = oneof $ [ genNum
                          , genTApp n e TNum] ++ case selectId TNum e of
                                                   [] -> []
@@ -318,24 +336,43 @@ idFromC (s,_) = (Id s)
 selectId :: TFBAE -> [(String,TFBAE)] -> [FBAE]
 selectId t c = map idFromC $ filter (idOfType t) c
 
+decFloor n = if n==0 then n else (n-1)
+
 genTLambda :: Int -> [(String,TFBAE)] -> TFBAE -> TFBAE -> Gen FBAE
 genTLambda n e tyd tyr = do
   id <- genName
-  tyrv <- genTy (n-1) ((id,tyd):e) tyr
+  tyrv <- genTy (decFloor n) ((id,tyd):e) tyr
   return (Lambda id tyd tyrv)
 
 genTApp :: Int -> [(String,TFBAE)] -> TFBAE -> Gen FBAE
 genTApp n e tyr = do
   tyd <- genTFBAE n
-  lam <- genTy (n-1) e (tyd :->: tyr)
-  d <- genTy (n-1) e tyd
+  lam <- genTy (decFloor n) e (tyd :->: tyr)
+  d <- genTy (decFloor n) e tyd
   return (App lam d)
 
-testTyGen :: Int -> IO ()
-testTyGen n = quickCheckWith stdArgs {maxSuccess=n}
-  (\r -> (\t -> (typeof [] t) == r))
+testParser :: Int -> IO ()
+testParser n = do
+  i <- randomIO
+  quickCheckWith stdArgs {maxSuccess=n}
+    (\ty -> (let t=unGen (genTy 0 [] ty) (mkStdGen i) 3 in
+               (parseFBAE $ pprint t) == t))
 
--- randomIO produces a random number
+testTyGen :: Int -> IO ()
+testTyGen n = do
+  i <- randomIO
+  quickCheckWith stdArgs {maxSuccess=n}
+    (\ty -> (let t=unGen (genTy 0 [] ty) (mkStdGen i) 3 in
+               (typeof [] t) == ty))
+
+testInterp :: Int -> IO ()
+testInterp n = do
+  i <- randomIO
+  quickCheckWith stdArgs {maxSuccess=n}
+    (\ty -> (let t=unGen (genTy 0 [] ty) (mkStdGen i) 3 in
+               (eval [] t == evals t)))
+    
+-- randomIO produces a random number in the IO monad
 
 testRandomTFBAE = do
   i <- randomIO
@@ -347,10 +384,3 @@ testRandomFBAE = do
   t <- return $ unGen (genTy 3 [] ty) (mkStdGen i) 3
   return $ (t,ty)
 
-testTyGen' :: Int -> IO ()
-testTyGen' n = do
-  i <- randomIO
-  quickCheckWith stdArgs {maxSuccess=n}
-    (\ty -> (let t=unGen (genTy 3 [] ty) (mkStdGen i) 3 in
-               (typeof [] t) == ty))
-    

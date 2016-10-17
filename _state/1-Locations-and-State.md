@@ -1,7 +1,7 @@
 ---
 layout: frontpage
 title: Locations and Storage
-use_math: true
+use\_math: true
 categories: chapter ch2
 ---
 

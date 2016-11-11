@@ -2,7 +2,7 @@
 layout: frontpage
 title: Adding Identifiers
 use_math: true
-categories: chapter ch2
+categories: chapter ch1
 ---
 
 $$

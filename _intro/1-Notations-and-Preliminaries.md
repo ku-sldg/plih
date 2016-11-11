@@ -106,8 +106,9 @@ Similarly, an evaluation strings together evaluation rules:
 
 {% highlight text %}
 1+3-4
-== 
-{% highlight text %}
+== 4-4
+== 0
+{% endhighlight %}
 
 [1]:	https://cs.brown.edu/~sk/Publications/Books/ProgLangs/2007-04-26/ "PLAI"
 [2]:	http://learnyouahaskell.com "Learn You a Haskell for Great Good"

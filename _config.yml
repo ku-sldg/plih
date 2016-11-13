@@ -1,0 +1,22 @@
+baseurl: http://ku-sldg.github.io/plih/
+title: Programming Languages in Haskell
+subtitle: Support for EECS 662 at KU
+markdown: kramdown
+url: http://ku-sldg.github.io/plih
+collections:
+  intro:
+    output: true
+    title: Introduction
+  simple:
+    output: true
+    title: Simple Interpreters
+  ids:
+    output: true
+    title: Identifiers
+  funs:
+    output: true
+    title: Functions
+  state:
+    output: true
+    title: State
+    

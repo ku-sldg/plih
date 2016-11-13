@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, KindSignatures, RankNTypes, StandaloneDeriving, FlexibleInstances #-}
+{-# LANGUAGE GADTs, KindSignatures, RankNTypes, StandaloneDeriving, FlexibleInstances, LiberalTypeSynonyms, ImpredicativeTypes #-}
 
 import Control.Monad
 import Text.ParserCombinators.Parsec
@@ -20,7 +20,8 @@ data FBAE a where
   Mult :: FBAE Int -> FBAE Int -> FBAE Int
   Div :: FBAE Int -> FBAE Int -> FBAE Int
   Bind :: String -> FBAE a -> FBAE a -> FBAE a
-  Id :: String -> FBAE a
+  BId :: String -> FBAE Bool
+  NId :: String -> FBAE Int
   Boolean :: Bool -> FBAE Bool
   And :: FBAE Bool -> FBAE Bool -> FBAE Bool
   Leq :: FBAE Int -> FBAE Int -> FBAE Bool
@@ -31,92 +32,92 @@ deriving instance Show (FBAE a)
                     
 -- Parser
 
--- languageDef =
---   javaStyle { Token.identStart = letter
---             , Token.identLetter = alphaNum
---             , Token.reservedNames = [ "fun"
---                                     , "bind"
---                                     , "in"
---                                     , "if"
---                                     , "then"
---                                     , "else"
---                                     , "isZero"
---                                     , "true"
---                                     , "false" ]
---             , Token.reservedOpNames = [ "+","-","*","/","&&","<=","="]
---             }
+languageDef =
+  javaStyle { Token.identStart = letter
+            , Token.identLetter = alphaNum
+            , Token.reservedNames = [ "fun"
+                                    , "bind"
+                                    , "in"
+                                    , "if"
+                                    , "then"
+                                    , "else"
+                                    , "isZero"
+                                    , "true"
+                                    , "false" ]
+            , Token.reservedOpNames = [ "+","-","*","/","&&","<=","="]
+            }
 
--- lexer = Token.makeTokenParser languageDef
+lexer = Token.makeTokenParser languageDef
 
--- identifier = Token.identifier lexer
--- reserved = Token.reserved lexer
--- reservedOp = Token.reservedOp lexer
--- parens = Token.parens lexer
--- integer = Token.integer lexer
--- whiteSpace = Token.whiteSpace lexer
+identifier = Token.identifier lexer
+reserved = Token.reserved lexer
+reservedOp = Token.reservedOp lexer
+parens = Token.parens lexer
+integer = Token.integer lexer
+whiteSpace = Token.whiteSpace lexer
 
--- expr :: a -> Parser (FBAE a)
--- expr = buildExpressionParser operators term
+--expr :: Parser (forall a . FBAE a)
+expr = buildExpressionParser operators term
 
--- operators = [ [Infix (reservedOp "*" >> return (Mult )) AssocLeft,
---                Infix (reservedOp "/" >> return (Div )) AssocLeft ]
---             , [Infix (reservedOp "+" >> return (Plus )) AssocLeft,
---                Infix (reservedOp "-" >> return (Minus )) AssocLeft ]
---             , [Infix (reservedOp "&&" >> return (And )) AssocLeft ]
---             , [Infix (reservedOp "<=" >> return (Leq )) AssocLeft ]
---             , [Prefix (reserved "isZero" >> return (IsZero )) ]
---             ]
+operators = [ [Infix (reservedOp "*" >> return (Mult )) AssocLeft,
+               Infix (reservedOp "/" >> return (Div )) AssocLeft ]
+            , [Infix (reservedOp "+" >> return (Plus )) AssocLeft,
+               Infix (reservedOp "-" >> return (Minus )) AssocLeft ]
+            , [Infix (reservedOp "&&" >> return (And )) AssocLeft ]
+            , [Infix (reservedOp "<=" >> return (Leq )) AssocLeft ]
+            , [Prefix (reserved "isZero" >> return (IsZero )) ]
+            ]
 
--- numExpr :: a -> Parser (FBAE a)
--- numExpr = do i <- integer
---              return (Num (fromInteger i))
+numExpr :: Parser (FBAE Int)
+numExpr = do i <- integer
+             return (Num (fromInteger i))
 
--- trueExpr :: a -> Parser (FBAE a)
--- trueExpr = do i <- reserved "true"
---               return (Boolean True)
+trueExpr :: Parser (FBAE Bool)
+trueExpr = do i <- reserved "true"
+              return (Boolean True)
 
--- falseExpr :: a -> Parser (FBAE a)
--- falseExpr = do i <- reserved "false"
---                return (Boolean False)
+falseExpr :: Parser (FBAE Bool)
+falseExpr = do i <- reserved "false"
+               return (Boolean False)
 
--- ifExpr :: a -> Parser (FBAE a)
--- ifExpr = do reserved "if"
---             c <- expr
---             reserved "then"
---             t <- expr
---             reserved "else"
---             e <- expr
---             return (If c t e)
+ifExpr :: Parser (FBAE a)
+ifExpr = do reserved "if"
+            c <- expr
+            reserved "then"
+            t <- expr
+            reserved "else"
+            e <- expr
+            return (If c t e)
 
--- identExpr :: a -> Parser (FBAE a)
--- identExpr = do i <- identifier
---                return (Id i)
+identExpr :: Parser (FBAE a)
+identExpr = do i <- identifier
+               return (if i[0]=='b' then (BId i) else (NId i))
 
--- bindExpr :: a -> Parser (FBAE a)
--- bindExpr = do reserved "bind"
---               i <- identifier
---               reservedOp "="
---               v <- expr
---               reserved "in"
---               e <- expr
---               return (Bind i v e)
+bindExpr :: Parser (FBAE a)
+bindExpr = do reserved "bind"
+              i <- identifier
+              reservedOp "="
+              v <- expr
+              reserved "in"
+              e <- expr
+              return (Bind i v e)
 
--- term = parens expr
---        <|> numExpr
---        <|> trueExpr
---        <|> falseExpr
---        <|> ifExpr
---        <|> identExpr
---        <|> bindExpr
+term = parens expr
+       <|> numExpr
+       <|> trueExpr
+       <|> falseExpr
+       <|> ifExpr
+       <|> identExpr
+       <|> bindExpr
 
--- -- Parser invocation
+-- Parser invocation
 
--- parseString p str =
---   case parse p "" str of
---     Left e -> error $ show e
---     Right r -> r
+parseString p str =
+  case parse p "" str of
+    Left e -> error $ show e
+    Right r -> r
 
--- parseFBAE = parseString expr
+parseFBAE = parseString expr
 
 -- parseFile p file =
 --   do program <- readFile file
@@ -126,7 +127,7 @@ deriving instance Show (FBAE a)
 
 -- parseFBAEFile = parseFile expr
 
-type Env = [(String, FBAE)]
+type Env = [(String, (Either Int Bool))]
 
 addEnv id v env = ((id,v):env)
 
@@ -146,11 +147,21 @@ calc (Mult l r) env = let (Num l') = (calc l env)
 calc (Div l r) env = let (Num l') = (calc l env)
                          (Num r') = (calc r env)
                       in (Num (div l' r'))
---calc (Bind i v b) env = let v'=(calc v env)
---                        in calc b (addEnv i v' env)
-calc (Id id) env = case (lookup id env) of
-                     Just x -> x
+calc (Bind i v b) env = let v'=(calc v env)
+                        in calc b (addEnv i (case v' of
+                                               (Num n) -> (Left n)
+                                               (Boolean b) -> (Right b))
+                                   env)
+calc (BId id) env = case (lookup id env) of
+                     Just x -> case x of
+                                 Left x' -> error "Variable wrong type"
+                                 Right x' -> (Boolean x')
                      Nothing -> error "Varible not found"
+calc (NId id) env = case (lookup id env) of
+                      Just x -> case x of
+                                  Left x' -> (Num x')
+                                  Right x' -> error "Variable wrong type"
+                      Nothing -> error "Variable not found"
 calc (Boolean b) env = (Boolean b)
 calc (And l r) env = let (Boolean l') = (calc l env)
                          (Boolean r') = (calc r env)
@@ -206,9 +217,5 @@ calc (If c t e) env = let (Boolean c') = (calc c env)
 --                          then (typeof t cont)
 --                          else error "Type mismatch in if"
 
--- eval :: String -> FBAE
--- eval e = let p=(parseFBAE e) in
---            let t=typeof p [] in
---              if ((t==TBool) || (t==TNum))
---              then (calc p [])
---              else error "This should never happen"
+eval :: String -> FBAE a
+eval e = let p=(parseFBAE e) in (calc p [])

@@ -1,14 +1,32 @@
 {-# LANGUAGE GADTs #-}
 
+-- Imports for QuickCheck
+import System.Random
+import Test.QuickCheck
+import Test.QuickCheck.Gen
+import Test.QuickCheck.Function
+import Test.QuickCheck.Monadic
+
+-- Imports for Parsec
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
-import qualified Text.ParserCombinators.Parsec.Token as Token
+import Text.ParserCombinators.Parsec.Token
 
+-- Imports for PLIH
+import ParserUtils
+
+--
 -- Simple caculator with no variables
+--
+-- Author: Perry Alexander
+-- Date: Mon Jun 27 13:34:57 CDT 2016
+--
+-- Source files for the Arithmetic Expressions (AE) language from PLIH
+--
 
--- AST
+-- AST Definition
 
 data AE where
   Num :: Int -> AE
@@ -18,57 +36,92 @@ data AE where
   Div :: AE -> AE -> AE
   deriving (Show,Eq)
 
--- Parser
+-- AST Pretty Printer
 
-tokenDef =
-  javaStyle { Token.reservedOpNames = [ "+","-"] }
+pprint :: AE -> String
+pprint (Num n) = show n
+pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
+pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
 
-lexer = Token.makeTokenParser tokenDef
-
-reservedOp = Token.reservedOp lexer
-parens = Token.parens lexer
-integer = Token.integer lexer
-whiteSpace = Token.whiteSpace lexer
+-- Parser (Requires ParserUtils and Parsec)
 
 expr :: Parser AE
 expr = buildExpressionParser operators term
 
-operators = [ [Infix (reservedOp "*" >> return (Mult )) AssocLeft,
-               Infix (reservedOp "/" >> return (Div )) AssocLeft ]
+operators = [ [ inFix "+" Plus AssocLeft
+              , inFix "-" Minus AssocLeft ]
             ]
 
 numExpr :: Parser AE
-numExpr = do i <- integer
+numExpr = do i <- integer lexer
              return (Num (fromInteger i))
 
-term = parens expr <|> numExpr
+term = parens lexer expr
+       <|> numExpr
 
 -- Parser invocation
 
-parseString p str =
-  case parse p "" str of
-    Left e -> error $ show e
-    Right r -> r
-
 parseAE = parseString expr
-
-parseFile p file =
-  do program <- readFile file
-     case parse p "" program of
-       Left e -> print e >> fail "parse error"
-       Right r -> return r
 
 parseAEFile = parseFile expr
 
--- Calculation Function
+-- Evaluation Function
 
-calc :: AE -> Int
-calc (Num x) = x
-calc (Plus l r) = (calc l) + (calc r)
-calc (Minus l r) = (calc l) - (calc r)
-calc (Mult l r) = (calc l) * (calc r)
-calc (Div l r) = div (calc l) (calc r)
+eval :: AE -> AE
+eval (Num x) = (Num x)
+eval (Plus t1 t2) = let (Num v1) = (eval t1)
+                        (Num v2) = (eval t2)
+                    in (Num (v1+v2))
+eval (Minus t1 t2) = let (Num v1) = (eval t1)
+                         (Num v2) = (eval t2)
+                     in (Num (v1-v2))
+eval (Mult t1 t2) = let (Num v1) = (eval t1)
+                        (Num v2) = (eval t2)
+                    in (Num (v1*v2))
+eval (Div t1 t2) = let (Num v1) = (eval t1)
+                       (Num v2) = (eval t2)
+                   in (Num (div v1 v2))
 
--- Interpreter = parse + calc
+-- Interpreter = parse + eval
 
-interp = calc . parseAE
+interp = eval . parseAE
+
+-- Testing (Requires QuickCheck 2)
+
+-- Arbitrary AST Generator
+
+instance Arbitrary AE where
+  arbitrary =
+    sized $ \n -> genAE ((rem n 10) + 10)
+
+genNum =
+  do t <- choose (0,100)
+     return (Num t)
+
+genPlus n =
+  do s <- genAE n
+     t <- genAE n
+     return (Plus s t)
+
+genMinus n =
+  do s <- genAE n
+     t <- genAE n
+     return (Minus s t)
+
+genAE :: Int -> Gen AE
+genAE 0 =
+  do term <- genNum
+     return term
+genAE n =
+  do term <- oneof [genNum,(genPlus (n-1)),(genMinus (n-1))]
+     return term
+
+-- QuickCheck 
+
+testParser :: Int -> IO ()
+testParser n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> parseAE (pprint t) == t)
+
+testEval' :: Int -> IO ()
+testEval' n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (interp $ pprint t) == (eval t))

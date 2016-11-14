@@ -25,6 +25,8 @@ $$
 \newcommand\ffalse{\;\mathsf{false}}
 \newcommand\tnum{\;\mathsf{TNum}}
 \newcommand\tbool{\;\mathsf{TBool}}
+\newcommand\llambda{\mathsf{lambda}\;}
+\newcommand\aapp{\mathsf{app}\;}
 $$
 
 # Functions
@@ -110,13 +112,13 @@ In this case, the application of `map` to the function `inc` results in a new fu
 Not stopping at higher-order functions, Haskell has first-class functions as does Scheme and ML.  A function value is created using a lambda or other special form.  In Haskell the following produces a function value that adds `1` to an input value:
 
 {% highlight haskell %}
-	(\x -> x+1)
+(\x -> x+1)
 {% endhighlight %}
 
 The backslash is used to resemble the lambda from lambda calculus and is easy to remember for that reason.  We can bind a function value to a name just like any other value:
 
 {% highlight haskell %}
-	inc = (\x -> x+1)
+inc = (\x -> x+1)
 {% endhighlight %}
 
 `inc` is an identifier bound to the function `(\x -> x+1)` and behaves just like any other identifier.  Function values such as these are frequently referred to as *anonymous functions* because they do not have explicit names.  In the Haskell expression:
@@ -131,16 +133,16 @@ The use of function values in programming languages dates back to Lisp and is fi
 
 ## Concrete and Abstract Syntax
 
-The concrete syntax for `FBAE` is a simple extension of `BAE` to include function definitions and applications.  Once again we are dropping Booleans for the time being:
+Our next language will implement first-class functions as an extension of `BAE`.  The concrete syntax for `FBAE` is a simple extension of `BAE` to include function definitions and applications.  Once again we are dropping Booleans for the time being:
 
 $$\begin{align*}
 t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
 	  & \mid \bbind \ID=t\; \iin t \\
 	  & \mid \llambda \ID\; \iin t \\
-	  & \mid \aapp \; t \; t \\
+	  & \mid \aapp t \; t \\
 \end{align*}$$
 
-The third and fourth lines introduce the new syntax.  Functions are defined with the $\llamba$ keyword following by an argument and function body.  The value of our `inc` function in `FBAE` becomes:
+The third and fourth lines introduce the new syntax.  Functions are defined with the $\llambda$ keyword following by an argument and function body.  The value of our `inc` function in `FBAE` becomes:
 
 {% highlight text %}
 lambda x in x+1
@@ -178,7 +180,22 @@ data FBAE where
 
 The most basic definition for functions and their application to arguments comes from Church and the Lambda Calculus.  Hopefully you will have the opportunity to study Lambda Calculus later, but for now we will only borrow some basic concepts for our work.
 
-$$\frac{}{(\mathsf{app}\; (\mathsf{lambda}\; i\; b) \; a) \rightarrow [i\mapsto a]b}$$
+A hint for our direction is the similarity between the concrete syntax for `bind` and `lambda`:
+
+{% highlight text %}
+bind x = 5 in x
+lambda x in x
+{% endhighlight %}
+
+`bind` defines a new identifier, binds it to a value, and uses the new identifier in the body of the `bind`.  `lambda` is quite similar in that it defines a new identifier and uses the new identifier in the body of the `lambda`.  However, it does not bind the identifier to a particular value.  That binding is deferred until the `lambda` is applied.  `bind` and `lambda` are cousins in that both define new identifiers.  `bind` and `app` are similarly cousins in that both bind values to identifiers.  Regardless of the relationship, we should be able to use the tools for defining `bind` to similarly defined `app`.
+
+The simplest definition for function application is called $\beta$-reduction and uses substitution to replace an identifier with its value.  In the $\beta$-reduction rule below, $i$ is the identifier defined by the $\llambda$, $b$ is the body of the $\llambda$ and $a$ is the argument the $\llambda$ is applied to:
+
+$$\frac{}{(\aapp (\llambda i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reduction]$$
+
+The result of the application is $[i\mapsto a]b$, or replacing $i$ with $a$ in $b$.
+
+
 
 ## Notes
 * Talk about Currying

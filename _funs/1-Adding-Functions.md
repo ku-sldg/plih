@@ -131,7 +131,54 @@ the value for `inc` is found just like the value for `l`.
 
 The use of function values in programming languages dates back to Lisp and is finding its way into many mainstream languages. It is an elegant solution to defining functions that requires little syntax and few semantic extensions.
 
-## Concrete and Abstract Syntax
+## Implementing First Order Functions
+
+### Concrete and Abstract Syntax
+
+$$\begin{align*}
+t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
+	  & \mid \bbind \ID=t\; \iin t \\
+	  & \mid \llambda \ID\; \ID\; t\; t \\
+	  & \mid \aapp \ID \; t \\
+\end{align*}$$
+
+The $\matchsf{lambda}$ term defines a new function named by its first $\ID$ argument.  The second $\ID$ names the formal parameters and $t$ is the body.  The final $t$ is the scope over where the function is defined.  In this sense, `lambda` behaves like a `bind` defining a function over an expression.
+
+$\aapp$ is the application of a function to an actual parameter.  $\ID$ is the name of the function and $t$ is the argument.  
+
+We would define our old friend `inc` and use it in an expression as follows:
+
+{% highlight text %}
+lambda inc x x+1 in
+  (app inc (app inc 7))
+{% endhighlight %}
+
+The result is applying `inc` twice to `7`
+
+The associated abstract syntax is a transformation of the concrete syntax to an abstract data type:
+
+{% highlight haskell %}
+data FBAE where
+  Num :: Int -> FBAE
+  Plus :: FBAE -> FBAE -> FBAE
+  Minus :: FBAE -> FBAE -> FBAE
+  Bind :: String -> FBAE -> FBAE -> FBAE
+  Lambda :: String -> String -> FBAE -> FBAE
+  App :: String -> FBAE -> FBAE
+  Id :: String -> FBAE
+{% endhighlight %}
+
+### Evaluation
+
+What does it mean to apply a first-order function?
+
+$$\frac{}{(\aapp (\llambda f\; i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reduction]$$
+
+The details of implementing `eval` for first-order functions is left as an exercise.
+
+## Implementing First-Class Functions
+
+### Concrete and Abstract Syntax
 
 Our next language will implement first-class functions as an extension of `BAE`.  The concrete syntax for `FBAE` is a simple extension of `BAE` to include function definitions and applications.  Once again we are dropping Booleans for the time being:
 
@@ -176,7 +223,7 @@ data FBAE where
   Id :: String -> BAE
 {% endhighlight %}
 
-## Formal Definition
+### Formal Definition
 
 The most basic definition for functions and their application to arguments comes from Church and the Lambda Calculus.  Hopefully you will have the opportunity to study Lambda Calculus later, but for now we will only borrow some basic concepts for our work.
 
@@ -189,13 +236,15 @@ lambda x in x
 
 `bind` defines a new identifier, binds it to a value, and uses the new identifier in the body of the `bind`.  `lambda` is quite similar in that it defines a new identifier and uses the new identifier in the body of the `lambda`.  However, it does not bind the identifier to a particular value.  That binding is deferred until the `lambda` is applied.  `bind` and `lambda` are cousins in that both define new identifiers.  `bind` and `app` are similarly cousins in that both bind values to identifiers.  Regardless of the relationship, we should be able to use the tools for defining `bind` to similarly defined `app`.
 
-The simplest definition for function application is called $\beta$-reduction and uses substitution to replace an identifier with its value.  In the $\beta$-reduction rule below, $i$ is the identifier defined by the $\llambda$, $b$ is the body of the $\llambda$ and $a$ is the argument the $\llambda$ is applied to:
+The simplest definition for function application is called $\beta$-reduction and uses substitution to replace an identifier with its value.  In the $\beta$-reduction rule below, $i$ is the identifier defined by the $\mathsf{lambda}$, $b$ is the body of the $\llambda$ and $a$ is the argument the $\mathsf{lambda}$ is applied to:
 
 $$\frac{}{(\aapp (\llambda i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reduction]$$
 
 The result of the application is $[i\mapsto a]b$, or replacing $i$ with $a$ in $b$.
 
-
+## Exercises
+1. Write an `eval` function for a language with only first-class functions using direct substitutions and the `subst` operation defined for `bind`
+2. Modify your `eval` function for a language with only first-class functions to defer substitution using an environment that contains both functions and values.
 
 ## Notes
 * Talk about Currying

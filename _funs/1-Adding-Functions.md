@@ -307,6 +307,55 @@ evals (Id id) = error "Undeclared Variable"
 
 ## Efficiency
 
+The new interpreter for functions has the same problem as our original interpreter for `bind`.  Substitutions are performed immediately throughout an expression.  Thankfully, we can use an environment again to solve the same problem.  Recall how we used the environment variable to pass a list of defined variables and their values to implement `bind`:
+
+{% highlight haskell %}
+eval env (Bind i v b) =
+  let v' = eval env v in
+    eval ((i,v'):env) b
+{% endhighlight %}
+
+We can do a similar thing with function application.  In the same way we replaced the call to `subst` with an environment update in `bind`, we can literally do the same thing with function application:
+
+{% highlight haskell %}
+eval env (App f a) = let (Lambda i t b) = (eval env f)
+                         a' = (eval env a)
+                     in eval ((i,a'):env) b
+{% endhighlight %}
+
+The identifier and its value are added to the environment before evaluating the function body.  Whenever the identifier appears, the value is found in the environment and used.  Virtually the same implementation as bind.
+
+The complete code for the interpreter implementing an environment is:
+
+{% highlight haskell %}
+type Env = [(String,FBAE)]
+type Cont = [(String,TFBAE)]
+         
+eval :: Env -> FBAE -> FBAE
+eval env (Num x) = (Num x)
+eval env (Plus l r) = let (Num l') = (eval env l)
+                          (Num r') = (eval env r)
+                      in (Num (l'+r'))
+eval env (Minus l r) = let (Num l') = (eval env l)
+                           (Num r') = (eval env r)
+                       in (Num (l'-r'))
+eval env (Bind i v b) = let v' = eval env v in
+                          eval ((i,v'):env) b
+eval env (Lambda i t b) = (Lambda i t b)
+eval env (App f a) = let (Lambda i t b) = (eval env f)
+                         a' = (eval env a)
+                     in eval ((i,a'):env) b
+eval env (Id id) = case (lookup id env) of
+                     Just x -> x
+                     Nothing -> error "Varible not found"
+eval env (If c t e) = let (Num c') = (eval env c)
+                      in if c'==0 then (eval env t) else (eval env e)
+{% endhighlight %}
+
+## Testing
+
+## Discussion
+
 ## Exercises
 1. Write an `eval` function for a language with only first-class functions using direct substitutions and the `subst` operation defined for `bind`
 2. Modify your `eval` function for a language with only first-class functions to defer substitution using an environment that contains both functions and values.

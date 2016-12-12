@@ -244,6 +244,76 @@ $$\frac{}{(\aapp (\llambda i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reducti
 
 The result of the application is $[i\mapsto a]b$, or replacing $i$ with $a$ in $b$.  This is exactly how we expect functions to behave.  When applied, their formal parameter is replaced with an actual parameter and the result becomes the function application's value.
 
+### Implementation
+
+Let's think about how to implement evaluating `App` and `Lambda` using the substitution operator defined for `bind`.  We established that `bind` both defines and replaces an identifier while function definition defines an identifier and application replaces it.  Let's review the substitution performed for `bind` in the `evals` function:
+
+{% highlight haskell %}
+evals (Bind i v b) = (evals (subst i (Num (evals v)) b))
+{% endhighlight %}
+
+The `subst` function gets is identifier from the `bind` syntax as well as the value it is substituting, `v`.  The body, `b`, is also found in the `bind` expression.  Thus, the `subst` application is simple.  We can understand the evaluation of `App` by looking for the arguments to `subst` in the `lambda` and its actual parameter.
+
+Before evaluating `App`, lets evaluate both its arguments.  Specifically, `f` to get a lambda value and `a` to get a value for the actual parameter:
+
+{% highlight haskell %}
+evals (App f a) = let (Lambda i t b) = (evals f)
+	                  a' = (evals a)
+	              in evals (subst i a' b)
+{% endhighlight %}
+
+Now we have the pieces needed to apply `subst`.  `i` is the identifier defined by the `Lambda`.  The argument to the substitution is provided by the `App` as `a`.  We evaluate it first before passing it into the substitution.  Finally, the body of the function, `b`, is the expression substituted into.  The result is the following application of `subst`:
+
+{% highlight haskell %}
+evals (subst i (evals a) b)
+{% endhighlight %}
+
+and embedding the substitution into the case for `App` gives us the following:
+
+{% highlight haskell %}
+evals (App f a) = let (Lambda i t b) = (evals f)
+	                  a' = (evals a)
+	              in evals (subst i (evals a) b)
+{% endhighlight %}
+
+And there we have it.  Substitute the argument in for the identifier in the body of the function.
+
+What about the `Lambda` case for `evals`?  As it turns out, `lambda`s are values.  Just like `True` or `(Num 0)`, `(Lambda x (Plus (Id x) (Num 1)))` is a value and is not evaluated further.  Thus, the evaluation of `Lambda` is trivial:
+
+{% highlight haskell %}
+evals (Lambda i t b) = (Lambda i t b)
+{% endhighlight %}
+
+Putting the whole thing together with evaluation of remaining terms gives us a substituting interpreter for `FBAE`:
+
+{% highlight haskell %}
+evals :: FBAE -> FBAE
+evals (Num x) = (Num x)
+evals (Plus l r) = let (Num l') = (evals l)
+                       (Num r') = (evals r)
+                   in (Num (l' + r'))
+evals (Minus l r) = let (Num l') = (evals l)
+                        (Num r') = (evals r)
+                    in (Num (l' - r'))
+evals (Bind i v b) = (evals (subst i (evals v) b))
+evals (Lambda i t b) = (Lambda i t b)
+evals (App f a) = let (Lambda i t b) = (evals f)
+                      a' = (evals a)
+                  in evals (subst i (evals a) b)
+evals (If c t e) = let (Num c') = (evals c)
+                   in if c'==0 then (evals t) else (evals e)
+evals (Id id) = error "Undeclared Variable"
+{% endhighlight %}
+
+## Functions
+
+### Call by Value vs. Name
+
+Now that we have an interpreter for functions, let's play with it a bit and see what we might learn
+
+### Currying
+
+
 ## Exercises
 1. Write an `eval` function for a language with only first-class functions using direct substitutions and the `subst` operation defined for `bind`
 2. Modify your `eval` function for a language with only first-class functions to defer substitution using an environment that contains both functions and values.

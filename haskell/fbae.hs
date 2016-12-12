@@ -159,7 +159,7 @@ evals (Bind i v b) = (evals (subst i (evals v) b))
 evals (Lambda i t b) = (Lambda i t b)
 evals (App f a) = let (Lambda i t b) = (evals f)
                       a' = (evals a)
-                  in evals (subst i (evals a) b)
+                  in evals (subst i a' b)
 evals (If c t e) = let (Num c') = (evals c)
                    in if c'==0 then (evals t) else (evals e)
 evals (Id id) = error "Undeclared Variable"

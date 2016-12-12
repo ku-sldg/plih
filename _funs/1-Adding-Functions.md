@@ -204,7 +204,7 @@ let inc = lambda x in x+1 in ...
 where the ellipsis represents the remainder of the program using `inc`.  Applying inc is done using an `app` as in:
 
 {% highlight text %}
-let inc = lambda x in x+1 in
+bind inc = lambda x in x+1 in
   app inc 1
 {% endhighlight %}
 
@@ -240,7 +240,7 @@ The simplest definition for function application is called $\beta$-reduction and
 
 $$\frac{}{(\aapp (\llambda i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reduction]$$
 
-The result of the application is $[i\mapsto a]b$, or replacing $i$ with $a$ in $b$.
+The result of the application is $[i\mapsto a]b$, or replacing $i$ with $a$ in $b$.  This is exactly how we expect functions to behave.  When applied, their formal parameter is replaced with an actual parameter and the result becomes the function application's value.
 
 ## Exercises
 1. Write an `eval` function for a language with only first-class functions using direct substitutions and the `subst` operation defined for `bind`

@@ -305,23 +305,11 @@ evals (If c t e) = let (Num c') = (evals c)
 evals (Id id) = error "Undeclared Variable"
 {% endhighlight %}
 
-## Functions
-
-### Call by Value vs. Name
-
-Now that we have an interpreter for functions, let's play with it a bit and see what we might learn
-
-### Currying
-
+## Efficiency
 
 ## Exercises
 1. Write an `eval` function for a language with only first-class functions using direct substitutions and the `subst` operation defined for `bind`
 2. Modify your `eval` function for a language with only first-class functions to defer substitution using an environment that contains both functions and values.
 
 ## Notes
-* Talk about Currying
-* Talk about DeBrujin numbering
-* Talk about name mangling
 * Reference for the lambda calculus
-
-An inc x = x + 1 == bind inc be (lambda x => x + 1) in

@@ -144,7 +144,7 @@ t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
 	  & \mid \aapp \ID \; t \\
 \end{align*}$$
 
-The $\matchsf{lambda}$ term defines a new function named by its first $\ID$ argument.  The second $\ID$ names the formal parameters and $t$ is the body.  The final $t$ is the scope over where the function is defined.  In this sense, `lambda` behaves like a `bind` defining a function over an expression.
+The $\mathsf{lambda}$ term defines a new function named by its first $\ID$ argument.  The second $\ID$ names the formal parameters and $t$ is the body.  The final $t$ is the scope over where the function is defined.  In this sense, `lambda` behaves like a `bind` defining a function over an expression.
 
 $\aapp$ is the application of a function to an actual parameter.  $\ID$ is the name of the function and $t$ is the argument.  
 

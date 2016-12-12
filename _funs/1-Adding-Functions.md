@@ -200,7 +200,7 @@ lambda x in x+1
 and we can give it the name `inc` using a `bind`:
 
 {% highlight text %}
-let inc = lambda x in x+1 in ...
+bind inc = (lambda x in x+1) in ...
 {% endhighlight %}
 
 where the ellipsis represents the remainder of the program using `inc`.  Applying inc is done using an `app` as in:

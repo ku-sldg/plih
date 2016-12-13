@@ -354,6 +354,8 @@ eval env (If c t e) = let (Num c') = (eval env c)
 
 ## Testing
 
+*Show that the substituting interpreter and the deferred substitution interpreter implement different languages.*
+
 ## Discussion
 
 ## Exercises

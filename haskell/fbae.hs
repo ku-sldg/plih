@@ -143,6 +143,10 @@ subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
 subst i v (Bind i' v' b') = if i==i'
                             then (Bind i' (subst i v v') b')
                             else (Bind i' (subst i v v') (subst i v b'))
+subst i v (Lambda i' t b') = if i==i'
+                           then (Lambda i' t b')
+                           else (Lambda i' t (subst i v b'))
+subst i v (App f b) = (App (subst i v f) (subst i v b))
 subst i v (Id i') = if i==i'
                     then v
                     else (Id i')

@@ -359,6 +359,7 @@ eval env (If c t e) = let (Num c') = (eval env c)
 ## Exercises
 1. Write an `eval` function for a language with only first-class functions using direct substitutions and the `subst` operation defined for `bind`
 2. Modify your `eval` function for a language with only first-class functions to defer substitution using an environment that contains both functions and values.
+3. Many languages (Haskell included) allow both strict and lazy evaluation.  Define a new language that implements this feature by defining two versions of `App`, - `AppS` and `AppL`.  Do not worry about a concrete syntax.  Simply replace `App` in the abstract syntax and define a new `eval` function.
 
 ## Notes
 * Reference for the lambda calculus

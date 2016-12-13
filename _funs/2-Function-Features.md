@@ -5,9 +5,7 @@ use_math: true
 categories: chapter ch2
 ---
 
-## Call by Value vs. Name
-
-Now that we have an interpreter for functions, let's play with it a bit and see what we might learn
+## Strict vs. Lazy
 
 ## Currying
 
@@ -15,4 +13,8 @@ Now that we have an interpreter for functions, let's play with it a bit and see 
 
 ## Name Mangling
 
+## Exercises
+
+1. Many languages (Haskell included) allow both strict and lazy evaluation.  Define a new language that implements this feature by defining two versions of `App`, - `AppS` and `AppL`.  Do not worry about a concrete syntax.  Simply replace `App` in the abstract syntax and define a new `eval` function.
+ 
 ## Notes

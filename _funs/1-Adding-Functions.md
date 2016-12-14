@@ -144,7 +144,7 @@ t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
 	  & \mid \aapp \ID \; t \\
 \end{align*}$$
 
-The $\mathsf{lambda}$ term defines a new function named by its first $\ID$ argument.  The second $\ID$ names the formal parameters and $t$ is the body.  The final $t$ is the scope over where the function is defined.  In this sense, `lambda` behaves like a `bind` defining a function over an expression.
+The $\mathsf{lambda}$ term defines a new function named by its first $\ID$ argument.  The second $\ID$ names the formal parameter and $t$ is the body.  The final $t$ is the scope over where the function is defined.  In this sense, `lambda` behaves like a `bind` defining a function over an expression.
 
 $\aapp$ is the application of a function to an actual parameter.  $\ID$ is the name of the function and $t$ is the argument.  
 
@@ -220,7 +220,7 @@ data FBAE where
   Plus :: BAE -> BAE -> BAE
   Minus :: BAE -> BAE -> BAE
   Bind :: String -> BAE -> BAE -> BAE
-  Lambda :: String -> TBAE -> BAE
+  Lambda :: String -> BAE
   App :: BAE -> BAE -> BAE
   Id :: String -> BAE
 {% endhighlight %}
@@ -354,7 +354,39 @@ eval env (If c t e) = let (Num c') = (eval env c)
 
 ## Testing
 
+We now have two interpreters for what we hope is the same untyped system with functions. Let's use QuickCheck.
+
 *Show that the substituting interpreter and the deferred substitution interpreter implement different languages.*
+
+Let's consider the following code snippet:
+
+{% highlight text %}
+bind f = (lambda x in x + n) in
+  f 1
+{% endhighlight %}
+
+The `bind` defines `f` whose value is the function that returns its input plus `n`.  This looks quite a bit like `inc`, but instead adds `n` to the argument rather than `1`.  Where does `n` come from?  In this case, nowhere.  Both `evals` and `eval` throw an error when they cannot find the value of `n`.  Let's now add an `n` with `f` in its scope:
+
+{% highlight text %}
+bind n = 1 in
+  bind f = (lambda x in x + n) in
+	f 1
+{% endhighlight %}
+
+The outer `bind` gives `n` the value `1`  while the inner `bind` gives `f` the lambda value that returns its input argument plus `n`.  We just defined `f` in the context of `n`.  When we evaluate the new `bind` bith `evals` and `eval` give us the value `2` as expected.  So far so good.
+
+Lets take this one step further by defining multiple, nested values of `n` by making the body of `f` a `bind` expression like this:
+
+{% highlight text %}
+bind n = 1 in
+  bind f = (lambda x in x + n) in 
+    bind n = 2 in
+      f 1
+{% endhighlight %}
+
+What do you expect to get when evaluating this expression?  `evals` gives us the value `2`.  However, `eval` gives us the value `3`.  What's happening here?  Whatever it is, its bad because our two interpreters for the same language are now giving different results with `evals` and `eval`.  Lets see why.
+
+
 
 ## Discussion
 

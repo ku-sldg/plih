@@ -354,15 +354,26 @@ eval env (If c t e) = let (Num c') = (eval env c)
 
 ## Testing
 
-We now have two interpreters for what we hope is the same untyped system with functions. Let's use QuickCheck.
+We now have two interpreters for what we hope is the same untyped system with functions.  We can use QuickCheck to help our testing, but we have immediate problems that can easily be seen.
 
-*Show that the substituting interpreter and the deferred substitution interpreter implement different languages.*
+### Function Values
+
+Whether you realize it or not, we have introduced a new kind of value to our interpreter.  Clearly when we added Booleans to our first interpreter, there were new values to deal with. It's less obvious how we have new values in this language, but remember that `lambda` creates a function value.  `lambda` expressions are values just like `1` or `true`.  What this means is expression like this one:
+
+{% highlight text %}
+bind f = (lambda x in x+1) in
+  app f f
+{% endhighlight %}
+
+will crash.  `f` can take any argument, but its expression `x+1` will only operate on numbers.
+
+### Scoping
 
 Let's consider the following code snippet:
 
 {% highlight text %}
 bind f = (lambda x in x + n) in
-  f 1
+  app f 1
 {% endhighlight %}
 
 The `bind` defines `f` whose value is the function that returns its input plus `n`.  This looks quite a bit like `inc`, but instead adds `n` to the argument rather than `1`.  Where does `n` come from?  In this case, nowhere.  Both `evals` and `eval` throw an error when they cannot find the value of `n`.  Let's now add an `n` with `f` in its scope:
@@ -370,7 +381,7 @@ The `bind` defines `f` whose value is the function that returns its input plus `
 {% highlight text %}
 bind n = 1 in
   bind f = (lambda x in x + n) in
-	f 1
+	app f 1
 {% endhighlight %}
 
 The outer `bind` gives `n` the value `1`  while the inner `bind` gives `f` the lambda value that returns its input argument plus `n`.  We just defined `f` in the context of `n`.  When we evaluate the new `bind` bith `evals` and `eval` give us the value `2` as expected.  So far so good.
@@ -381,14 +392,14 @@ Lets take this one step further by defining multiple, nested values of `n` by ma
 bind n = 1 in
   bind f = (lambda x in x + n) in 
     bind n = 2 in
-      f 1
+      app f 1
 {% endhighlight %}
 
-What do you expect to get when evaluating this expression?  `evals` gives us the value `2`.  However, `eval` gives us the value `3`.  What's happening here?  Whatever it is, its bad because our two interpreters for the same language are now giving different results with `evals` and `eval`.  Lets see why.
-
-
+What do you expect to get when evaluating this expression?  `evals` gives us the value `2`.  However, `eval` gives us the value `3`.  What's happening here?  Whatever it is, its bad because our two interpreters for the same language are now giving different results with `evals` and `eval`.  Same language using deferred substitution rather than immediate substitution giving different values.
 
 ## Discussion
+
+We have successfully implemented an untyped function system by adding to our original `BAE` interpreter.  We demonstrated that we can implement direct substitution and deferred substitution just as we did with `bind` expressions.  However, we've run into two problems associated with new function values and an odd difference in the way `evals` and `eval` process expressions.  As you might guess, we will deal with the new function values by predicting failure using types.  We will deal with the difference between immediate and deferred substitution by looking at _static_ and _dynamic_ scoping.
 
 ## Exercises
 1. Write an `eval` function for a language with only first-class functions using direct substitutions and the `subst` operation defined for `bind`

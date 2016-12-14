@@ -93,10 +93,10 @@ appExpr = do reserved lexer "app"
 term = parens lexer expr
        <|> numExpr
        <|> ifExpr
-       <|> identExpr
        <|> bindExpr
        <|> lambdaExpr
        <|> appExpr
+       <|> identExpr
 
 -- Parser invocation
 

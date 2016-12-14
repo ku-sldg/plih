@@ -48,7 +48,7 @@ local :: (e -> t) -> R t a -> R e a
 local f r = ask >>= \e -> return (runR r (f e))
 
 -- lookupVar and addVar are simple utilities for looking up values in and
--- addinv values to an environment.  Neither of these functions is necessary
+-- adding values to an environment.  Neither of these functions is necessary
 lookupVar :: String -> Env -> Maybe Int
 lookupVar = lookup
 

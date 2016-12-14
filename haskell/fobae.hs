@@ -12,21 +12,36 @@ import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
-import qualified Text.ParserCombinators.Parsec.Token as Token
+import Text.ParserCombinators.Parsec.Token
 
--- Calculator language extended with an environment to hold defined variables
+-- Imports for PLIH
+import ParserUtils
 
-data FBAE = Num Int
-          | Plus FBAE FBAE
-          | Minus FBAE FBAE
-          | Mult FBAE FBAE
-          | Div FBAE FBAE
-          | Bind String FBAE FBAE
-          | Lambda String FBAE
-          | App FBAE FBAE
-          | Id String
-          | If FBAE FBAE FBAE
-           deriving (Show,Eq)
+--
+-- Simple caculator with variables
+--
+-- Author: Perry Alexander
+-- Date: Wed Jul 13 21:20:26 CDT 2016
+--
+-- Source files for the Binding Arithmetic Expressions extended with
+-- Function (FBAE) language from PLIH
+--
+
+data TFBAE where
+  TNum :: TFBAE
+  (:->:) :: TFBAE -> TFBAE -> TFBAE
+  deriving (Show,Eq)
+
+data FBAE where
+  Num :: Int -> FBAE
+  Plus :: FBAE -> FBAE -> FBAE
+  Minus :: FBAE -> FBAE -> FBAE
+  Bind :: String -> FBAE -> FBAE -> FBAE
+  Lambda :: String -> String -> FBAE -> FBAE -> FBAE
+  App :: FBAE -> FBAE -> FBAE
+  Id :: String -> FBAE
+  If :: FBAE -> FBAE -> FBAE -> FBAE
+  deriving (Show,Eq)
                     
 -- Parser
 
@@ -64,14 +79,13 @@ ifExpr = do reserved lexer "if"
             return (If c t e)
 
 lambdaExpr :: Parser FBAE
-lambdaExpr = do reserved "lambda"
-                i <- parens argExpr
-                b <- expr
-                return (Lambda i b)
-
-argExpr :: Parser String
-argExpr = do i <- identifier
-             return i
+lambdaExpr = do reserved lexer "lambda"
+                n <- identifier lexer
+                i <- identifier lexer
+                fb <- expr
+                reserved lexer "in"
+                bb <- expr
+                return (Lambda n i fb bb)
 
 appExpr :: Parser FBAE
 appExpr = do reserved lexer "app"
@@ -86,7 +100,8 @@ term = parens lexer expr
        <|> bindExpr
        <|> lambdaExpr
        <|> appExpr
-                
+
+
 -- Parser invocation
 
 parseFBAE = parseString expr
@@ -101,12 +116,8 @@ pprint (Id s) = s
 pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
 pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
 pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b ++ ")"
-pprint (Lambda s t b) = "(lambda " ++ "(" ++ s ++ " : " ++ pprintTy t ++ ") " ++ pprint b ++ ")"
+pprint (Lambda n x fb bb) = "(lambda " ++ n ++ x ++ pprint fb ++ " in " ++ pprint bb ++ ")"
 pprint (App l r) = "(app " ++ pprint l ++ " " ++ pprint r ++ ")"
-
-pprintTy :: TFBAE -> String
-pprintTy TNum = "Nat"
-pprintTy (t1 :->: t2) = "(" ++ pprintTy t1 ++ " -> " ++ pprintTy t2 ++ ")"
 
 -- Substitution
 
@@ -117,10 +128,6 @@ subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
 subst i v (Bind i' v' b') = if i==i'
                             then (Bind i' (subst i v v') b')
                             else (Bind i' (subst i v v') (subst i v b'))
-subst i v (Lambda i' t b') = if i==i'
-                           then (Lambda i' t b')
-                           else (Lambda i' t (subst i v b'))
-subst i v (App f b) = (App (subst i v f) (subst i v b))
 subst i v (Id i') = if i==i'
                     then v
                     else (Id i')
@@ -134,10 +141,10 @@ evals (Minus l r) = let (Num l') = (evals l)
                         (Num r') = (evals r)
                     in (Num (l' - r'))
 evals (Bind i v b) = (evals (subst i (evals v) b))
-evals (Lambda i t b) = (Lambda i t b)
-evals (App f a) = let (Lambda i t b) = (evals f)
+evals (Lambda n i fb bb) = (Lambda n i fb bb)
+evals (App f a) = let (Lambda n i fb bb) = (evals f)
                       a' = (evals a)
-                  in evals (subst i a' b)
+                  in evals (subst i (evals a) b)
 evals (If c t e) = let (Num c') = (evals c)
                    in if c'==0 then (evals t) else (evals e)
 evals (Id id) = error "Undeclared Variable"
@@ -168,42 +175,7 @@ eval env (Id id) = case (lookup id env) of
 eval env (If c t e) = let (Num c') = (eval env c)
                       in if c'==0 then (eval env t) else (eval env e)
 
--- Type inference
-
-typeof :: Cont -> FBAE -> TFBAE
-typeof cont (Num x) = TNum
-typeof cont (Plus l r) = let l' = (typeof cont l)
-                             r' = (typeof cont r)
-                         in if l'==TNum && r'==TNum
-                            then TNum
-                            else error "Type Mismatch in +"
-typeof cont (Minus l r) = let l' = (typeof cont l)
-                              r' = (typeof cont r)
-                          in if l'==TNum && r'==TNum then TNum else error "Type Mismatch in -"
-typeof cont (Bind i v b) = let v' = typeof cont v in
-                             typeof ((i,v'):cont) b
-typeof cont (Id id) = case (lookup id cont) of
-                        Just x -> x
-                        Nothing -> error "Varible not found"
-typeof cont (If c t e) = if (typeof cont c) == TNum
-                            && (typeof cont t)==(typeof cont e)
-                         then (typeof cont t)
-                         else error "Type mismatch in if"
-typeof cont (Lambda x t b) = let tyB = typeof ((x,t):cont) b
-                             in t :->: tyB
-typeof cont (App x y) = let tyX = typeof cont x
-                            tyY = typeof cont y
-                        in case typeof cont x of
-                             tyXd :->: tyXr ->
-                               if tyXd==tyY
-                               then tyXr
-                               else error "Type mismatch in app"
-                             _ -> error "First argument not lambda in app"
-
-typecheck :: FBAE -> FBAE
-typecheck e = if (typeof [] e)==TNum then e else error "This should never happen"
-
-interp = (eval []) . typecheck . parseFBAE
+interp = (eval []) . parseFBAE
 
 -- Testing (Requires QuickCheck 2)
 
@@ -335,13 +307,6 @@ testParser n = do
   quickCheckWith stdArgs {maxSuccess=n}
     (\ty -> (let t=unGen (genTy 0 [] ty) (mkStdGen i) 3 in
                (parseFBAE $ pprint t) == t))
-
-testTyGen :: Int -> IO ()
-testTyGen n = do
-  i <- randomIO
-  quickCheckWith stdArgs {maxSuccess=n}
-    (\ty -> (let t=unGen (genTy 0 [] ty) (mkStdGen i) 3 in
-               (typeof [] t) == ty))
 
 testInterp :: Int -> IO ()
 testInterp n = do

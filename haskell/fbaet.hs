@@ -6,13 +6,15 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 
 -- Calculator language extended with an environment to hold defined variables
 
+data TFBAE = TNum | TFBAE :->: TFBAE deriving (Show,Eq)
+
 data FBAE = Num Int
           | Plus FBAE FBAE
           | Minus FBAE FBAE
           | Mult FBAE FBAE
           | Div FBAE FBAE
           | Bind String FBAE FBAE
-          | Lambda String FBAE
+          | Lambda String TFBAE FBAE
           | App FBAE FBAE
           | Id String
           | If FBAE FBAE FBAE
@@ -81,13 +83,15 @@ bindExpr = do reserved "bind"
 
 lambdaExpr :: Parser FBAE
 lambdaExpr = do reserved "lambda"
-                i <- parens argExpr
+                (i,t) <- parens argExpr
                 b <- expr
-                return (Lambda i b)
+                return (Lambda i t b)
 
-argExpr :: Parser String
+argExpr :: Parser (String,TFBAE)
 argExpr = do i <- identifier
-             return i
+             reservedOp ":"
+             t <- ty
+             return (i,t)
 
 appExpr :: Parser FBAE
 appExpr = do reserved "app"
@@ -102,6 +106,15 @@ term = parens expr
        <|> bindExpr
        <|> lambdaExpr
        <|> appExpr
+
+
+ty = buildExpressionParser tyoperators tyTerm
+
+tyoperators = [ [Infix (reservedOp "->" >> return (:->: )) AssocLeft ] ]
+
+tyTerm :: Parser TFBAE
+tyTerm = do reserved "Nat"
+            return TNum
                 
 -- Parser invocation
 

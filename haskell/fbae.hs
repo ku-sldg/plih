@@ -12,21 +12,36 @@ import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
-import qualified Text.ParserCombinators.Parsec.Token as Token
+import Text.ParserCombinators.Parsec.Token
 
--- Calculator language extended with an environment to hold defined variables
+-- Imports for PLIH
+import ParserUtils
 
-data FBAE = Num Int
-          | Plus FBAE FBAE
-          | Minus FBAE FBAE
-          | Mult FBAE FBAE
-          | Div FBAE FBAE
-          | Bind String FBAE FBAE
-          | Lambda String FBAE
-          | App FBAE FBAE
-          | Id String
-          | If FBAE FBAE FBAE
-           deriving (Show,Eq)
+--
+-- Simple caculator with variables
+--
+-- Author: Perry Alexander
+-- Date: Wed Jul 13 21:20:26 CDT 2016
+--
+-- Source files for the Binding Arithmetic Expressions extended with
+-- Function (FBAE) language from PLIH
+--
+
+data TFBAE where
+  TNum :: TFBAE
+  (:->:) :: TFBAE -> TFBAE -> TFBAE
+  deriving (Show,Eq)
+
+data FBAE where
+  Num :: Int -> FBAE
+  Plus :: FBAE -> FBAE -> FBAE
+  Minus :: FBAE -> FBAE -> FBAE
+  Bind :: String -> FBAE -> FBAE -> FBAE
+  Lambda :: String -> TFBAE -> FBAE -> FBAE
+  App :: FBAE -> FBAE -> FBAE
+  Id :: String -> FBAE
+  If :: FBAE -> FBAE -> FBAE -> FBAE
+  deriving (Show,Eq)
                     
 -- Parser
 
@@ -64,14 +79,16 @@ ifExpr = do reserved lexer "if"
             return (If c t e)
 
 lambdaExpr :: Parser FBAE
-lambdaExpr = do reserved "lambda"
-                i <- parens argExpr
+lambdaExpr = do reserved lexer "lambda"
+                (i,t) <- parens lexer argExpr
                 b <- expr
-                return (Lambda i b)
+                return (Lambda i t b)
 
-argExpr :: Parser String
-argExpr = do i <- identifier
-             return i
+argExpr :: Parser (String,TFBAE)
+argExpr = do i <- identifier lexer
+             reservedOp lexer ":"
+             t <- ty
+             return (i,t)
 
 appExpr :: Parser FBAE
 appExpr = do reserved lexer "app"
@@ -86,6 +103,15 @@ term = parens lexer expr
        <|> bindExpr
        <|> lambdaExpr
        <|> appExpr
+
+
+ty = buildExpressionParser tyOpTable tyTerm
+
+tyOpTable = [ [inFix "->" (:->:) AssocLeft ] ]
+
+tyTerm :: Parser TFBAE
+tyTerm = do reserved lexer "Nat"
+            return TNum
                 
 -- Parser invocation
 
@@ -120,7 +146,7 @@ subst i v (Bind i' v' b') = if i==i'
 subst i v (Lambda i' t b') = if i==i'
                            then (Lambda i' t b')
                            else (Lambda i' t (subst i v b'))
-subst i v (App f b) = (App (subst i v f) (subst i v b))
+subst i v (App l r) = (App (subst i v l) (subst i v r))
 subst i v (Id i') = if i==i'
                     then v
                     else (Id i')
@@ -137,7 +163,7 @@ evals (Bind i v b) = (evals (subst i (evals v) b))
 evals (Lambda i t b) = (Lambda i t b)
 evals (App f a) = let (Lambda i t b) = (evals f)
                       a' = (evals a)
-                  in evals (subst i a' b)
+                  in evals (subst i (evals a) b)
 evals (If c t e) = let (Num c') = (evals c)
                    in if c'==0 then (evals t) else (evals e)
 evals (Id id) = error "Undeclared Variable"

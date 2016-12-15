@@ -1,6 +1,6 @@
 ---
 layout: frontpage
-title: Static and Dynamic Scoping
+title: Scoping
 use_math: true
 categories: chapter ch2
 ---

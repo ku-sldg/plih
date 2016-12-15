@@ -2,7 +2,7 @@
 layout: frontpage
 title: Scoping
 use_math: true
-categories: chapter ch2
+categories: chapter ch3
 ---
 
 # Static and Dynamic Scoping
@@ -84,15 +84,27 @@ The result is `3`, but why?  The second `bind` is key to understanding what happ
 
 ## Dynamic Scoping
 
-Where the two interpreters differ is in their implementation of _scope_.  The immediate substitution interpreter implements _static scoping_ while the deferred substitution interpreter implements _dynamic scoping_.
+Where the two interpreters differ is in their implementation of _scope_.  The immediate substitution interpreter implements _static scoping_ while the deferred substitution interpreter implements _dynamic scoping_.  In dynamic scoping, the environment used when evaluating a function is the environment where the function is evaluated.  In the example above, `f` is evaluated in the environment where it is called - `n` is bound to `2` and `f` to the lambda.  Thus, the deferred substitution interpreter implements dynamic scoping.
+
+Clearly dynamic scoping differs from our reference implementation.  However, is that a bad thing?  Most programming language researchers would say yes.  Here's a good example why that's the case:
+
+{% highlight text %}
+bind n = 1 in                      [(n,1)]
+  bind f = (lambda x in x + n) in  [(f,(lambda...)),(n,1)]
+    bind n = app f 1 in            [(n,2),(f,(lambda...)),(n,1)]
+      bind n = app f 1 in          [(n,3),(n,2),(f,(lambda...)),(n,1)]
+        app f 1                    == 4
+{% endhighlight %}
+
+In this expression, every time `f 1` is evaluated, the result is different.  Every time `f 1` is evaluted, the current environment must be known to determine the result.  Same function, same arguments, different result.  This is a debugging nightmare.  Thus, dynamic scoping is to be avoided.
 
 ## Static Scoping
 
-Assuming the immediate substitution interpreter implements a reference interpreter, we need the substituting interpreter to produce the same values.
+Assuming the immediate substitution interpreter implements a reference interpreter, we need the substituting interpreter to produce the same values.  Specifically, we need `f` to use the environment where it is defined rather than where it is called.  Unfortunately, it's gone when `f` is evaluated.
 
 ### Closures as Function Values
 
-A *closure* represents a function value that includes the evironment where the function is defined.
+The approach we'll use is to simply keep a copy of the environment where a function is defined.  In effect, we'll put a copy in the lambda value itself.  This structure is called a _closure_.  A closure represents a function value that includes the evironment where the function is defined.
 
 {% highlight haskell %}
 data BAEVal

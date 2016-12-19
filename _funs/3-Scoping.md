@@ -96,7 +96,7 @@ bind n = 1 in                      [(n,1)]
         app f 1                    == 4
 {% endhighlight %}
 
-In this expression, every time `f 1` is evaluated, the result is different.  Every time `f 1` is evaluted, the current environment must be known to determine the result.  Same function, same arguments, different result.  This is a debugging nightmare.  Thus, dynamic scoping is to be avoided.
+In this expression, every time `f 1` is evaluated, the result is different.  Every time `f 1` is evaluted, the current environment must be known to determine the result.  Same function, same arguments, different result.  This is a debugging nightmare and generally, dynamic scoping is to be avoided.
 
 ## Static Scoping
 
@@ -104,7 +104,7 @@ Assuming the immediate substitution interpreter implements a reference interpret
 
 ### Closures as Function Values
 
-The approach we'll use is to simply keep a copy of the environment where a function is defined.  In effect, we'll put a copy in the lambda value itself.  This structure is called a _closure_.  A closure represents a function value that includes the evironment where the function is defined.
+The approach we'll use is to simply keep a copy of the environment where a function is defined.  In effect, we'll put a copy of the environment in the lambda value when the lambad is defined.  This structure is called a _closure_.  A closure represents a function value that includes the evironment where the function is defined.
 
 {% highlight haskell %}
 data BAEVal

@@ -7,3 +7,7 @@ categories: chapter ch2
 
 # Recursion
 
+## Dynamic Scoping
+
+## Static Scoping
+

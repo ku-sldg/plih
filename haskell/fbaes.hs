@@ -151,28 +151,33 @@ evals (Id id) = error "Undeclared Variable"
 
 interps = evals . parseFBAE
 
--- Interpreter (Dynamic Scoping)
+-- Interpreter (Static Scoping)
 
-type Env = [(String,FBAE)]
+data FBAEVal where
+  NumV :: Int -> FBAEVal
+  ClosureV :: String -> FBAE -> Env -> FBAEVal
+  deriving (Show,Eq)
+
+type Env = [(String,FBAEVal)]
          
-eval :: Env -> FBAE -> FBAE
-eval env (Num x) = (Num x)
-eval env (Plus l r) = let (Num l') = (eval env l)
-                          (Num r') = (eval env r)
-                      in (Num (l'+r'))
-eval env (Minus l r) = let (Num l') = (eval env l)
-                           (Num r') = (eval env r)
-                       in (Num (l'-r'))
+eval :: Env -> FBAE -> FBAEVal
+eval env (Num x) = (NumV x)
+eval env (Plus l r) = let (NumV l') = (eval env l)
+                          (NumV r') = (eval env r)
+                      in (NumV (l'+r'))
+eval env (Minus l r) = let (NumV l') = (eval env l)
+                           (NumV r') = (eval env r)
+                       in (NumV (l'-r'))
 eval env (Bind i v b) = let v' = eval env v in
                           eval ((i,v'):env) b
-eval env (Lambda i b) = (Lambda i b)
-eval env (App f a) = let (Lambda i b) = (eval env f)
+eval env (Lambda i b) = (ClosureV i b env)
+eval env (App f a) = let (ClosureV i b e) = (eval env f)
                          a' = (eval env a)
-                     in eval ((i,a'):env) b
+                     in eval ((i,a'):e) b
 eval env (Id id) = case (lookup id env) of
                      Just x -> x
                      Nothing -> error "Varible not found"
-eval env (If c t e) = let (Num c') = (eval env c)
+eval env (If c t e) = let (NumV c') = (eval env c)
                       in if c'==0 then (eval env t) else (eval env e)
 
 
@@ -184,7 +189,9 @@ interp = (eval []) .  parseFBAE
 test1 = interp "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
 
 test2 = let expr = "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
-        in interp expr == interps expr
+        in let (NumV v1) = interp expr
+           in let (Num v2) = interps expr
+              in v1 == v2
 
 -- Arbitrary AST Generator
 

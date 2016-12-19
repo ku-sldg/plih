@@ -280,6 +280,19 @@ eval env (If c t e) = let (NumV c') = (eval env c)
 
 ## Testing
 
+To make sure we've implemented our statically scoped interpreter correctly, we can go back to the test case that caused our problems to begin with:
+
+{% highlight text %}
+bind n = 1 in
+  bind f = (lambda x in x + n) in 
+    bind n = 2 in
+      app f 1
+{% endhighlight %}
+
+Interpreting this expression with our new inerpreter gives precisely the result hoped for.
+
+## Discussion
+
 ## Definitions
 
 * static - definition or compile time

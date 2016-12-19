@@ -149,19 +149,38 @@ data FBAE where
   ...
 {% endhighlight %}
 
-As we shall see, implementing the closure is a simple extension of what we already do.
+As we shall see, implementing the closure is a simple extension of what we already do.  Remember that for now a `lambda` is a value.  What if somehow we tuck the static environment into the `lambda` definition?
 
 ### Values
 
-All our interpreters thus far have taking an AST as input and produced an AST of the same type as output.  For example, `eval` for the `FBAE` interpreter has the signature:
+All our interpreters thus far have taken an AST as input and produced an AST of the same type as output.  For example, `eval` for the `FBAE` interpreter has the signature:
 
 {% highlight haskell %}
 eval :: FBAE -> FBAE
 {% endhighlight %}
 
-If we pu
+Although correct, `eval`'s type is not specific.  There are many elements of `FBAE` that should not be returned by eval.  In fact, there are far more `FBAE` constructs that should not be return than should.
+
+What we would like is for `eval` to return a _value_.  As we've said before, a value is a term that cannot be evaluated further.  Let's go further and define a value type that interpreters must return:
+
+{% highlight haskell %}
+eval :: FBAE -> FBAEVal
+{% endhighlight %}
+
+where the definition of `FBAEVal` might have the form:
+
+{% highlight haskell %}
+data FBAEVal where
+  NumV :: Int -> FBAEVal
+  LambdaV :: String -> FBAE -> FBAEVal
+  deriving (Show,Eq)
+{% endhighlight %}
+
+Now the interpreter must return a value and that value is distiguishable from traditional AST elements.
 
 ### Closures as Function Values
+
+We've defined static and dynamic scoping and said that for static scoping the static enviornment must be included in a function value.  We've defined the concept of a value and defined a type for values.  Just put the concepts together to define a value that includes closures:
 
 {% highlight haskell %}
 data FBAEVal where
@@ -169,6 +188,97 @@ data FBAEVal where
   ClosureV :: String -> FBAE -> Env -> FBAEVal
   deriving (Show,Eq)
 {% endhighlight %}
+
+The `NumV` definition is for number values.  `NumV` is structually the same as `Num`, but is an element of the value type rather than the AST type.  The `ClosureV` definition modifies `Lambda` adding an `Env` element.  This new element represents the static environment necessary to implement static scoping.  `ClosureV` adds an environment value to a lambda value without making an addition to the AST definition.
+
+Weaving this new definition througout the `FBAE` interpreter is a matter of tweaking existing code.  First, the environment should contain values and not AST elements.  This change is simple requiring only a change to the `Env` type definition:
+
+{% highlight haskell %}
+type Env = [(String,FBAEVal)]
+{% endhighlight %}
+
+Walking through the interpreter reveals additional changes.  The signature is updated to reflect return of an `FBAEVal`:
+
+{% highlight haskell %}
+eval :: Env -> FBAE -> FBAEVal
+{% endhighlight %}
+
+Evaluating a number now results in a `NumV` value:
+
+{% highlight haskell %}
+eval env (Num x) = (NumV x)
+{% endhighlight %}
+
+In `Plus`, `Minus` and `Bind`, evaluating subterms results in values rather than AST elements.  Changes are minimal thanks to pattern matching:
+
+{% highlight haskell %}
+eval env (Plus l r) = let (NumV l') = (eval env l)
+                          (NumV r') = (eval env r)
+                      in (NumV (l'+r'))
+eval env (Minus l r) = let (NumV l') = (eval env l)
+                           (NumV r') = (eval env r)
+                       in (NumV (l'-r'))
+eval env (Bind i v b) = let v' = eval env v in
+                          eval ((i,v'):env) b
+{% endhighlight %}
+
+When evaluting a `Lambda` we capture the static environment.  In the case for `Lambda`, the environment passed into the interpreter is bound to `env`.  Creating the closure value takes `env` and saves its value in the closure value:
+
+{% highlight haskell %}
+eval env (Lambda i b) = (ClosureV i b env)
+{% endhighlight %}
+
+Using the closure value is surprisingly simple.  In the evaluation of `App` in the dynamically scoped interpreter, the environment for evaluating the function body is the dynamic environment updated with the lambda argument.  Specifically:
+
+{% highlight haskell %}
+((i,a'):env)
+{% endhighlight %}
+
+Instead of using the dynamic environment, we use the environment from the closure being applied.  This value is found bound to `e` in the expression.  The new environment for evaluating the function body becomes `((i,a'):e)` and is used as follows:
+
+{% highlight haskell %}
+eval env (App f a) = let (ClosureV i b e) = (eval env f)
+                         a' = (eval env a)
+                     in eval ((i,a'):e) b
+{% endhighlight %}
+
+Other than updates to the environment, the evaluation of `App` is completely unchanged.
+
+Finally, the remaining cases are largely unchanged.  The `If` construct must be updated to use values, but otherwise is identical to the dynamically scoped iterpreter.
+
+{% highlight haskell %}
+eval env (Id id) = case (lookup id env) of
+                     Just x -> x
+                     Nothing -> error "Varible not found"
+eval env (If c t e) = let (NumV c') = (eval env c)
+                      in if c'==0 then (eval env t) else (eval env e)
+{% endhighlight %}
+
+Putting everything together gives us the following interpreter:
+
+{% highlight haskell %}
+eval :: Env -> FBAE -> FBAEVal
+eval env (Num x) = (NumV x)
+eval env (Plus l r) = let (NumV l') = (eval env l)
+                          (NumV r') = (eval env r)
+                      in (NumV (l'+r'))
+eval env (Minus l r) = let (NumV l') = (eval env l)
+                           (NumV r') = (eval env r)
+                       in (NumV (l'-r'))
+eval env (Bind i v b) = let v' = eval env v in
+                          eval ((i,v'):env) b
+eval env (Lambda i b) = (ClosureV i b env)
+eval env (App f a) = let (ClosureV i b e) = (eval env f)
+                         a' = (eval env a)
+                     in eval ((i,a'):e) b
+eval env (Id id) = case (lookup id env) of
+                     Just x -> x
+                     Nothing -> error "Varible not found"
+eval env (If c t e) = let (NumV c') = (eval env c)
+                      in if c'==0 then (eval env t) else (eval env e)
+{% endhighlight %}
+
+## Testing
 
 ## Definitions
 

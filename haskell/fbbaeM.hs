@@ -20,18 +20,31 @@ import ParserUtils
 
 -- Calculator language extended with an environment to hold defined variables
 
-data BAE = Num Int
-         | Plus BAE BAE
-         | Minus BAE BAE
-         | Mult BAE BAE
-         | Div BAE BAE
-         | Bind String BAE BAE
-         | Id String
-           deriving Show
-                    
-type Env = [(String,Int)]
+data TFBAE where
+  TNum :: TFBAE
+  (:->:) :: TFBAE -> TFBAE -> TFBAE
+  deriving (Show,Eq)
 
--- R encapsulats a function from some e to some a in a constructor.  R
+data FBAE where
+  Num :: Int -> FBAE
+  Plus :: FBAE -> FBAE -> FBAE
+  Minus :: FBAE -> FBAE -> FBAE
+  Mult :: FBAE -> FBAE -> FBAE
+  Div :: FBAE -> FBAE -> FBAE
+  Bind :: String -> FBAE -> FBAE -> FBAE
+  Lambda :: String -> TFBAE -> FBAE -> FBAE
+  App :: FBAE -> FBAE -> FBAE
+  Id :: String -> FBAE
+  If :: FBAE -> FBAE -> FBAE -> FBAE
+  deriving (Show,Eq)
+
+data FBAEValue where
+  NumV :: Int -> FBAEValue
+  ClosureV :: String -> FBAE -> Env -> FBAEValue
+
+type Env = [(String,FBAEValue)]
+
+-- R encapsulates a function from some e to some a in a constructor.  R
 -- has Functor, Applicative, and Monad properties.
 
 data R e a = R (e -> a)
@@ -66,17 +79,21 @@ local f r = ask >>= \e -> return (runR r (f e))
 
 -- lookupVar and addVar are simple utilities for looking up values in and
 -- adding values to an environment.  Neither of these functions is necessary
-lookupVar :: String -> Env -> Maybe Int
+lookupVar :: String -> Env -> Maybe FBAEValue
 lookupVar = lookup
 
-addVar :: String -> Int -> Env -> Env
-addVar s i e = (s,i):e
+addVar :: String -> FBAEValue -> Env -> Env
+addVar s v e = (s,v):e
 
 -- evalM builds the monad for a calculation. Note that Plus, Minus, Mult and
 -- Div should be nearly identical. However, I wanted to mess with multiple
 -- implementations, thus you'll see to ways of executing binary operations.
-evalM (Num n) = return n
-evalM (Plus l r) = liftM2 (+) (evalM l) (evalM r)
+evalM (Num n) = return (NumV n)
+evalM (Plus l r) = do
+  l' <- (evalM l)
+  r' <- (evalM r)
+  return liftM2 (+) l' r'
+  return (l' + r')
 evalM (Minus l r) = do
   l' <- (evalM l)
   r' <- (evalM r)

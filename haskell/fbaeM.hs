@@ -20,16 +20,18 @@ import ParserUtils
 
 -- Calculator language extended with an environment to hold defined variables
 
-data BAE = Num Int
-         | Plus BAE BAE
-         | Minus BAE BAE
-         | Mult BAE BAE
-         | Div BAE BAE
-         | Bind String BAE BAE
-         | Id String
-           deriving Show
+data FBAE where
+  Num :: Int -> FBAE
+  Plus :: FBAE -> FBAE -> FBAE
+  Minus :: FBAE -> FBAE -> FBAE
+  Bind :: String -> FBAE -> FBAE -> FBAE
+  Lambda :: String -> FBAE -> FBAE
+  App :: FBAE -> FBAE -> FBAE
+  Id :: String -> FBAE
+  If :: FBAE -> FBAE -> FBAE -> FBAE
+  deriving (Show,Eq)
                     
-type Env = [(String,Int)]
+type Env = [(String,FBAE)]
 
 -- R encapsulats a function from some e to some a in a constructor.  R
 -- has Functor, Applicative, and Monad properties.
@@ -37,15 +39,15 @@ type Env = [(String,Int)]
 data R e a = R (e -> a)
 
 instance Functor (R e) where
-  fmap f (R x) = R $ \e -> (f . x) e
+  fmap f (R g) = R $ \e -> (f . g) e
 
 instance Applicative (R e) where
   pure x = R $ \e -> x
-  (R f) <*> (R x) = R $ \e -> (f e) (x e)
+  (R f) <*> (R g) = R $ \e -> (f e) (g e)
 
 instance Monad (R e) where
   return x = R $ \e -> x
-  x >>= f = R $ \e -> runR (f (runR x e)) e
+  g >>= f = R $ \e -> runR (f (runR g e)) e
 
 -- runR pulls the function out of the monad encapsuation and executes it.
 -- Build the monad, call runR on it.
@@ -66,26 +68,33 @@ local f r = ask >>= \e -> return (runR r (f e))
 
 -- lookupVar and addVar are simple utilities for looking up values in and
 -- adding values to an environment.  Neither of these functions is necessary
-lookupVar :: String -> Env -> Maybe Int
+lookupVar :: String -> Env -> Maybe FBAE
 lookupVar = lookup
 
-addVar :: String -> Int -> Env -> Env
+addVar :: String -> FBAE -> Env -> Env
 addVar s i e = (s,i):e
 
--- evalM builds the monad for a calculation. Note that Plus, Minus, Mult and
--- Div should be nearly identical. However, I wanted to mess with multiple
+numPlus :: FBAE -> FBAE -> FBAE
+numPlus (Num l) (Num r) = Num (l + r)
+numPlus _ _ = error "Non-Num argument to numop"
+
+numMinus :: FBAE -> FBAE -> FBAE
+numMinus (Num l) (Num r) = Num (l + r)
+numMinus _ _ = error "Non-Num argument to numop"
+
+-- evalM builds the monad for a calculation. Note that Plus and Minus
+-- should be nearly identical. However, I wanted to mess with multiple
 -- implementations, thus you'll see to ways of executing binary operations.
-evalM (Num n) = return n
-evalM (Plus l r) = liftM2 (+) (evalM l) (evalM r)
+evalM :: FBAE -> R Env FBAE
+evalM (Num n) = return (Num n)
+evalM (Plus l r) = do
+  l' <- (evalM l)
+  r' <- (evalM r)
+  return (numPlus l' r')
 evalM (Minus l r) = do
   l' <- (evalM l)
   r' <- (evalM r)
-  return (l' - r')
-evalM (Mult l r) = liftM2 (*) (evalM l) (evalM r)
-evalM (Div l r) = do
-  l' <- (evalM l)
-  r' <- (evalM r)
-  return (div l' r')
+  return (numMinus l' r')
 evalM (Id id) = do
   env <- ask
   return (case (lookupVar id env) of
@@ -95,5 +104,17 @@ evalM (Bind i v b) = do
   env <- ask
   v' <- evalM v
   local (addVar i v') (evalM b)
+evalM (Lambda i b) = return (Lambda i b)
+evalM (App f v) = do
+  env <- ask
+  (Lambda i b) <- evalM f
+  v' <- evalM v
+  local (addVar i v') (evalM b)
+
+interp x = runR (evalM x) []
+
+test1 = interp (Num 1)
+test2 = interp (App (Lambda "x" (Plus (Id "x") (Num 1))) (Num 1))
+
 
 

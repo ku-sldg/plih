@@ -214,16 +214,10 @@ optimize (Bind i v b) = let v' = optimize v in
                           optimize b
 optimize (Id id) = (Id id)
 optimize (Boolean b) = (Boolean b)
-optimize (And l r) = let (Boolean l') = (optimize l)
-                         (Boolean r') = (optimize r)
-                      in (Boolean (l' && r'))
-optimize (Leq l r) = let (Num l') = (optimize l)
-                         (Num r') = (optimize r)
-                      in (Boolean (l' <= r'))
-optimize (IsZero v) = let (Num v') = (optimize v)
-                      in (Boolean (v' == 0))
-optimize (If c t e) = let (Boolean c') = (optimize c)
-                      in if c' then (optimize t) else (optimize e)
+optimize (And l r) = (And  (optimize l) (optimize r))
+optimize (Leq l r) = (Leq (optimize l) (optimize r))
+optimize (IsZero v) = (IsZero (optimize v))
+optimize (If c t e) = (If (optimize c) (optimize t) (optimize e))
 
 
 -- Arbitrary AST Generator
@@ -322,6 +316,12 @@ testTypedEval :: Int -> IO ()
 testTypedEval n =
   quickCheckWith stdArgs {maxSuccess=n}
   (\t -> case typeof [] t of
-           (Right _) -> (eval [] (parseBBAE (pprint t))) == (eval [] t)
+           (Right _) -> ((eval []) . parseBBAE . pprint) t == (eval [] t)
            (Left _) -> True)
 
+testOptimizedEval :: Int -> IO ()
+testOptimizedEval n =
+  quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> case typeof [] t of
+           (Right _) -> (eval [] . optimize) t == (eval [] t)
+           (Left _) -> True)

@@ -188,7 +188,7 @@ $$\frac{}{\typeof \ttrue = \tbool}\; [TrueT]$$
 
 $$\frac{}{\typeof \ffalse = \tbool}\; [FalseT]$$
 
-$$\frac{\typeof t_1 = \tnum,\; \eval t_2 = \tnum}{\typeof t_1 + t_2 = TNum}\; [PlusT]$$
+$$\frac{\typeof t_1 = \tnum,\; \eval t_2 = \tnum}{\typeof t_1 + t_2 = \tnum}\; [PlusT]$$
 
 $$\frac{\typeof t_1 = \tnum,\; \eval t_2 = \tnum}{\typeof t_1 + t_2 = \tnum}\; [MinusT]$$
 

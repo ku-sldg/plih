@@ -23,8 +23,6 @@ import ParserUtils
 data BAE = Num Int
          | Plus BAE BAE
          | Minus BAE BAE
-         | Mult BAE BAE
-         | Div BAE BAE
          | Bind String BAE BAE
          | Id String
            deriving Show
@@ -72,8 +70,8 @@ lookupVar = lookup
 addVar :: String -> Int -> Env -> Env
 addVar s i e = (s,i):e
 
--- evalM builds the monad for a calculation. Note that Plus, Minus, Mult and
--- Div should be nearly identical. However, I wanted to mess with multiple
+-- evalM builds the monad for a calculation. Note that Plus and Minus
+-- should be nearly identical. However, I wanted to mess with multiple
 -- implementations, thus you'll see to ways of executing binary operations.
 evalM (Num n) = return n
 evalM (Plus l r) = liftM2 (+) (evalM l) (evalM r)
@@ -81,11 +79,6 @@ evalM (Minus l r) = do
   l' <- (evalM l)
   r' <- (evalM r)
   return (l' - r')
-evalM (Mult l r) = liftM2 (*) (evalM l) (evalM r)
-evalM (Div l r) = do
-  l' <- (evalM l)
-  r' <- (evalM r)
-  return (div l' r')
 evalM (Id id) = do
   env <- ask
   return (case (lookupVar id env) of
@@ -95,5 +88,3 @@ evalM (Bind i v b) = do
   env <- ask
   v' <- evalM v
   local (addVar i v') (evalM b)
-
-

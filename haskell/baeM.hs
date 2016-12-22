@@ -35,11 +35,11 @@ type Env = [(String,Int)]
 data R e a = R (e -> a)
 
 instance Functor (R e) where
-  fmap f (R x) = R $ \e -> (f . x) e
+  fmap f (R g) = R $ \e -> (f . g) e
 
 instance Applicative (R e) where
   pure x = R $ \e -> x
-  (R f) <*> (R x) = R $ \e -> (f e) (x e)
+  (R f) <*> (R g) = R $ \e -> (f e) (g e)
 
 instance Monad (R e) where
   return x = R $ \e -> x

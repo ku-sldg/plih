@@ -17,21 +17,38 @@ import Text.ParserCombinators.Parsec.Token
 -- Imports for PLIH
 import ParserUtils
 
--- Imports for fixpoint
+-- Definitions of Fixedpoint
 
 newtype Fix f = Fix {unFix :: f (Fix f) }
+
+newtype Fix' f = In {out :: f (Fix' f) }
+
+newtype Any = Any {getAny :: Bool} deriving Show
 
 instance Show (f (Fix f)) => Show (Fix f) where
   show x = "(" ++ show (unFix x) ++ ")"
 
+instance Show (f (Fix' f)) => Show (Fix' f) where
+  show x = "(" ++ show (out x) ++ ")"
+
+
 instance Eq (f (Fix f)) => Eq (Fix f) where
   a == b = unFix a == unFix b
+
+instance Eq (f (Fix' f)) => Eq (Fix' f) where
+  a == b = out a == out b
 
 instance Ord (f (Fix f)) => Ord (Fix f) where
   a `compare` b = unFix a `compare` unFix b
 
+instance Ord (f (Fix' f)) => Ord (Fix' f) where
+  a `compare` b = out a `compare` out b
+
 cata :: Functor f => (f a -> a) -> (Fix f -> a)
 cata f = f . fmap (cata f) . unFix
+
+cata' :: Functor f => (f a -> a) -> (Fix' f -> a)
+cata' f = f . fmap (cata' f) . out
 
 type Env' a = Fix (L a)
 

@@ -19,36 +19,21 @@ import ParserUtils
 
 -- Definitions of Fixedpoint
 
-newtype Fix f = Fix {unFix :: f (Fix f) }
-
-newtype Fix' f = In {out :: f (Fix' f) }
+newtype Fix f = In {out :: f (Fix f) }
 
 newtype Any = Any {getAny :: Bool} deriving Show
 
 instance Show (f (Fix f)) => Show (Fix f) where
-  show x = "(" ++ show (unFix x) ++ ")"
-
-instance Show (f (Fix' f)) => Show (Fix' f) where
   show x = "(" ++ show (out x) ++ ")"
 
-
 instance Eq (f (Fix f)) => Eq (Fix f) where
-  a == b = unFix a == unFix b
-
-instance Eq (f (Fix' f)) => Eq (Fix' f) where
   a == b = out a == out b
 
 instance Ord (f (Fix f)) => Ord (Fix f) where
-  a `compare` b = unFix a `compare` unFix b
-
-instance Ord (f (Fix' f)) => Ord (Fix' f) where
   a `compare` b = out a `compare` out b
 
 cata :: Functor f => (f a -> a) -> (Fix f -> a)
-cata f = f . fmap (cata f) . unFix
-
-cata' :: Functor f => (f a -> a) -> (Fix' f -> a)
-cata' f = f . fmap (cata' f) . out
+cata f = f . fmap (cata f) . out
 
 type Env' a = Fix (L a)
 
@@ -74,13 +59,13 @@ findF = \z -> cata $ \x -> case x of
                              NilF -> Nothing
                              ConsF a b -> if a==z then Just a else b
 
-test3 = lengthF (Fix (ConsF 1 (Fix (ConsF 2 (Fix NilF)))))
-test4 = sumF (Fix (ConsF 1 (Fix (ConsF 2 (Fix NilF)))))
+test3 = lengthF (In (ConsF 1 (In (ConsF 2 (In NilF)))))
+test4 = sumF (In (ConsF 1 (In (ConsF 2 (In NilF)))))
 
-test5 = findF 2 (Fix (ConsF 1 (Fix (ConsF 2 (Fix NilF)))))
-test6 = findF 3 (Fix (ConsF 1 (Fix (ConsF 2 (Fix NilF)))))
+test5 = findF 2 (In (ConsF 1 (In (ConsF 2 (In NilF)))))
+test6 = findF 3 (In (ConsF 1 (In (ConsF 2 (In NilF)))))
 
-f = Fix (ConsF 1 (Fix (ConsF 2 f)))
+f = In (ConsF 1 (In (ConsF 2 f)))
 
 --
 -- Simple caculator with variables

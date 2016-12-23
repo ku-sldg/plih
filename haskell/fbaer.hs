@@ -69,16 +69,18 @@ sumF = cata $ \x -> case x of
                      NilF -> 0
                      ConsF a s -> a + s
 
-findF :: Num a => Eq a => a -> Env' a -> Maybe a
+findF :: Num a => Eq a => (a -> Bool) -> Env' a -> Maybe a
 findF = \z -> cata $ \x -> case x of
                              NilF -> Nothing
-                             ConsF a b -> if a==z then Just a else b
+                             ConsF a b -> if (z a) then Just a else b
 
-test3 = lengthF (Fix (ConsF 1 (Fix (ConsF 2 (Fix NilF)))))
+test3 = lengthF (Fix (ConsF ("b",(Num 3)) (Fix (ConsF ("a",(Num 2)) (Fix NilF)))))
 test4 = sumF (Fix (ConsF 1 (Fix (ConsF 2 (Fix NilF)))))
 
-test5 = findF 2 (Fix (ConsF 1 (Fix (ConsF 2 (Fix NilF)))))
-test6 = findF 3 (Fix (ConsF 1 (Fix (ConsF 2 (Fix NilF)))))
+g x = x == 3
+
+test5 =  findF g (Fix (ConsF 3 (Fix (ConsF 2 (Fix NilF)))))
+test6 = findF (\x -> x==3) (Fix (ConsF 1 (Fix (ConsF 2 (Fix NilF)))))
 
 f = Fix (ConsF 1 (Fix (ConsF 2 f)))
 

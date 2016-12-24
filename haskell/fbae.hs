@@ -18,13 +18,13 @@ import Text.ParserCombinators.Parsec.Token
 import ParserUtils
 
 --
--- Simple caculator with variables
+-- Untyped arithmetic interpreter extended with bind and untyped functions
 --
 -- Author: Perry Alexander
 -- Date: Wed Jul 13 21:20:26 CDT 2016
 --
--- Source files for the Binding Arithmetic Expressions extended with
--- Function (FBAE) language from PLIH
+-- Source files for the Functions Binding Arithmetic Expressions extended
+-- with Function (FBAE) language from PLIH
 --
 
 data FBAE where

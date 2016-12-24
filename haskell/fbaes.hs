@@ -18,13 +18,14 @@ import Text.ParserCombinators.Parsec.Token
 import ParserUtils
 
 --
--- Simple caculator with variables
+-- Arithmetic expression langage extended with bind, functions and static
+-- scoping.
 --
 -- Author: Perry Alexander
 -- Date: Wed Jul 13 21:20:26 CDT 2016
 --
 -- Source files for the Binding Arithmetic Expressions extended with
--- Function (FBAE) language from PLIH
+-- Functions and Static Scoping (FBAES) language from PLIH
 --
 
 data FBAE where

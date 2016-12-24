@@ -18,7 +18,7 @@ import Text.ParserCombinators.Parsec.Token
 import ParserUtils
 
 --
--- Simple caculator with no variables
+-- Simple caculator over naturals with no identifiers
 --
 -- Author: Perry Alexander
 -- Date: Mon Jun 27 13:34:57 CDT 2016

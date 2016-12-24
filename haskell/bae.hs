@@ -18,7 +18,7 @@ import Text.ParserCombinators.Parsec.Token
 import ParserUtils
 
 --
--- Simple caculator with variables
+-- Simple caculator with identifiers defined using bind
 --
 -- Author: Perry Alexander
 -- Date: Tue Jul  5 11:41:01 CDT 2016

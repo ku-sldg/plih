@@ -18,7 +18,8 @@ import Text.ParserCombinators.Parsec.Token
 import ParserUtils
 
 --
--- Simple caculator with variables extended with Booleans
+-- Simple caculator with variables extended Booleans and both static and
+-- dynamic type checking.
 --
 -- Author: Perry Alexander
 -- Date: Wed Jul 13 11:24:46 CDT 2016
@@ -26,8 +27,6 @@ import ParserUtils
 -- Source files for the Boolean Binding Arithmetic Expressions (BBAE)
 -- language from PLIH
 --
-
--- Calculator language extended with variables and Booleans
 
 data TBBAE where
   TNum :: TBBAE

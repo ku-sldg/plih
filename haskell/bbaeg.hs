@@ -6,7 +6,17 @@ import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
--- Calculator language extended with type derivation function
+--
+-- Experimental evaluator for a calculator language extended with Booleans
+-- and bind using GADTs and dependent types.
+--
+-- Author: Perry Alexander
+-- Date: Tue Jul  5 11:41:01 CDT 2016
+--
+-- Source files for the Binding, Boolean and Arithmetic Expressions (BBAE)
+-- language from PLIH.  This is an experimental interpreter using GADTs and
+-- dependent types
+--
 
 data TFBAE where
   TNum :: TFBAE

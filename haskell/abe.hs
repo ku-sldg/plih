@@ -18,7 +18,8 @@ import Text.ParserCombinators.Parsec.Token
 import ParserUtils
 
 --
--- Calculator language extended with Booleans
+-- Simple calculator language extended with no identifiers extended
+-- with Booleans
 --
 -- Author: Perry Alexander
 -- Date: Mon Jun 27 20:16:55 CDT 2016

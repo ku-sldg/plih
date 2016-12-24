@@ -19,6 +19,7 @@ data FBAE = Num Int
           | Id String
           | Boolean Bool
           | And FBAE FBAE
+          | Or FBAE FBAE
           | Leq FBAE FBAE
           | IsZero FBAE
           | If FBAE FBAE FBAE
@@ -35,11 +36,11 @@ tokenDef =
                                     , "else"
                                     , "isZero"
                                     , "app"
-                                    , "Nat"
+                                    , "Num"
                                     , "Bool"
                                     , "true"
                                     , "false" ]
-            , Token.reservedOpNames = [ "+","-","*","/","&&","<=","=",":","->"]
+            , Token.reservedOpNames = [ "+","-","*","/","&&","||","<=","=",":","->"]
             }
 
 lexer = Token.makeTokenParser tokenDef
@@ -60,7 +61,8 @@ operators = [ [Infix (reservedOp "*" >> return (Mult )) AssocLeft,
                Infix (reservedOp "/" >> return (Div )) AssocLeft ]
             , [Infix (reservedOp "+" >> return (Plus )) AssocLeft,
                Infix (reservedOp "-" >> return (Minus )) AssocLeft ]
-            , [Infix (reservedOp "&&" >> return (And )) AssocLeft ]
+            , [Infix (reservedOp "&&" >> return (And )) AssocLeft,
+               Infix (reservedOp "||" >> return (Or )) AssocLeft]
             , [Infix (reservedOp "<=" >> return (Leq )) AssocLeft ]
             , [Prefix (reserved "isZero" >> return (IsZero )) ]
             ]
@@ -166,40 +168,43 @@ parseFBAEFile = parseFile expr
 type Env = [(String,FBAE)]
 type Cont = [(String,TFBAE)]
          
-calc :: FBAE -> Env -> FBAE
-calc (Num x) env = (Num x)
-calc (Plus l r) env = let (Num l') = (calc l env)
-                          (Num r') = (calc r env)
+eval :: FBAE -> Env -> FBAE
+eval (Num x) env = (Num x)
+eval (Plus l r) env = let (Num l') = (eval l env)
+                          (Num r') = (eval r env)
                       in (Num (l'+r'))
-calc (Minus l r) env = let (Num l') = (calc l env)
-                           (Num r') = (calc r env)
+eval (Minus l r) env = let (Num l') = (eval l env)
+                           (Num r') = (eval r env)
                        in (Num (l'-r'))
-calc (Mult l r) env = let (Num l') = (calc l env)
-                          (Num r') = (calc r env)
+eval (Mult l r) env = let (Num l') = (eval l env)
+                          (Num r') = (eval r env)
                       in (Num (l'*r'))
-calc (Div l r) env = let (Num l') = (calc l env)
-                         (Num r') = (calc r env)
+eval (Div l r) env = let (Num l') = (eval l env)
+                         (Num r') = (eval r env)
                       in (Num (div l' r'))
-calc (Bind i v b) env = let v' = calc v env in
-                          calc b ((i,v'):env)
-calc (Lambda i t b) env = (Lambda i t b)
-calc (App f a) env = let (Lambda i t b) = (calc f env)
-                         a' = (calc a env)
-                     in calc b ((i,a'):env)
-calc (Id id) env = case (lookup id env) of
+eval (Bind i v b) env = let v' = eval v env in
+                          eval b ((i,v'):env)
+eval (Lambda i t b) env = (Lambda i t b)
+eval (App f a) env = let (Lambda i t b) = (eval f env)
+                         a' = (eval a env)
+                     in eval b ((i,a'):env)
+eval (Id id) env = case (lookup id env) of
                      Just x -> x
                      Nothing -> error "Varible not found"
-calc (Boolean b) env = (Boolean b)
-calc (And l r) env = let (Boolean l') = (calc l env)
-                         (Boolean r') = (calc r env)
+eval (Boolean b) env = (Boolean b)
+eval (And l r) env = let (Boolean l') = (eval l env)
+                         (Boolean r') = (eval r env)
                       in (Boolean (l' && r'))
-calc (Leq l r) env = let (Num l') = (calc l env)
-                         (Num r') = (calc r env)
+eval (Or l r) env = let (Boolean l') = (eval l env)
+                        (Boolean r') = (eval r env)
+                    in (Boolean (l' || r'))
+eval (Leq l r) env = let (Num l') = (eval l env)
+                         (Num r') = (eval r env)
                       in (Boolean (l' <= r'))
-calc (IsZero v) env = let (Num v') = (calc v env)
+eval (IsZero v) env = let (Num v') = (eval v env)
                       in (Boolean (v' == 0))
-calc (If c t e) env = let (Boolean c') = (calc c env)
-                      in if c' then (calc t env) else (calc e env)
+eval (If c t e) env = let (Boolean c') = (eval c env)
+                      in if c' then (eval t env) else (eval e env)
 
 
 typeof :: FBAE -> Cont -> TFBAE
@@ -238,6 +243,9 @@ typeof (Boolean b) cont = TBool
 typeof (And l r) cont = if (typeof l cont) == TBool && (typeof r cont) == TBool
                         then TBool
                         else error "Type mismatch in &&"
+typeof (Or l r) cont = if (typeof l cont) == TBool && (typeof r cont) == TBool
+                       then TBool
+                       else error "Type mismatch in ||"
 typeof (Leq l r) cont = if (typeof l cont) == TNum && (typeof r cont) == TNum
                         then TBool
                         else error "Type mismatch in <="
@@ -250,9 +258,9 @@ typeof (If c t e) cont = if (typeof c cont) == TBool
                          else error "Type mismatch in if"
 
 
-eval :: String -> FBAE
-eval e = let p=(parseFBAE e) in
+interp :: String -> FBAE
+interp e = let p=(parseFBAE e) in
            let t=typeof p [] in
              if (t==TNum)
-             then (calc p [])
+             then (eval p [])
              else error "This should never happen"

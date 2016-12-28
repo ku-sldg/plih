@@ -3,7 +3,7 @@
 body {
   padding:50px;
   font:14px/1.5 Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  color:#777;
+  color:#444;
   font-weight:300;
 }
 
@@ -33,7 +33,7 @@ h3, h4, h5, h6 {
 }
 
 a {
-  color:#39c;
+  color:#0022B4;
   font-weight:400;
   text-decoration:none;
 }
@@ -46,7 +46,7 @@ a small {
 }
 
 .wrapper {
-  width:860px;
+  width:900px;
   margin:0 auto;
 }
 
@@ -118,7 +118,7 @@ header ul a strong {
 }
 
 section {
-  width:500px;
+  width:600px;
   float:right;
   padding-bottom:50px;
 }

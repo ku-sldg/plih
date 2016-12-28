@@ -35,22 +35,37 @@ Thus this text on building interpreters in Haskell using basic Haskell idioms.  
 
 This is _not_ a Haskell text.  I will cover some things in Haskell you might not be aware of, but I make no claims about writing big, beautiful Haskell.  Monads, GADTs, and point-free style come to mind quickly as important concepts that we’ll use.  However, don't read this book to learn Haskell.  There are much better sources both online and as traditional books:
 
-[Learn you a Haskell for Great Good][2]
-[Haskell Book][3]
+* [Learn you a Haskell for Great Good][2]
+* [Haskell Book][3]
 
 ## Data Types and Recursion
 
-Understanding Haskell data types and recursion is critical to understanding how interpreters work.  Recursion is your friend and will serve you well.
+Understanding Haskell data types and recursion is critical to understanding how interpreters work.  Recursion is your friend and will serve you well.  When we define a simple data type like this example for lists:
+
+{% highlight haskell %}
+data IntList where
+  Null :: IntList
+  Cons :: Int -> IntList -> IntList 
+{% endhighlight %}
+
+we also a recursion framework for processing instances of the type.  If we want to write a `size` function for `IntList` we can simply define `size` over every `IntList` constructor:
+
+{% highlight haskell %}
+size Null = 0
+size Cons x xs = size xs + 1
+{% endhighlight %}
+
+`Null` is the base case and `Cons` the recursive case for this definition.  The structure of `IntList` and any type created with `data` is such that a recursive function can be written using this pattern to process any such structure.  This is a powerful principle we will use repeatedly throughout this text.
 
 # Notations
 
 ## Math and Code
 
-Some things are formatted as mathematics:
+Mathematical statements are formatted using embedded $\LaTeX$ using Mathjax:  
 
 $$\{s:string\mid P(s)\}$$
 
-Some things are formatted as code:
+Code is formatted and placed in boxes:
 
 {% highlight haskell %}
 data AE = Num Int
@@ -102,7 +117,13 @@ A derivation strings inference rules together:
 2. $A \wedge B \vdash A$ by $\wedge-elim$
 3. $B, A \vdash B \wedge A$ by $\wedge-intro$
 
-Similarly, an evaluation strings together evaluation rules:
+When such a derivation exists, we can write it as follows:
+
+$$A\wedge B \dashv B\wedge A$$
+
+This is read $A\wedge B$ _derives_ $B\wedge A$.
+
+Similarly, a multi-step evaluation strings together evaluation rules:
 
 {% highlight text %}
 1+3-4

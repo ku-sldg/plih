@@ -18,7 +18,7 @@ $$
 \newcommand\ffalse{\mathsf{false}}
 $$
 
-One way to think about the world of languages is in terms of _formal systems_.  Attributed to David Hilbert and Gotlieb Frege, a formal system provides mechanisms for representing and reasoning a out systems.  The term _formal_ implies principled or formal in a mathematical sense.
+One way to think about the world of languages (or the world in general) is in terms of _formal systems_.  Attributed to David Hilbert and Gotlieb Frege, a formal system provides mechanisms for representing and reasoning a out systems.  The term _formal_ implies principled or formal in a mathematical sense.
 
 ## Syntax
 

@@ -33,17 +33,25 @@ As an example, consider the grammar of a subset of propositional logic:
 $$
 \begin{align*}
 t ::=\; & \ID \mid \ttrue \mid \ffalse \\
-& t \wedge t \mid t \vee t \\
-& t \Rightarrow t \mid \neg t \\
+& t \wedge t \mid t \vee t \mid \neg t\\
+& t \Rightarrow t \mid t \Leftrightarrow t \\
 v ::=\; & \ttrue \mid \ffalse \\
 \end{align*}
 $$
 
-This format should be familiar the previous chapter.  The alphabet includes terminal symbols including $\ttrue$ and $\ffalse$, but also symbols such as $\wedge$ and $\vee$.  The $\ID$ term is a shorthand for all identifiers representign propsitions.  Grammar rules define $\Rightarrow$, $\vee$, and \$wedge$ as binary operations and $\neg$ as a unary operator.  The recursive nature of grammar rules over $t$ allows arbitrary nesting of terms.
+This format should be familiar the previous chapter.  The alphabet includes terminal symbols including $\ttrue$ and $\ffalse$, but also symbols such as $\wedge$ and $\vee$.  The $\ID$ term is a shorthand for all identifiers representign propsitions.  Grammar rules define $\Rightarrow$, $\Leftrightarrow$, $\vee$, and \$wedge$ as binary operations and $\neg$ as a unary operator.  The recursive nature of grammar rules over $t$ allows arbitrary nesting of terms.
 
 ## Inference System
 
-_Inference systems_ are defined by _axioms_ and _inference rules_.  The classical notation for inference rules was defined in the previous chapter with axioms simply defined as inference rules with no antecedents.  Again looking at propositional logic we start with one axiom that $\ttrue$ is always true:
+_Inference systems_ are defined by _axioms_ and _inference rules_. They allow derivation of true statements form other true statements.  You do this whenever you use mathematics to simplify a formula or solve equations for a quantity.  We all know, for example, that $(x+y)^2 = x^2+2xy+y^2$.  We also know that $(x+y)^2 = x^2+2xy+y^2$ is true in algebra regardless of what $x$ and $y$ represent.  We could define this relationship using inference rules:
+
+$$\frac{(x+y)^2}{x^2+2xy+y^2}\;\;\;\;\frac{x^2+2xy+y^2}{(x+y)^2}$$
+
+or an equivalence:
+
+$$(x+y)^2 == x^2+2xy+y^2$$
+
+The classical notation for inference rules was defined in the previous chapter with axioms simply defined as inference rules with no antecedents.  Looking at propositional logic we start with one axiom that $\ttrue$ is always true:
 
 $$\frac{}{true}$$
 
@@ -79,12 +87,35 @@ The introduction rule again has a derivation in the antecedent.  If assuming $X$
 
 $$\frac{X\vdash Y}{X\Rightarrow Y}$$
 
+Finally, we have introduction and elimination rules for logical equivalence.
+
+$$\frac{X\Rightarrow Y\;\;\; Y\Rightarrow X}{X\Leftrightarrow Y}$$
+
+$$\frac{X\Leftrightarrow Y}{X\Rightarrow Y}\;\;\;\;\frac{X\Leftrightarrow Y}{Y\Rightarrow X}$$
+
 Now we have a subset of the inference rules for propositional logic.  How do we use them?  Let's do a quick proof:
 
-$$\cfrac{\cfrac{A\wedge B}{B}\cfrac{A\wedge B}{A}}{B\wedge A}$$
+$$\cfrac{\cfrac{A\wedge B}{B}\;\;\;\; \cfrac{A\wedge B}{A}}{B\wedge A}$$
 
+Now we can say $A\wedge B \vdash B\wedge A$.  We can also prove the inverse:
+
+$$\cfrac{\cfrac{B\wedge A}{A}\;\;\;\; \cfrac{B\wedge A}{B}}{A\wedge B}$$
+
+Now we can say $B\wedge A \vdash A\wedge B$.  Using the implication introduction rule we can go a step farther and prove logical equivalence:
+
+$$\cfrac{\cfrac{A\wedge B \vdash B\wedge A}{A\wedge B \Rightarrow B\wedge A}\;\;\;\; \cfrac{B\wedge A \vdash A\wedge B}{B\wedge A \Rightarrow A\wedge B}}{A\wedge B \Leftrightarrow B\wedge A}$$
+
+There is much more we can do with inference rules and systems, but this brief demonstration should give you an idea of how these things define formal reasoning processes.  Just like Lego, simple things fit together in simple ways to develop complex and elegant systems.
 
 ## Semantics
+
+A language's semantics gives it's structures meaning.  When we used inference rules to define how we reason about propositional logic, we provided a reasoning mechanism without regard to meaning.  We could have changed the inference rules in a very simple way and gotten something that is not at all propositional logic.  Let's say we defined a completely wrong rule for implication like this:
+
+$$\frac{Y,X\Rightarrow Y}{X}$$
+
+Clearly this is not how implication works, but it is a perfectly fine rule and we can reach conclusions from it.  What makes it incorrect is the semantics of propositional logic.  Semantics defines the meanings of language expressions using another mathematical system.
+
+For propositional logic we can use the common notion of a truth table to define our operations:
 
 <style>
   table {
@@ -124,10 +155,27 @@ $$\cfrac{\cfrac{A\wedge B}{B}\cfrac{A\wedge B}{A}}{B\wedge A}$$
 </table>
 
 <table>
+	<tr><th>X</th> <th>Y</th> <th>X $\Leftrightarrow$ Y</th></tr>
+	<tr><td>F</td> <td>F</td> <td>T</td></tr>
+	<tr><td>F</td> <td>T</td> <td>F</td></tr>
+	<tr><td>T</td> <td>F</td> <td>F</td></tr>
+	<tr><td>T</td> <td>T</td> <td>T</td></tr>
+</table>
+
+<table>
 	<tr><th>X</th> <th>$\neg$ X</th></tr>
 	<tr><td>T</td> <td>F</td></tr>
 	<tr><td>F</td> <td>T</td></tr>
 </table>
 
+We can't easily derive new truths using simple truth tables, but we can with the inference system.  To ensure the inference system only produces correct results we can compare it with what is specified in the truth tables.  Let's look at our broken rule for negation:
 
+$$\frac{Y,X\Rightarrow Y}{X}$$
 
+The rule says that if $Y$ and $X\Rightarrow Y$ are both true, then  $X$ must also be true.  Looking at the truth table for $\Rightarrow$ clearly says otherwise.  When $Y$ is true and $X\Rightarrow Y$ is true in the second row, $X$ is false.
+
+## Discussion
+
+Thinking of languages and mathematical systems as formal systems will serve you well.  Throughout this writing we will think of languages in terms of what they look like (syntax), how to manipulate them (inference system), and what they mean (semantics).  At times the Hilbert system structure will be difficult to see, but it is always there.
+
+## Exercises

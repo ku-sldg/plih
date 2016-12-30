@@ -16,17 +16,13 @@ $$
 
 # Simple Expression Interpreters
 
-Description goes here...
+Let's start our investigation with an interpreter for a very simple language of calculations involving only `+` and `-` over numbers.  We'll use this first discussion to define how we to about defining an interpreter that calculates a value from such expressions.  The language is quite basic, but we can start discussing important concepts of abstract and concrete syntax, abstract syntax trees, parsing, interpretation and testing.  Pay less attention to the language than to the underlying methodology and concepts used to define an interpreter.
 
 ## Concrete Syntax
 
 *Concrete Syntax* is the textual language written by programmers as input to compilers and interpreters.  When you think of a programming language, you think first of its concrete syntax.  The bock structure of C, s-expressions defining Lisp, and the functional syntax of Haskell are examples of concrete syntax that immediately associates with a particular language. 
 
-Concrete syntax is  always described by a *grammar* consisting of an *alphabet* and a collection of *grammar rules*.  The alphabet defines basic symbols and tokens in the concrete syntax while grammar rules define how those tokens are sequenced defining elements of the language.
-
-The alphabet is specified as collection of atomic symbols.  The English alphabet is a good example.  Alphabets can be much more sophisticated and include other characters and words.  For our purposes, the alphabet will be atomic constructs - things that cannot be further broken down.  Numbers, identifiers, keywords, and operators will all be considered elements of our language alphabet.
-
-Grammar rules describe how symbols are arranged to form *terms* in the concrete syntax.  A *term* is any text that satisfies the concrete syntax specified by grammar rules.  Similarly, a *language* is the smallest set of terms that satisfy a set of grammar rules.  It is quite useful to think of a language as a set and a grammar as a specifier for that set.  Using traditional set comprehension I can define a language, $L$, as:
+Concrete syntax is always described by a grammar consisting of an alphabet and a collection of grammar rules.  As discussed in the introduction, the alphabet defines basic symbols or tokens in the concrete syntax while grammar rules define how those tokens are sequenced defining elements of the language. A *term* is any text string defined by the grammar.  Similarly, a *language* is the smallest set of terms that satisfy a set of grammar rules.  It is quite useful to think of a language as a set and a grammar as a specifier for that set.  Using traditional set comprehension we can define a language, $L$, as:
 
 $$L = \{s:string\; \mid\; G(s)\}$$
 
@@ -38,7 +34,7 @@ $$\begin{align*}
 t ::= & \NUM \mid t + t \mid t - t \\
 \end{align*}$$
 
-This is hopefully familiary.  Terms, $t$, in `AE` are either numbers or sums and products nested aribtrarily.
+This is hopefully familiar.  Terms, $t$, in `AE` are either numbers or sums and products nested arbitrarily.
 
 The language `AE` is the set of all strings that can be created with the grammar.  The strings:
 
@@ -58,7 +54,7 @@ A+B-C
 
 are not terms in `AE`.
 
-Let's also defined *values* in `AE` as the numbers:
+Let's also define *values* in `AE` as the numbers:
 
 $$\begin{align*}
 v ::= & \NUM \\
@@ -70,7 +66,7 @@ If we define the predicate $AE(t)$ to be true whenever $t$ satisfies _AE_'s gram
 
 $$AE = \{t:string\; \mid\; AE(s)\}$$
 
-In `AE` we can express precisely three things: (i) a number; (ii) adding two expressions; and (iii) subtracting two expressions.  Not the most useful of languages, but we have to start somewhere.
+In `AE` we can express precisely three things: (i) a number; (ii) adding two terms; and (iii) subtracting two terms.  Not the most useful of languages, but we have to start somewhere.
 
 Hopefully this discussion is review of your formal language theory or theory of computing studies.  If it isn't, I strongly suggest stopping now and studying some formal language theory.  In addition to being foundational, it is beautiful and useful.
 
@@ -88,7 +84,7 @@ Addition and subtraction are more interesting and hint at how all our interprete
 
 $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1+v_2}\; [PlusE]$$
 
-$PlusE$'s antecedents and consequent work together to define a rescursive interpreter.  The first antecedent states that $\eval t_1 = v_1$ must be true before the consqeuent can be true.  But $v_1$ is a variable whose value is the result of calling $\eval$ on $t_1$.  In effect, this antecedent says that $v_1$ must be the result of $\eval t_1$.  The second antecendent behaves similarly for $t_2$ and $v_2$.  Both antecendents name the results of interpreting $t_1$ and $t_2$ $v_1$ and $v_2$ respectively.
+$PlusE$'s antecedents and consequent work together to define a recursive interpreter.  The first antecedent states that $\eval t_1 = v_1$ must be true before the consequent can be true.  But $v_1$ is a variable whose value is the result of calling $\eval$ on $t_1$.  In effect, this antecedent says that $v_1$ must be the result of $\eval t_1$.  The second antecedent behaves similarly for $t_2$ and $v_2$.  Both antecedents name the results of interpreting $t_1$ and $t_2$ as $v_1$ and $v_2$ respectively.
 
 Now that we know the results of evaluating $t_1$ and $t_2$, defining their sum is simple.  Values in `AE` are numbers, so we simply use Haskell's notion of addition to define the sum.  Thus the consequent is $\eval t_1 + t_2 = v_1 + v_2$.
 
@@ -96,7 +92,7 @@ We define subtraction similarly in the $MinusE$ rule:
 
 $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 - t_2 = v_1-v_2}\; [MinusE]$$
 
-Understanding the structure of these rules before moving forward is vital.  They both define antecedents that effectively name the results of other calculations.  More specifically, *recursive* calculations.  When writing and defining interpreters, recursion is your best friend.  We needn't think now about calculating the values of $t_1$ and $t_2$, only that their values are calculated the same way all other values are calculated.
+Understanding the structure of these rules before moving forward is vital.  They both define antecedents that effectively name the results of other calculations.  More specifically, other *recursive* calculations.  When writing and defining interpreters, recursion is your best friend.  We needn't think now about calculating the values of $t_1$ and $t_2$, only that their values are calculated the same way all other values are calculated.
 
 ## Abstract Syntax
 
@@ -116,7 +112,7 @@ data AE where
 
 where `Num`, `Plus` and `Minus` are the *constructors* of the data type `AE` that correspond with numbers, sums and differences in the `AE` concrete syntax.  We use the term constructor because all values of type `AE` are constructed with one of these operations.  By definition, the `AE` type contains all constructions using `Plus`, `Minus` and `Num`, and no more.
 
-For example `(Num 1)` is the abstract syntax for 1. `(Plus (Num 1) (Num 3))` is the abstract syntax for `1+3`.  `(Minus (Plus (Num 3 (Num 5)) (Num 1))` is the abstract syntax for `3+5-1`.  For the abstract syntax to be effective, every term in the concrete syntax must have an associated term in the abstract syntax.  Remember the properties of relations you learned in your discrete math class?  They come in handy right now.  The relationship between concrete syntax and associated abstract syntax should be a total function. Specifically, concrete syntax terms should have exactly one abstract syntax value and all concrete syntax terms should be associated with some abstract syntax value.  Remember that errors are outputs.
+All terms in AE have associated data structures in the abstract syntax.  For example `(Num 1)` is the abstract syntax for 1. `(Plus (Num 1) (Num 3))` is the abstract syntax for `1+3`.  `(Minus (Plus (Num 3 (Num 5)) (Num 1))` is the abstract syntax for `3+5-1`.  For the abstract syntax to be effective, every term in the concrete syntax must have an associated term in the abstract syntax.  Remember the properties of relations you learned in your discrete math class?  They come in handy right now.  The relationship between concrete syntax and associated abstract syntax should be a total function. Specifically, concrete syntax terms should have exactly one abstract syntax value and all concrete syntax terms should be associated with some abstract syntax value.  Remember that errors are outputs.
 
 From this point forward I will use TLA[^1] *AST* when referring to abstract syntax data structures.  AST literally means abstract syntax *tree*.  It turns out that Haskell data types naturally form trees and trees are perfect representations for abstract syntax.  I'll come back to this later, but for now remember that AST, abstract syntax, and abstract syntax tree refer to the same Haskell data type.
 
@@ -143,7 +139,7 @@ import Text.ParserCombinators.Parsec.Token
 import ParserUtils
 {% endhighlight %}
 
-The `ParserUtils` has a few definitions that make defining parsers a bit simpler specific to this text.  You need to have `ParserUtils` in the same directory as your Haskell source or installed in a place where GHCI can find it.
+`ParserUtils` has a few definitions that make defining parsers a bit simpler for this text.  You need to have `ParserUtils` in the same directory as your Haskell source or installed in a place where GHC can find it.
 
 The biggest thing `ParserUtils` provides is a standard lexer that we can use for all our projects.  A lexer is simply a parser that converts a stream of characters into a stream of tokens that are language parser can understand.  What we get from `ParserUtils` is collection of token parsers for reserved operations, parenthesis, numbers and white space.
 
@@ -166,9 +162,7 @@ The `inFix` function is defined in `ParserUtils` to simplify defining inFix oper
 x + 3 - y + 7 == ((x+3) - y) + 7
 {% endhighlight %}
 
-There are two operations in _AE_, so there are two `inFix` applications in a list.  The list itself tells the parser generator that `+` and `-` have the same precedent.  We'll see examples with different precendent as our languages grow more complex.  `opTable` is a list of lists where each internal list contains operators of the same precedence.  `+` and `-` are in a list together indicating they are at the same precedence level.
-
-[Expression Parser Documentation](https://hackage.haskell.org/package/parsec-3.1.9/docs/Text-Parsec-Expr.html)  
+There are two operations in _AE_, so there are two `inFix` applications in a list.  The list itself tells the parser generator that `+` and `-` have the same precedent.  We'll see examples with different precedent as our languages grow more complex.  `opTable` is a list of lists where each internal list contains operators of the same precedence.  `+` and `-` are in a list together indicating they are at the same precedence level.
 
 {% highlight haskell %}
 opTable = [ inFix "+" Plus AssocLeft,
@@ -192,7 +186,7 @@ A `term` in our language is either a parenthesized expression or a number.  This
 term = parens lexer expr <|> numExpr
 {% endhighlight %}
 
-Looking back at the definition of `expr` puts the entire thing together.  `exper` is a parser that returns `AE` and is built from `opTable` defining operations over `terms`.
+Looking back at the definition of `expr` puts the entire thing together.  `expr` is a parser that returns `AE` and is built from `opTable` defining operations over `terms`.
 
 {% highlight haskell %}
 expr :: Parser AE
@@ -288,21 +282,21 @@ eval (Minus t1 t2) = let (Num v1) = eval t1
                      in (Num (v1 - v2))
 {% endhighlight %}
 
-The interpreter follows a pattern that every interpreter we write will follow.  Each constructor from the AST definition has a case in the `eval` function that interprets that constructor.  This pattern and the accompanying `data` construct gives us three nice properties - completeness, determinsitic, and normalizing - that are quite useful.
+The interpreter follows a pattern that every interpreter we write will follow.  Each constructor from the AST definition has a case in the `eval` function that interprets that constructor.  This pattern and the accompanying `data` construct gives us three nice properties - completeness, deterministic, and normalizing - that are quite useful.
 
 Completeness says that every term constructed in `AE` will be interpreted by `eval`.  Can we prove that? As it turns out, the Haskell `data` construct gives us some exceptionally nice properties that give us nice properties for free, without direct proof. Bt definition, every value in the abstract syntax for `AE` is constructed with `Num`, `Plus`, and `Minus`.  There are no other constructions of type `AE`.   This is true of any type defined using `data` in Haskell.  All values of the defined type are constructed with its constructors.  A function that has a case for every constructor, is necessarily complete.
 
-The Haskell `data` type definition mechanism is an example of *algebraic types* or *constructed types* that are a staple in fununctional languages and becoming increasinly common in traditional programming languages.  We call them *algebraic* because the individual constructors are *products* of values and the type itself is the *sum* of those products.  Don't worry too much about this now, we'll revisit it later when we define our own types.
+The Haskell `data` type definition mechanism is an example of *algebraic types* or *constructed types* that are a staple in functional languages and becoming increasingly common in traditional programming languages.  We call them *algebraic* because the individual constructors are *products* of values and the type itself is the *sum* of those products.  Don't worry too much about this now, we'll revisit it later when we define our own types.
 
 Deterministic says that if we call `eval` on any term, we will get the same result.  This is an exceptionally important property as we don't want the same call to `eval` resulting in different values.  We know `AE` is deterministic because there is precisely one inference rule for interpreting each element of the concrete syntax.  In turn we know that `eval` is deterministic because there is precisely one case in the definition for each `AE` constructor.  Given `(Num n)` there is one rule and one `eval` case.  Given `Plus` there is one rule and one `eval` case.
 
-Normalization says that a call to `eval` on any term constructed in `AE` will terminate.  Again, a pretty bold statement.  Can we prove it?  The elements of a Haskell `data` type specifically and algebraic types generally have are `well-ordered`.  In mathematics, well-ordered means that every subset of a set has a least element.  Getting from well-ordered to guaranteed termination takes a bit of work, but the gist is that components of a constructor are smaller than the constructor itself.  Each recursive call on the parts of a term is made on a smaller term.  Consider `eval (Plus t1 t2)` where `t1` and `t2` can be viewed as smaller than `(Plus t1 t2)`.  Because every set of `AE` terms has a least element, pulling a term apart into its peices will eventually get to that least element.
+Normalization says that a call to `eval` on any term constructed in `AE` will terminate.  Again, a pretty bold statement.  Can we prove it?  The elements of a Haskell `data` type specifically and algebraic types generally have are `well-ordered`.  In mathematics, well-ordered means that every subset of a set has a least element.  Getting from well-ordered to guaranteed termination takes a bit of work, but the gist is that components of a constructor are smaller than the constructor itself.  Each recursive call on the parts of a term is made on a smaller term.  Consider `eval (Plus t1 t2)` where `t1` and `t2` can be viewed as smaller than `(Plus t1 t2)`.  Because every set of `AE` terms has a least element, pulling a term apart into its pieces will eventually get to that least element.
 
-The least elements of `AE` are those constructed by `(Num n)`.  When the interpreter reaches the least element, it cannot go further and terminates.  Every call to `eval` gets closer to the least element.  Note that those those least elements are what we defined as values.  This is not a conicidence.  Not only does `AE` terminate, it always terminates with a value.  Said it terms we all understand, the `AE` interpreter never crashes for any element of `AE1`.
+The least elements of `AE` are those constructed by `(Num n)`.  When the interpreter reaches the least element, it cannot go further and terminates.  Every call to `eval` gets closer to the least element.  Note that those those least elements are what we defined as values.  This is not a coincidence.  Not only does `AE` terminate, it always terminates with a value.  Said it terms we all understand, the `AE` interpreter never crashes for any element of `AE1`.
 
 ## All Together Now
 
-Before we say more about `AE`, lets put all the pieces together into a single definition.  Definition of `AE` is now complete sytactically, semantically and operationally:
+Before we say more about `AE`, lets put all the pieces together into a single definition.  Definition of `AE` is now complete syntactically, semantically and operationally:
 
 * Syntax is defined by the `AE` grammar
 * Semantics is defined by the `AE` inference rules
@@ -354,9 +348,9 @@ In words, `interp` is the composition of `parseAE` and `eval`.  This notation sa
 
 `AE` is a rather silly language that is less powerful than one of those bank calculators you get when you open a checking account.  It adds and subtracts numbers.  However, we need to start somewhere and `AE` is good for that.
 
-### Complete, Deerministic, and Normalizing
+### Complete, Deterministic, and Normalizing
 
-We said earlier that `eval` is complete, deterministic and normalizing.  Complete in that any element of `AE` can be interpretted, deterministic in that there is only one way to interpret any element of `AE`, and normalizing in that every interpretation of and `AE` element terminates.
+We said earlier that `eval` is complete, deterministic and normalizing.  Complete in that any element of `AE` can be interpreted, deterministic in that there is only one way to interpret any element of `AE`, and normalizing in that every interpretation of and `AE` element terminates.
 
 Unfortunately, these nice properties result from `AE` being such a trivial language.  Completeness and deterministic are properties something we will seek to preserve as we add features.  However,  normalizing will prove problematic when we add recursion and looping.  Some programs such as operating systems shouldn't terminate anyway.  Certainly we would like to ensure that no programs written in our languages crash, but that one will unfortunately go away in the next chapter.
 
@@ -410,6 +404,7 @@ Lots of definitions to get us started:
 ## Exercises
 
 1. Add multiplication and division to `AE`.  Recall that `div` is the Haskell function for integer division.  Do we lose any of our nice properties by doing this?
+2. Rewrite the `eval` function to return a Haskell `Int` rather than an `AE` value.  This is an alternative to returning the Haskell datatype.
 2. Rewrite `AE` replacing the `Plus` and `Minus` constructors in the AST with a single constructor `Binop op t1 t2` where `op` is the represented binary operation.  You will need to change the parser to generate `Binop` rather than `Plus` and `Minus`.  Think carefully about what `op` should be.  If you do it right, you should be able to add any operator to `AE` by simply changing the parser.
 
 ## Source
@@ -417,5 +412,8 @@ Lots of definitions to get us started:
 Download [source]({{site.baseurl}}/haskell/ae.hs) for all interpreter code from this chapter.
 
 ## Notes
+
+Documentation for the [Parsec Expression Parser](https://hackage.haskell.org/package/parsec-3.1.9/docs/Text-Parsec-Expr.html)  
+
 
 [^1]: Three Letter Acronym

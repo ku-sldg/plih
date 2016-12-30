@@ -32,7 +32,7 @@ First a bit of new terminology.  We are defining a new language called `ABE` usi
 
 When the current `ABE` interpreter fails, it fails in the host language.  When we call the Haskell `error` function we jump out of our interpreter and generate a Haskell error message.  This approach works, but has several problems.
 
-First, we have no control over errors.  The happen and our control of execution ends.  Java uses an innovative approach where exceptions are Java data structures that allow us to write Java programs to process them.  This is how systems like Eclipse can allow new tools that generate error messages to simply be plugged into the infrastructure.  Right now, we can't do this.
+First, we have no control over errors.  They happen and our control of execution ends.  Java uses an innovative approach where exceptions are Java data structures that allow us to write Java programs to process them.  This is how systems like Eclipse can allow new tools that generate error messages to simply be plugged into the infrastructure.  Right now, we can't do this.
 
 Second, our only choice is to fail.  What if our interpreters can avoid failures?  What if we can predict failures during or before execution?  This results in systems that are more robust and code that we can better control.
 

@@ -52,7 +52,7 @@ The need to add new values foreshadows interesting times ahead.
 
 ## Inference Rules
 
-Let's start with our inference rules for `AE` and extend them to include new rules for `ABE` constructs.  
+Let's start with our inference rules for `AE` and extend them to include new rules for `ABE` constructs.  Here are the original evaluation rules for `AE`:
 
 $$\frac{}{\eval v = v}\; [NumE]$$
 
@@ -76,17 +76,11 @@ $$\frac{\eval t = v}{\eval \iisZero t = v==0}\; [isZeroE]$$
 
 Finally, lets deal with $\iif$.  Thinking of $\iif$ as simply an operation with three arguments, we can follow our previous pattern giving us this rule:
 
-$$\frac{\eval t_0 = v_0,\;\eval t_1 = v_1,\;\eval t_2 = v_2}{\eval \iif t_0 \tthen t_1 \eelse t_2 = \iif v_0 \tthen v_1 \eelse v_2}\;[IfE]$$
+$$\frac{\eval t_0 = \ttrue\;\eval t_1 = v_1}{\eval \iif t_0 \tthen t_1 \eelse t_2 = v_1}\;[IfTrueE]$$
 
-Is there a problem with this rule?  The antecedents calculate values for the conditional ($t_0$), the then case ($t_1$), and the  else case ($t_2$) and translates that into a traditional `if` statement.  Thus, no matter the value of the conditional, *both options are evaluated*.  For now, this is not a problem because we are dealing only with expressions that have no state.  Specifically, neither option impacts the other when it is evaluated.  This will not be true for long.  If we added a `print` statement or variable assignment, we cannot evaluate both if options.
+$$\frac{\eval t_0 = \ffalse\;\eval t_2 = v_2}{\eval \iif t_0 \tthen t_1 \eelse t_2 = v_2}\;[IfFalseE]$$
 
-It turns out there is an easy fix that uses multiple rules to evaluate if:
-
-$$\frac{\eval t_0 = \ttrue,\; \eval t_1 = v_1}{\eval \iif t_0 \tthen t_1 \eelse t_2 = v_1}\;[IfTrueE]$$
-
-$$\frac{\eval t_0 = \ffalse,\; \eval t_2 = v_2}{\eval \iif t_0 \tthen t_1 \eelse t_2 = v_2}\;[IfFalseE]$$
-
-The first rule only applies when $\eval t_0$ evaluates to $\ttrue$ while the second applies when $\eval t_0$ evaluates to $\ffalse$.  Right now this is overkill, but it is a good idea to start thinking in these terms.
+The first rule only applies when $\eval t_0$ evaluates to $\ttrue$ while the second applies when $\eval t_0$ evaluates to $\ffalse$.
 
 ## Abstract Syntax
 
@@ -251,7 +245,7 @@ interp = eval . parseABE
 
 Let's fire up QuickCheck and see what we have.  Remember that all `AE` programs famously ran to termination and produced a value.  Will the same thing hold true for `ABE` programs?  I suspect you can easily figure the answer, but let's follow a rigorous process to see why.  The process will be useful to us when our languages become more complex.
 
-### Generator
+### Term Generator
 
 We need to extend the generator from the `Testing` chapter to generate `ABE` elements.  Like our parser we simply need to define generators for the new `AST` elements and add them to the original generator.
 
@@ -352,5 +346,9 @@ This result tells us that the `eval` function fails after 2 tests.  Specifically
 `ABE` is only moderately less silly than `AE`.  We simply extended `AE` to include Boolean values and several new operations that both consume and produce Boolean values.  By doing this, we now have an interpreter that crashes for some inputs.
 
 Working through `ABE` does have value.  We extended `AE` to include Boolean values and terms, then extended the `AE` parser, pretty printer, evaluator, and generator.  In subsequent chapters we'll see that the techniques we used generalize to other languages.  For now, we must do something about failure before moving on.
+
+## Exercises
+
+1. Add disjunction and negation to the `ABE` language.  Define concrete syntax and abstract syntax.  Update the parser, pretty printer, evaluator, and QuickCheck term generator.
 
 [^1]: If you execute `testEval` in the same way, you will almost certainly generate a different counterexample due to the arbitrary nature of the generator.

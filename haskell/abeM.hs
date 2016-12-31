@@ -130,6 +130,68 @@ eval (If t1 t2 t3) = let (Boolean v) = (eval t1)
 
 interp = eval . parseABE
 
+-- Evaluation Function
+
+evalErr :: ABE -> Maybe ABE
+evalErr (Num x) = (Just (Num x))
+evalErr (Plus t1 t2) =
+  let r1 = (evalErr t1)
+      r2 = (evalErr t2)
+  in case r1 of
+       Nothing -> Nothing
+       (Just (Num v1)) -> case r2 of
+                            Nothing -> r2
+                            (Just (Num v2)) -> (Just (Num (v1+v2)))
+                            (Just _) -> Nothing
+       (Just _) -> Nothing
+evalErr (Minus t1 t2) = 
+  let r1 = (evalErr t1)
+      r2 = (evalErr t2)
+  in case r1 of
+       Nothing -> Nothing
+       (Just (Num v1)) -> case r2 of
+                            Nothing -> r2
+                            (Just (Num v2)) -> (Just (Num (v1-v2)))
+                            (Just _) -> Nothing
+       (Just _) -> Nothing
+evalErr (Boolean b) = (Just (Boolean b))
+evalErr (And t1 t2) =
+  let r1 = (evalErr t1)
+      r2 = (evalErr t2)
+  in case r1 of
+       Nothing -> r1
+       (Just (Boolean v1)) -> case r2 of
+                                Nothing -> r2
+                                (Just (Boolean v2)) -> (Just (Boolean (v1 && v2)))
+                                (Just _) -> Nothing
+       (Just _) -> Nothing
+evalErr (Leq t1 t2) = 
+  let r1 = (evalErr t1)
+      r2 = (evalErr t2)
+  in case r1 of
+       Nothing -> r1
+       (Just (Num v1)) -> case r2 of
+                            Nothing -> r2
+                            (Just (Num v2)) -> (Just (Boolean (v1 <= v2)))
+                            (Just _) -> Nothing
+       (Just _) -> Nothing
+evalErr (IsZero t) =
+  let r = (evalErr t)
+  in case r of
+       Nothing -> r
+       (Just (Num v)) -> (Just (Boolean (v == 0)))
+       (Just _) -> Nothing
+evalErr (If t1 t2 t3) =
+  let r = (evalErr t1)
+  in case r of
+       Nothing -> r
+       (Just (Boolean v)) -> if v then (evalErr t2) else (evalErr t3)
+       (Just _) -> Nothing
+
+-- Interpreter
+
+interpErr = evalErr . parseABE
+
 -- Evaluator with Dynamic Error 
 
 liftNum :: (Int -> Int -> Int) -> ABE -> ABE -> ABE
@@ -141,43 +203,43 @@ liftNum2Bool f (Num x) (Num y) = (Boolean (f x y))
 liftBool :: (Bool -> Bool -> Bool) -> ABE -> ABE -> ABE
 liftBool f (Boolean x) (Boolean y) = (Boolean (f x y))
 
-evalErr :: ABE -> Maybe ABE
-evalErr (Num x) = (Just (Num x))
-evalErr (Plus t1 t2) = do
-  r1 <- (evalErr t1) ;
-  r2 <- (evalErr t2) ;
+evalMaybe :: ABE -> Maybe ABE
+evalMaybe (Num x) = (Just (Num x))
+evalMaybe (Plus t1 t2) = do
+  r1 <- (evalMaybe t1) ;
+  r2 <- (evalMaybe t2) ;
   Just (liftNum (+) r1 r2)
-evalErr (Minus t1 t2) = do
-  r1 <- (evalErr t1) ;
-  r2 <- (evalErr t2) ;
+evalMaybe (Minus t1 t2) = do
+  r1 <- (evalMaybe t1) ;
+  r2 <- (evalMaybe t2) ;
   Just (liftNum (-) r1 r2)
-evalErr (Boolean b) = (Just (Boolean b))
-evalErr (And t1 t2) = do
-  r1 <- (evalErr t1) ;
-  r2 <- (evalErr t2) ;
+evalMaybe (Boolean b) = (Just (Boolean b))
+evalMaybe (And t1 t2) = do
+  r1 <- (evalMaybe t1) ;
+  r2 <- (evalMaybe t2) ;
   Just (liftBool (&&) r1 r2)
-evalErr (Leq t1 t2) =  do
-  r1 <- (evalErr t1) ;
-  r2 <- (evalErr t2) ;
+evalMaybe (Leq t1 t2) =  do
+  r1 <- (evalMaybe t1) ;
+  r2 <- (evalMaybe t2) ;
   Just (liftNum2Bool (<=) r1 r2)
-evalErr (IsZero t) = do
-  r <- (evalErr t)
+evalMaybe (IsZero t) = do
+  r <- (evalMaybe t)
   Just (liftNum2Bool (==) r (Num 0))
-evalErr (If t1 t2 t3) = do
-  (Boolean v) <- (evalErr t1)
-  (if v then (evalErr t2) else (evalErr t3))
+evalMaybe (If t1 t2 t3) = do
+  (Boolean v) <- (evalMaybe t1)
+  (if v then (evalMaybe t2) else (evalMaybe t3))
 
 -- Interpreter
 
-interpErr = evalErr . parseABE
+interpMaybe = evalMaybe . parseABE
 
 testEvalErr :: Int -> IO ()
 testEvalErr n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> (interpErr $ pprint t) == (evalErr t))
+  (\t -> (interpMaybe $ pprint t) == (evalMaybe t))
 
 testEvals :: Int -> IO ()
 testEvals n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> (let r = (evalErr t) in
+  (\t -> (let r = (evalMaybe t) in
             case r of
               (Just v) -> v == (eval t)
               Nothing -> True))
@@ -308,13 +370,13 @@ eqInterp s t = s==t
 testTypedErrEval :: Int -> IO ()
 testTypedErrEval n =
   quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> let t' = pprint t in (eqInterp (interpTyped t') (interpErr t')))
+  (\t -> let t' = pprint t in (eqInterp (interpTyped t') (interpMaybe t')))
 
 testErrThenTyped :: Int -> IO ()
 testErrThenTyped n =
   quickCheckWith stdArgs {maxSuccess=n}
   (\t -> let t' = pprint t in
-           case (interpErr t') of
+           case (interpMaybe t') of
              (Just v) -> (Just v) == interpTyped t'
              Nothing -> True)
                
@@ -323,7 +385,7 @@ testTypedThenErr n =
   quickCheckWith stdArgs {maxSuccess=n}
   (\t -> let t' = pprint t in
            case (interpTyped t') of
-             (Just v) -> (Just v) == interpErr t'
+             (Just v) -> (Just v) == interpMaybe t'
              Nothing -> True)
 
 -- Alernative Monadic Evaluator (Currently not included in PLIH)

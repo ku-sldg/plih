@@ -353,7 +353,7 @@ testTypedThenErr n =
              (Right v) -> (Right v) == interpErr t'
              (Left _) -> True)
 
--- Monadic Evaluator (Currently not included in PLIH)
+-- Monadic Evaluator 
 
 evalM :: ABE -> Either String ABE
 evalM (Num x) = (Right (Num x))
@@ -403,6 +403,37 @@ evalM (If t1 t2 t3) = do
 
 interpM = evalM . parseABE
 
+typeofM :: ABE -> Either String TABE
+typeofM (Num x) = (Right TNum)
+typeofM (Plus l r) = do
+  l' <- (typeof l) ;
+  r' <- (typeof r) ;
+  if (l'==TNum && r'==TNum) then (Right TNum) else (Left "Type Error in +")
+typeofM (Minus l r) = do
+  l' <- (typeof l) ;
+  r' <- (typeof r) ;
+  if (l'==TNum && r'==TNum) then (Right TNum) else (Left "Type Error in -")
+typeofM (Boolean b) = (Right TBool)
+typeofM (And l r) = do
+  l' <- (typeof l) ;
+  r' <- (typeof r) ;
+  if (l'==TBool && r'==TBool) then (Right TBool) else (Left "Type Error in &&")
+typeofM (Leq l r) = do
+  l' <- typeof l ;
+  r' <- typeof r ;
+  case l' of
+    TNum -> case r' of
+              TNum -> (Right TBool)
+              _ -> (Left "Type mismatch in <=")
+typeofM (IsZero v) = do
+  v' <- (typeof v) ;
+  if v' == TNum then (Right TBool) else Left "Type mismatch in IsZero"
+typeofM (If c t e) = do
+  c' <- (typeof c) ;
+  t' <- (typeof t) ;
+  e' <- (typeof e) ;
+  if c' == TBool && t' == e' then (Right t') else Left "Type mismatch in if"
+
 testEvalM :: Int -> IO ()
 testEvalM n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> (interpM $ pprint t) == (evalM t))
+  (\t -> (evalM t)==(evalM t))

@@ -92,7 +92,7 @@ To summarize, evaluating `IsZero` requires evaluating its argument and taking on
 
 1. Return the result if it is an error
 2. Return the comparison of the result with 0 if it is a number
-3. Retern an error message if it is a value, but not a number
+3. Return an error message if it is a value, but not a number
 
 The remaining binary operations are virtually the same except we have two arguments to evaluate and need to nest handling argument results.  You'll see our pattern occurring twice in the code for `Plus`:
 
@@ -129,7 +129,7 @@ Once the interpreter is completed, we can define an interpreter function in a ma
 interpErr = evalErr . parseABE
 {% endhighlight %}
 
-Now we're set to test our new interpreter
+Now we're set to test our new interpreter.
 
 ### QuickCheck
 

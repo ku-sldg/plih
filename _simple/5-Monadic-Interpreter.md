@@ -27,6 +27,10 @@ $$
 \newcommand\tbool{\;\mathsf{TBool}}
 $$
 
+
+> In addition to it begin useful, it is also cursed and the curse of the monad is that once you get the epiphany, once you understand - "oh that's what it is" - you lose the ability to explain it to anybody.
+>        -- Douglas Crockford
+
 # Monadic Interpreters
 
 The `Either` type class used in both the interpreter and type inference routine for `ABE` is built in to Haskell.  We used `Either` as a construction for pairs using the convention that constructions with `Right` contain values and constructions with `Left` contain error messages.  This made it trivial to use a `case` expression to determine what kind of thing is returned by `eval` or `typeof`.
@@ -44,9 +48,131 @@ instance Monad (Either e) where
         Left e  >>= _ = Left e
 {% endhighlight %}
 
-Recall that all monads define `return` and `>>=`, then infix representation for `bind`.  This is precisely what the above `instance` does.
+Recall that all monads define `return` and `>>=`, the infix representation for `bind`.  `return` is defined as the `Right` constructor, so `return x` is the same as `Right x`.  In our initial implementation using `Either`, remember that we used `Right` to construct good values and `Left` to construct error messages.  `Right (Num 1)` returns `1` while `Left "Error Will Robinson"` returns a string.  Hold that thought.  The choice is not at all arbitrary given that we used the built-in `Either` implementation.
+
+Two cases define the behavior of `>>=` for `Either`'s two constructors.  The first says that given `(Right m)` and a function `k` over the type of `m`, call `k` on `m`.  Pretty simple, but lets say it again.  `(Right m) >>= k`  simply takes the `m` and calls `k` on it.
+
+The second case says that given `(Left e)`, just return `(Left e)`.  Again pretty simple, but lets say it again.  `(Left e) >>= k` will simply return `(Left e)` and return it regardless of what `k` is.  `(Left e)` simply passes through the bind operation as if `k` were an identity function.
+
+Remember the choice of `Right` for values and `Left` for errors?
+Thinking about `>>=` in those terms it woudl seem `>>=` applies a function to a value and passes an error through.  This is exactly the behavior we want if we're executing operations in sequence.
+
+Let's look at the concept abstractly and then get concrete with some examples. If `x` is a value and `a`, `b`, and `c` were a sequence of 3 operations that might throw errors, the `>>=` behavior is exactly what we want:
+
+1. Apply `a` to `x`.
+2. If successful apply `b` to `(a x)`.
+3. If not, generate an error, don't apply `b`, and pass the error forward.
+4. If applying `(b (a x))` is successful, apply `c` to the result. 
+5. If not, generate an error, don't apply `c` and pass the error forward.
+
+If applying `a` generates an error, it will be passed through as if `b` generated it.  If `b` geneates an error, it will be passed through as if `c` generated it.  Keep going and what you'll end up with is either `Right c(b(a(x)))` or `(Left "error message")`.  But *you don't write the code to manage errors*.  The `Either` monad takes care of it for you in the background.  In essence, this is what a monad always does.  It takes care of something in the background that is inherent to the computation being performed.  A monad instance implements a model of computation.
+
+Now we're getting weird.  Let's get a bit more concrete and look using the `Either` monad and some notations that make it more comfortable.
+
+First let's write an expression that starts with a value, subtracts 10 and squares the result and adds 5:
+
+$$(x-10)^2+5$$
+
+If the original difference is negative or the result of the square is odd we want to throw an error.  First define the three operations as functions using `Either` to encode values and error messages:
+
+{% highlight haskell %}
+a = \x -> if x<10 then (Left "less than 10") else (Right (x-10))
+b = \y -> if (y `mod` 2)==0 then (Right (y*y)) else (Left "odd result")
+c = \z -> (Right (z-5))
+{% endhighlight %}
+
+Hopefully it's clear these expressions perform the three operations and check for local errors.  Names for the expressions aren't necessary, but will make things a bit simpler.  Without using either, we can compose these operations to do what we want on the value 10:
+
+{% highlight haskell %}
+case (a 10) 
+  (Left m) -> (Left m)
+  (Right y) -> case (b y)
+                 (Left m) -> (Left m)
+                 (Right z) -> (c z)
+== Right -5
+{% endhighlight %}
+
+Not horrible, but when composing the operations you must worry about pushing around the error messages.  Now let's use the `Either` as a monad and take advantage of bind:
+
+{% highlight haskell %}
+(Right 10) >>= a >>= b >>= c
+== Right (-5)
+{% endhighlight %}
+
+Can you tell the difference in the two code sequences?  Let's try two additional cases:
+
+{% highlight haskell %}
+(Right 11) >>= a >>= b >>= c
+== Left "odd value"
+
+(Right 9) >>= a >>= b >>= c
+== Left "less than 10"
+{% endhighlight %}
+
+The only price to pay is putting `10` in the `Either` type using `Right` before beginning.  We call this _lifting_ 10 into the `Either` type.  Small price to pay for not managing all of the error handling.  We can even get rid of that by embedding the expression in a function:
+
+{% highlight haskell %}
+f x = (Right x) >>= a >>= b >>= c
+{% endhighlight %}
+
+Pretty cool.
+
+One more thing - the `do` notation.  I mentioned that as something we would use earlier.  I used names for the various functions I composed in the `Either` example above.  Let's pull the names off and use the expressions directly in our composition:
+
+{% highlight haskell %}
+(Right 10)
+>>= \x -> if x<10 then (Left "less than 10") else (Right (x-10))
+>>= \y -> if (y `mod` 2)==0 then (Right (y*y)) else (Left "odd result")
+>>= \z -> (Right (z-5))
+{% endhighlight %}
+
+With a bit of formatting magic we get:
+
+{% highlight haskell %}
+(Right 10) >>= \x ->
+    if x<10 then (Left "less than 10") else (Right (x-10)) >>= \y ->
+       if (y `mod` 2)==0 then (Right (y*y)) else (Left "odd result") >>= \z ->
+          (Right (z-5))
+{% endhighlight %}
+
+Literally nothing changed other than how the expression is indented.  Try it for yourself and see how it works.
+
+The reason for the reformatting is to associate the input parameter for each function with the expression it is bound to by the function call.  `x` takes `Right 10`, `y` takes the first big `if` and `z` takes the second big `if`.  If we use `<-` as a kind of assignment operation and ditch the bind operation we can break up the functions to look like this:
+
+{% highlight haskell %}
+x <- (Right 10)
+y <- if x<10 then (Left "less than 10") else (Right (x-10))
+z <- if (y `mod` 2)==0 then (Right (y*y)) else (Left "odd result")
+(Right (z-5))
+{% endhighlight %}
+
+Do you recognize that?  Maybe with a few more decorations:
+
+{% highlight haskell %}
+do 
+  x <- (Right 10) ;
+  y <- if x<10 then (Left "less than 10") else (Right (x-10)) ;
+  z <- if (y `mod` 2)==0 then (Right (y*y)) else (Left "odd result")  ;
+  (Right (z-5))
+{% endhighlight %}
+
+Bingo!  We have the `do` notation working backwards from the `>>=` notation.  Of course we usually go the other way, but this explains the "magic" of the `do`.  It's just syntax that will work with any monad.
+
+One other thing to point out that is rather important.  Using the named functions has one restricting side effect that the do notation and the bind notation it is derived from do not.  Consider this:
+
+{% highlight haskell %}
+do 
+  x <- (Right 10) ;
+  y <- if x<10 then (Left "less than 10") else (Right (x-10)) ;
+  z <- if (y `mod` 2)==0 then (Right (y*y)) else (Left "odd result")  ;
+  (Right (z+x+y))
+{% endhighlight %}
+
+where `x` and `y` are used later than in the original expression.  If you use named functions this won't work because of the statically scoped nature of Haskell.  We'll discuss this later, but for now just try to rewrite the last `do` notation using the explicitly named functions and see what happens.
 
 ## Monadic eval
+
+Time to come back from the land of the monad and talk evaluation and type prediction again.
 
 {% highlight haskell %}
 evalM :: ABE -> Either String ABE

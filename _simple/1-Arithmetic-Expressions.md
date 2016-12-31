@@ -403,7 +403,7 @@ Lots of definitions to get us started:
 
 ## Exercises
 
-1. Add multiplication and division to `AE`.  Recall that `div` is the Haskell function for integer division.  Do we lose any of our nice properties by doing this?
+1. Add multiplication and division to `AE`.  Do we lose any of our nice properties by doing this?
 2. Rewrite the `eval` function to return a Haskell `Int` rather than an `AE` value.  This is an alternative to returning the Haskell datatype.
 2. Rewrite `AE` replacing the `Plus` and `Minus` constructors in the AST with a single constructor `Binop op t1 t2` where `op` is the represented binary operation.  You will need to change the parser to generate `Binop` rather than `Plus` and `Minus`.  Think carefully about what `op` should be.  If you do it right, you should be able to add any operator to `AE` by simply changing the parser.
 

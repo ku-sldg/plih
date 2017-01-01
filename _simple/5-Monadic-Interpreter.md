@@ -281,6 +281,7 @@ typeofM (Leq l r) = do
     TNum -> case r' of
               TNum -> (Right TBool)
               _ -> (Left "Type mismatch in <=")
+    TBool -> (Left "Type mismatch in <=")
 typeofM (IsZero v) = do
   v' <- (typeof v) ;
   if v' == TNum then (Right TBool) else Left "Type mismatch in IsZero"

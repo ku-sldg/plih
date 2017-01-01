@@ -100,6 +100,8 @@ term = parens lexer expr
 
 -- Parser invocation
 
+parseABEM = parseM expr
+
 parseABE = parseString expr
 
 parseABEFile = parseFile expr
@@ -433,6 +435,11 @@ typeofM (If c t e) = do
   t' <- (typeof t) ;
   e' <- (typeof e) ;
   if c' == TBool && t' == e' then (Right t') else Left "Type mismatch in if"
+
+interpM' t = do
+  te <- Right (parseABE t)
+  ty <- typeofM te
+  evalM te
 
 testEvalM :: Int -> IO ()
 testEvalM n = quickCheckWith stdArgs {maxSuccess=n}

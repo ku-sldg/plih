@@ -67,7 +67,7 @@ Let's look at the concept abstractly and then get concrete with some examples. I
 
 If applying `a` generates an error, it will be passed through as if `b` generated it.  If `b` geneates an error, it will be passed through as if `c` generated it.  Keep going and what you'll end up with is either `Right c(b(a(x)))` or `(Left "error message")`.  But *you don't write the code to manage errors*.  The `Either` monad takes care of it for you in the background.  In essence, this is what a monad always does.  It takes care of something in the background that is inherent to the computation being performed.  A monad instance implements a model of computation.
 
-Now we're getting weird.  Let's get a bit more concrete and look using the `Either` monad and some notations that make it more comfortable.
+Now we're getting weird.  Let's get a bit more concrete and look at using the `Either` monad and some notations that make it more comfortable.
 
 First let's write an expression that starts with a value, subtracts 10 and squares the result and adds 5:
 
@@ -172,12 +172,24 @@ where `x` and `y` are used later than in the original expression.  If you use na
 
 ## Monadic eval
 
-Time to come back from the land of the monad and talk evaluation and type prediction again.
+Time to come back from the land of the monad and talk evaluation and type prediction again.  Why go there in the first place?  Other than numeric and Boolean constants, all terms in `BAE` are evaluated by evaluating their subterms and combining the results to give a value for the term.  Unless of course evaluating any of the subterms results in an error.  If an error occurs it should be passed back to the user and return as the result. Hopefully the role of the `Either` will become clear after looking at  few terms.
+
+The signature does not change, but we will call the evaluation function `evalM` to designate that this is a monadic version.
 
 {% highlight haskell %}
 evalM :: ABE -> Either String ABE
+{% endhighlight %}
+
+Constants evaluate as they always have.  Nothing can fail, so the constant values are simply returned.
+
+{% highlight haskell %}
 evalM (Num x) = (Right (Num x))
 evalM (Boolean x) = (Right (Boolean x))
+{% endhighlight %}
+
+The evaluation of `Plus` terms gives a pattern for all other terms.  We will use the `do` notation to first evaluate both subterms, `t1` and `t2`, storing the results in `t1'` and `t2'`:
+
+{% highlight haskell %}
 evalM (Plus t1 t2) = do
   t1' <- (evalM t1)
   t2' <- (evalM t2)
@@ -186,6 +198,15 @@ evalM (Plus t1 t2) = do
                   (Num v2) -> (Right (Num (v1+v2)))
                   (Boolean _) -> (Left "Type Error in +")
     (Boolean _) -> (Left "Type Error in +")
+{% endhighlight %}
+
+The final term in the `do` sequence is a `case` expression that looks at the subterm evaluation results.  All we check in the case is the type of the term resulting from a successful evaluation.  If evaluating either subterm fails and results in a `Left` construction, it will fall through just like our example above.  What we do is make sure the subterm evaluation results are of compatible types.  If they are we return `(Num (v1+v2))`.  If they are not, we generate a fresh error message using `Left`.
+
+Note how similar the `do` sequence is to the inference rule describing evaluation of addition.  This is a nice side effect of using the monad.
+
+Remaining binary and unary operations use the same pattern as plus.  Specifically, evaluate the subterms and return the result of combining evaluation results.  Go through several of these to make sure you understand what the `do` notation is doing.  (No pun intended.)
+
+{% highlight haskell %}
 evalM (Minus t1 t2) = do
   t1' <- (evalM t1)
   t2' <- (evalM t2)
@@ -215,22 +236,27 @@ evalM (IsZero t) = do
   case t' of
     (Num v) -> (Right (Boolean (v == 0)))
     (Boolean _) -> (Left "Type Error in isZero")
+{% endhighlight %}
+
+Evaluating `If` is worth a bit of discussion, but isn't dramatically different than earlier expressions.  Only the conditional is evaluated using the `do` notation.  We do not evaluate the arms as only one should be evaluated based on the result of the conditional.  The `case` has two options, one that returns an error if the condition is a number and one that uses a Haskell `if` expression to choose the expression that should be returned.
+
+{% highlight haskell %}
 evalM (If t1 t2 t3) = do
   t1' <- (evalM t1)
   case t1' of
     (Num v) -> (Left "Type Error in if")
     (Boolean v) ->  if v then (evalM t2) else (evalM t3)
+{% endhighlight %}
 
+Finally we put `evalM` together with the original parser to get `interpM`.
+
+{% highlight haskell %}
 interpM = evalM . parseABE
 {% endhighlight %}
 
 ## Monadic typeof
 
-{% highlight haskell %}
-testEvalM :: Int -> IO ()
-testEvalM n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> (evalM t)==(evalM t))
-{% endhighlight %}
+Programs are data structures.  We showed we can write a program that predicts failure by finding the types of expressions.  We called it `typeof`.  If we can find the type of an expression, then we don't need to handle type-related errors at run-time.  Nothing here should be surprising.  Same pattern as `evalM` - find the types of subterms and use those types to determine the term type or generate a fresh error.
 
 {% highlight haskell %}
 typeofM :: ABE -> Either String TABE
@@ -263,3 +289,14 @@ typeofM (If c t e) = do
   t' <- (typeof t) ;
   e' <- (typeof e) ;
 {% endhighlight %}
+
+Putting parsers and interpreters and type checkers together has always been an afterthought.  Let's take a look at it once again.  Again we'll take advantage of the `Either` monad.  Both the `typeofM` and `evalM` return `Either` monads of slightly different types.  But their error cases both use `Left` on strings.  Thus, if `typeofM t` fails and generates an error, bind passes the error through and does not call `evalM`.
+
+{% highlight haskell %}
+interpM t = do
+  te <- Right parseBAE t	
+  ty <- typeofM t
+  evalM te
+{% endhighlight %}
+
+No such luck with parsers generated with Parsec.  They are monadic, but generate their own errors that are incompatible with errors generated using `Left`.  Bundling the parser result up with `Right` makes a successful parse compatible with `typeofM` and `evalM`.  The `do` notation strings things together nicely!

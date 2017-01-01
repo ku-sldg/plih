@@ -300,3 +300,9 @@ interpM t = do
 {% endhighlight %}
 
 No such luck with parsers generated with Parsec.  They are monadic, but generate their own errors that are incompatible with errors generated using `Left`.  Bundling the parser result up with `Right` makes a successful parse compatible with `typeofM` and `evalM`.  The `do` notation strings things together nicely!
+
+## Discussion
+
+## Exercises
+
+1. Rewrite `evalM` and `typeofM` to use the `Maybe` monad rather than the `Either` monad.  You will not be able to return error messages using `Maybe`.

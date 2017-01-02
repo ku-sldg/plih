@@ -4,6 +4,10 @@ title: Acknowledgements
 use_math: true
 categories: chapter ch0
 ---
+> The more I think about language, the more it amazes me that people ever understand each other.
+>  
+> -- Kurt Gödel
+
 Years ago I started teaching from two books I have grown to love.  I discovered Daniel Friedman’s _Essentials of Programming Languages_ when I was asked to teach programming languages and did not want to do the standard overview.  I dislike the comparative languages approach and was looking for a better way.  Friedman’s book completely changed the way I think about languages and the way I teach programming language material. What it did was convince me that I could teach languages by building interpreters and work gradually towards a formal view of programs and languages.
 
 After teaching from Friedman’s book for two years, I discovered the first version of Shriram Krishnamurthy’s _Programming Languages: Application and Interpretation_.  Shriram writes beautifully and concisely and I have loved teaching from his text.  His work pulled me even more towards the building interpreters approach to teaching programming language fundamentals.  Plus, Shriram generously makes his book available [freely on the web][1].

@@ -33,37 +33,37 @@ data FBAE where
                     
 type Env = [(String,FBAE)]
 
--- R encapsulats a function from some e to some a in a constructor.  R
+-- Reader encapsulats a function from some e to some a in a constructor.  Reader
 -- has Functor, Applicative, and Monad properties.
 
-data R e a = R (e -> a)
+data Reader e a = Reader (e -> a)
 
-instance Functor (R e) where
-  fmap f (R g) = R $ \e -> (f . g) e
+instance Functor (Reader e) where
+  fmap f (Reader g) = Reader $ \e -> (f . g) e
 
-instance Applicative (R e) where
-  pure x = R $ \e -> x
-  (R f) <*> (R g) = R $ \e -> (f e) (g e)
+instance Applicative (Reader e) where
+  pure x = Reader $ \e -> x
+  (Reader f) <*> (Reader g) = Reader $ \e -> (f e) (g e)
 
-instance Monad (R e) where
-  return x = R $ \e -> x
-  g >>= f = R $ \e -> runR (f (runR g e)) e
+instance Monad (Reader e) where
+  return x = Reader $ \e -> x
+  g >>= f = Reader $ \e -> runR (f (runR g e)) e
 
 -- runR pulls the function out of the monad encapsuation and executes it.
 -- Build the monad, call runR on it.
-runR :: R e a -> e -> a
-runR (R f) e = f e
+runR :: Reader e a -> e -> a
+runR (Reader f) e = f e
 
 -- ask simply returns e
-ask :: R a a
-ask = R $ \e -> e
+ask :: Reader a a
+ask = Reader $ \e -> e
 
 -- asks applies a function to e and returns it
-asks :: (e -> a) -> R e a
+asks :: (e -> a) -> Reader e a
 asks f = ask >>= \e -> (return (f e))
 
 -- local makes local changes to e 
-local :: (e -> t) -> R t a -> R e a
+local :: (e -> t) -> Reader t a -> Reader e a
 local f r = ask >>= \e -> return (runR r (f e))
 
 -- lookupVar and addVar are simple utilities for looking up values in and
@@ -85,7 +85,7 @@ numMinus _ _ = error "Non-Num argument to numop"
 -- evalM builds the monad for a calculation. Note that Plus and Minus
 -- should be nearly identical. However, I wanted to mess with multiple
 -- implementations, thus you'll see to ways of executing binary operations.
-evalM :: FBAE -> R Env FBAE
+evalM :: FBAE -> Reader Env FBAE
 evalM (Num n) = return (Num n)
 evalM (Plus l r) = do
   l' <- (evalM l)

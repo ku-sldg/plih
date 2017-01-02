@@ -28,8 +28,9 @@ $$
 $$
 
 
-> In addition to it begin useful, it is also cursed and the curse of the monad is that once you get the epiphany, once you understand - "oh that's what it is" - you lose the ability to explain it to anybody.
->        -- Douglas Crockford
+> In addition to it begin useful, it is also cursed and the curse of the monad is that once you get the epiphany, once you understand - "oh that's what it is" - you lose the ability to explain it to anybody.   
+>  
+> -- Douglas Crockford
 
 # Monadic Interpreters
 

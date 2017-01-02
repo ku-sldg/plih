@@ -18,7 +18,15 @@ import Text.ParserCombinators.Parsec.Token
 -- Imports for PLIH
 import ParserUtils
 
--- Calculator language extended with an environment to hold defined variables
+-- Untyped arithmetic interpreter extended with untyped functions using the
+-- Reader monad
+--
+-- Author: Perry Alexander
+-- Date: Wed Jul 13 21:20:26 CDT 2016
+--
+-- Source files for the Functions Binding Arithmetic Expressions extended
+-- with Function (FBAE) language from PLIH
+--
 
 data FBAE where
   Num :: Int -> FBAE
@@ -34,7 +42,7 @@ data FBAE where
 type Env = [(String,FBAE)]
 
 -- Reader encapsulats a function from some e to some a in a constructor.  Reader
--- has Functor, Applicative, and Monad properties.
+-- is an instance of Functor, Applicative, and Monad. 
 
 data Reader e a = Reader (e -> a)
 
@@ -74,13 +82,11 @@ lookupVar = lookup
 addVar :: String -> FBAE -> Env -> Env
 addVar s i e = (s,i):e
 
-numPlus :: FBAE -> FBAE -> FBAE
-numPlus (Num l) (Num r) = Num (l + r)
-numPlus _ _ = error "Non-Num argument to numop"
+liftNum :: (Int -> Int -> Int) -> FBAE -> FBAE -> FBAE
+liftNum f (Num t1) (Num t2) = (Num (f t1 t2))
 
-numMinus :: FBAE -> FBAE -> FBAE
-numMinus (Num l) (Num r) = Num (l + r)
-numMinus _ _ = error "Non-Num argument to numop"
+numPlus = liftNum (+)
+numMinus = liftNum (-)
 
 -- evalM builds the monad for a calculation. Note that Plus and Minus
 -- should be nearly identical. However, I wanted to mess with multiple
@@ -96,25 +102,68 @@ evalM (Minus l r) = do
   r' <- (evalM r)
   return (numMinus l' r')
 evalM (Id id) = do
-  env <- ask
-  return (case (lookupVar id env) of
-            Just x -> x
-            Nothing -> error "Variable not found")
+  ask >>= \env -> return (case (lookupVar id env) of
+                             Just x -> x
+                             Nothing -> error "Variable not found")
 evalM (Bind i v b) = do
-  env <- ask
   v' <- evalM v
   local (addVar i v') (evalM b)
 evalM (Lambda i b) = return (Lambda i b)
 evalM (App f v) = do
-  env <- ask
   (Lambda i b) <- evalM f
   v' <- evalM v
   local (addVar i v') (evalM b)
 
-interp x = runR (evalM x) []
+eval x = runR (evalM x) []
 
-test1 = interp (Num 1)
-test2 = interp (App (Lambda "x" (Plus (Id "x") (Num 1))) (Num 1))
+data FBAETy where
+  TNum :: FBAETy
+  TFun :: FBAETy -> FBAETy -> FBAETy
+  deriving (Show,Eq)
+
+type Context = [(String,FBAETy)]
+
+lookupVarTy = lookup
+addVarTy :: String -> FBAETy -> Context -> Context
+addVarTy s i e = (s,i):e
+
+typeofM :: FBAE -> Reader Context FBAETy
+typeofM (Num n) = return TNum
+typeofM (Plus l r) = do
+  l' <- (typeofM l)
+  r' <- (typeofM r)
+  return (if (l'==TNum && r'==TNum) then TNum else error "Type error in +")
+typeofM (Minus l r) = do
+  l' <- (typeofM l)
+  r' <- (typeofM r)
+  return (if (l'==TNum && r'==TNum) then TNum else error "Type error in -")
+typeofM (Id id) = do
+  ask >>= \env -> return (case (lookupVarTy id env) of
+                            Just x -> x
+                            Nothing -> error "Variable not found")
+typeofM (Bind i v b) = do
+  con <- ask
+  v' <- typeofM v
+  local (addVarTy i v') (typeofM b)
+typeofM (Lambda i b) = do
+  con <- ask
+  r' <- local (addVarTy i TNum) (typeofM b)
+  return (TFun TNum r')
+typeofM (App f v) = do
+  (TFun i b) <- typeofM f
+  v' <- typeofM v
+  return (if i==v' then b else error "Type Error in app")
+
+typeof x = runR (typeofM x) []
+
+--interp x = do
+--  typeofM x
+--  v <- evalM x
+--  return v
+
+
+test1 = eval (Num 1)
+test2 = eval (App (Lambda "x" (Plus (Id "x") (Num 1))) (Num 1))
 
 
 

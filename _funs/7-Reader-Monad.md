@@ -78,6 +78,7 @@ runR ((return 5)
       >>= (\x -> (return (x - 3)))
       >>= (\x -> (return (x `mod` 2)))) []
 == 1
+{% endhighlight %}
 
 Now we can sequence operations.  But given nothing else, the environment is constant across all the `runR` executions.  Worse yet, there's no way to use or modify it.  Let's look at how to look at and change the environment locally.  `ask` simply returns the environment:
 

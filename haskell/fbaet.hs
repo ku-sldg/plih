@@ -205,7 +205,9 @@ typeof cont (Plus l r) = let l' = (typeof cont l)
                             else error "Type Mismatch in +"
 typeof cont (Minus l r) = let l' = (typeof cont l)
                               r' = (typeof cont r)
-                          in if l'==TNum && r'==TNum then TNum else error "Type Mismatch in -"
+                          in if l'==TNum && r'==TNum
+                             then TNum
+                             else error "Type Mismatch in -"
 typeof cont (Bind i v b) = let v' = typeof cont v in
                              typeof ((i,v'):cont) b
 typeof cont (Id id) = case (lookup id cont) of

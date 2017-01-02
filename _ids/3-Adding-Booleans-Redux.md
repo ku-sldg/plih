@@ -180,13 +180,15 @@ The next step is defining and implementing a type checker to statically determin
 
 ## Type Rules
 
-Type rules for `BAE` and `ABE` expressions remain unchanged in `BBAE`:
+Type rules for `BAE` and `ABE` expressions remain unchanged in `BBAE`.  Numbers remain of type $\tnum$ and Booleans $\tbool$:
 
 $$\frac{}{\typeof \NUM = \tnum}\; [NumT]$$
 
 $$\frac{}{\typeof \ttrue = \tbool}\; [TrueT]$$
 
 $$\frac{}{\typeof \ffalse = \tbool}\; [FalseT]$$
+
+Unary and binary operations similarly remain the same:
 
 $$\frac{\typeof t_1 = \tnum,\; \eval t_2 = \tnum}{\typeof t_1 + t_2 = \tnum}\; [PlusT]$$
 
@@ -201,13 +203,33 @@ $$\frac{\typeof t = \tnum}{\typeof \iisZero t = \tbool}\; [isZeroT]$$
 $$\frac{\typeof t_0 = \tbool,\;\typeof t_1 = T,\;\typeof t_2 = T
 }{\typeof \iif t_0 \tthen t_1 \eelse t_2 = T}\;[IfT]$$
 
-$$\frac{(i,T)\in \Gamma}{\typeof i = T}\;[IdT]$$
+The new concept in this language is identifiers introduced by `bind` and used anywhere in expressions.  How do we determine the type of identifiers?  To get an idea, recall how `eval` handles `bind` using an environment.  when evaluating a `bind`:
+
+{% highlight text %}
+bind x = v in b
+{% endhighlight %}
+
+`x` takes the value `v` in `b`.  We use an environment to hold bindings of identifiers to values.  Can we do the same thing with types of identifiers?  Specifically, create a environment-like structure that maintains bindings of identifiers to types and simply look up type in that structure?
+
+The environment-like structure that contains types will be called a _context_ and is frequently represented by $\Gamma$.  Like the environment, it is a list of pairs and behaves in exactly the same fashion.  The difference is each pair consists of an identifier and type rather than identifier and value.
+
+We will use the notation $(x,T)$ to represent the binding of a variable to some type and the Haskell list append $(x,T):\Gamma$ to represent addition of new binding to a context.  Finally, $(x,T)\in\Gamma$ represents finding the first instance of $(x,T)$ in $\Gamma$.
+
+The rule for `bind` adds the newly bound identifier with its type to the context and finds the type of the `bind` body:
 
 $$\frac{\typeof v=T}{\typeof \bbind i=v \iin b = \typeof (i,T):\Gamma b}\;[BindT]$$
 
+The type of the body becomes the type of the `bind`.  This makes sense as the body is what gets evaluated when the `bind` is evaluated.  It's also interesting to think of `bind` as a special expression that simply adds to the environment or context.
+
+One more type rule for identifiers is needed to finish the definition.  It simply looks up a type binding $(v,T)$ in $\Gamma$ and asserts that $v:T$ is true when the type binding is found:
+
+$$\frac{(i,T)\in \Gamma}{\typeof i = T}\;[IdT]$$
+
+This lookup is quite similar to the lookup used when the environment is used.  In fact, functions for manipulating the environment and context are identical.
+
 ## Typeof Definition
 
-Now we implement the `typeof` function.  First the standard data type for type expressions:
+Now we implement the `typeof` function. First the standard data type for the two types expressions defined for `BBAE`:
 
 {% highlight haskell %}
 data TBBAE where
@@ -224,7 +246,7 @@ Now we build out the type checker from the type checking rules.  Like the `eval`
 typeof :: Cont -> BBAE -> Either String TBBAE
 {% endhighlight %}
 
-The `typeof` signature is eerily similar to the `eval` signature.  We'll come back to that later, but it's worth thinking about why that's the case.
+Note that we're using the `Either` construct to return the type or error.  However, we're not using `Either` as a monad in this type inference function.  The `typeof` signature is eerily similar to the `eval` signature.  We'll come back to that later, but it's worth thinking about why that's the case.
 
 Here's the complete code for the `typeof` function:
 
@@ -369,17 +391,23 @@ What changes here from the previous generators is the list of generators passed 
 
 ## Discussion
 
-Two things worth thinking about are happening in this chapter.  First, we are going from beginning to end defining a new language.  We started with syntax, defined evaluation and implemented an evaluation function, defined a type system and implemented a type checker, and concluded with QuickCheck functions for testing.  This is the methodology we use for defining languages at work.
+Three things worth thinking about are happening in this chapter.  First, we are going from beginning to end defining a new language.  We started with syntax, defined evaluation and implemented an evaluation function, defined a type system and implemented a type checker, and concluded with QuickCheck functions for testing.  This is the methodology we use for defining languages at work.
 
 Second, we see how composition of orthogonal language constructs makes this reasonably simple.  How many times in the chapter did we talk about composing elements of previous interpreters?  Usually that was a simple cut-and-past operation.  The only real exception being the arbitrary test case generator where we had to compose the language subsets.
 
-Remember both of these things moving forward.  The step-by-step approach for defining a language and the composition of orthogonal language constructs.
+Finally, we introduced the concept of a context that behaves like an environment for types.  An interesting difference is the environment is a runtime construct while the context is used during static analysis.  The reason is values cannot be known until runtime, but types are known statically.  This is not true for all languages, but is true for our languages.
+
+Remember these things moving forward.  The step-by-step approach for defining a language and the composition of orthogonal language constructs are important design concepts.  Context is something we will continue to use throughout our study.
+
+## Definitions
+* Context - list containing bindings of identifiers to types defining identifiers currently in scope.
 
 ## Exercises
 
 1. Write the function `evalErr :: Env -> BBAE -> Either String BBAE` for for `BBAE` that returns either a string error message or a value following interpretation.
 2. Compare the `evalErr` function with the `evalType` function using the same techniques used for `ABE`
 3. Prove that the `error` function will never be called in `eval` given that all expressions given to `eval` successfully type check.
+4. Rewrite `typeof` using `Either` as a monad.
 
 ## Source
 

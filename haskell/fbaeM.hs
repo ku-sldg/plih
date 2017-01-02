@@ -121,13 +121,13 @@ data FBAETy where
   TFun :: FBAETy -> FBAETy -> FBAETy
   deriving (Show,Eq)
 
-type Context = [(String,FBAETy)]
+type Cont = [(String,FBAETy)]
 
 lookupVarTy = lookup
-addVarTy :: String -> FBAETy -> Context -> Context
+addVarTy :: String -> FBAETy -> Cont -> Cont
 addVarTy s i e = (s,i):e
 
-typeofM :: FBAE -> Reader Context FBAETy
+typeofM :: FBAE -> Reader Cont FBAETy
 typeofM (Num n) = return TNum
 typeofM (Plus l r) = do
   l' <- (typeofM l)

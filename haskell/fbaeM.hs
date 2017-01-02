@@ -156,14 +156,10 @@ typeofM (App f v) = do
 
 typeof x = runR (typeofM x) []
 
---interp x = do
---  typeofM x
---  v <- evalM x
---  return v
+interp x = let ty = typeof x in eval x
 
-
-test1 = eval (Num 1)
-test2 = eval (App (Lambda "x" (Plus (Id "x") (Num 1))) (Num 1))
+test1 = interp (Num 1)
+test2 = interp (App (Lambda "x" (Plus (Id "x") (Num 1))) (Num 1))
 
 
 

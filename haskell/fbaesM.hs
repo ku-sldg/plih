@@ -34,7 +34,7 @@ data FBAE where
   Plus :: FBAE -> FBAE -> FBAE
   Minus :: FBAE -> FBAE -> FBAE
   Bind :: String -> FBAE -> FBAE -> FBAE
-  Lambda :: String -> FBAE -> FBAE
+  Lambda :: String -> FBAETy -> FBAE -> FBAE
   App :: FBAE -> FBAE -> FBAE
   Id :: String -> FBAE
   If :: FBAE -> FBAE -> FBAE -> FBAE
@@ -73,6 +73,9 @@ asks f = ask >>= \e -> (return (f e))
 local :: (e -> t) -> Reader t a -> Reader e a
 local f r = ask >>= \e -> return (runR r (f e))
 
+explicit :: e -> Reader e a -> Reader e a
+explicit e r = return (runR r e)
+
 -- lookupVar and addVar are simple utilities for looking up values in and
 -- adding values to an environment.  Neither of these functions is necessary
 lookupVar :: String -> Env -> Maybe FBAEVal
@@ -99,9 +102,9 @@ subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
 subst i v (Bind i' v' b') = if i==i'
                             then (Bind i' (subst i v v') b')
                             else (Bind i' (subst i v v') (subst i v b'))
-subst i v (Lambda i' b') = if i==i'
-                           then (Lambda i' b')
-                           else (Lambda i' (subst i v b'))
+subst i v (Lambda i' t' b') = if i==i'
+                           then (Lambda i' t' b')
+                           else (Lambda i' t' (subst i v b'))
 subst i v (App l r) = (App (subst i v l) (subst i v r))
 subst i v (Id i') = if i==i'
                     then v
@@ -116,8 +119,8 @@ evals (Minus l r) = let (Num l') = (evals l)
                         (Num r') = (evals r)
                     in (Num (l' - r'))
 evals (Bind i v b) = (evals (subst i (evals v) b))
-evals (Lambda i b) = (Lambda i b)
-evals (App f a) = let (Lambda i b) = (evals f)
+evals (Lambda i t b) = (Lambda i t b)
+evals (App f a) = let (Lambda i t b) = (evals f)
                       a' = (evals a)
                   in evals (subst i (evals a) b)
 evals (If c t e) = let (Num c') = (evals c)
@@ -148,13 +151,14 @@ evalM (Minus l r) = do
 evalM (Bind i v b) = do
   v' <- evalM v
   local (addVar i v') (evalM b)
-evalM (Lambda i b) = do
+evalM (Lambda i _ b) = do
   env <- ask
   return (ClosureV i b env)
 evalM (App f a) = do
   (ClosureV i b e) <- (evalM f)
   a' <- (evalM a)
-  local (useClosure i a' e) (evalM b)
+  explicit ((i,a'):e) (evalM b)
+--  local (useClosure i a' e) (evalM b)
 evalM (Id id) = do
   env <- ask
   case (lookup id env) of
@@ -166,18 +170,60 @@ evalM (If c t e) = do
 
 interp x = runR (evalM x) []
 
+-- Typeof
+
+data FBAETy where
+  TNum :: FBAETy
+  TFun :: FBAETy -> FBAETy -> FBAETy
+  deriving (Show,Eq)
+
+type Cont = [(String,FBAETy)]
+
+lookupVarTy = lookup
+addVarTy :: String -> FBAETy -> Cont -> Cont
+addVarTy s i e = (s,i):e
+
+typeofM :: FBAE -> Reader Cont FBAETy
+typeofM (Num n) = return TNum
+typeofM (Plus l r) = do
+  l' <- (typeofM l)
+  r' <- (typeofM r)
+  return (if (l'==TNum && r'==TNum) then TNum else error "Type error in +")
+typeofM (Minus l r) = do
+  l' <- (typeofM l)
+  r' <- (typeofM r)
+  return (if (l'==TNum && r'==TNum) then TNum else error "Type error in -")
+typeofM (Id id) = do
+  ask >>= \env -> return (case (lookupVarTy id env) of
+                            Just x -> x
+                            Nothing -> error "Variable not found")
+typeofM (Bind i v b) = do
+  con <- ask
+  v' <- typeofM v
+  local (addVarTy i v') (typeofM b)
+typeofM (Lambda i t b) = do
+  r' <- local (addVarTy i t) (typeofM b)
+  return (TFun t r')
+typeofM (App f v) = do
+  (TFun i b) <- typeofM f
+  v' <- typeofM v
+  return (if i==v' then b else error "Type Error in app")
+
+typeof x = runR (typeofM x) []
+
+
 -- Testing (Requires QuickCheck 2)
 
 testExpr = (Bind "n" (Num 1)
-             (Bind "f" (Lambda "x" (Plus (Id "x") (Id "n")))
+             (Bind "f" (Lambda "x" TNum (Plus (Id "x") (Id "n")))
                (Bind "n" (Num 2) (App (Id "f") (Num 1)))))
 
 test1 = interp (Bind "n" (Num 1)
-                (Bind "f" (Lambda "x" (Plus (Id "x") (Id "n")))
+                (Bind "f" (Lambda "x" TNum (Plus (Id "x") (Id "n")))
                  (Bind "n" (Num 2) (App (Id "f") (Num 1)))))
 
 test2 = let expr = (Bind "n" (Num 1)
-                (Bind "f" (Lambda "x" (Plus (Id "x") (Id "n")))
+                (Bind "f" (Lambda "x" TNum (Plus (Id "x") (Id "n")))
                  (Bind "n" (Num 2) (App (Id "f") (Num 1)))))
         in let (NumV v1) = interp expr
            in let (Num v2) = interps expr
@@ -217,10 +263,11 @@ genBind n e =
      b <- genFBAE n (i:e)
      return (Bind i v b)
 
+-- This is wrong.  Need to generate a type here.
 genLambda n e =
   do i <- genName
      b <- genFBAE n (i:e)
-     return (Lambda i b)
+     return (Lambda i TNum b)
 
 genApp n e =
   do t1 <- genFBAE n e

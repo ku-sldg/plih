@@ -146,7 +146,6 @@ typeofM (Bind i v b) = do
   v' <- typeofM v
   local (addVarTy i v') (typeofM b)
 typeofM (Lambda i b) = do
-  con <- ask
   r' <- local (addVarTy i TNum) (typeofM b)
   return (TFun TNum r')
 typeofM (App f v) = do

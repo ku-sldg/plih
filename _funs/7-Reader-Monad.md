@@ -213,3 +213,217 @@ addVar :: String -> FBAE -> Env -> Env
 addVar s i e = (s,i):e
 {% endhighlight %}
 
+Does this monadic interpreter implement static or dynamic scoping?  How can you tell?  I'll give you a hint and say we'll look at a statically scoped interpreter next and forever leave dynamically scoped languages.
+
+## Reader and Evaluation (Redux)
+
+To implement static scoping we add closures that record the environment where a function is defined.  We've done this once already and will simply repeat the process hear using the `Reader`.  First, the abstract syntax:
+
+{% highlight haskell %}
+data FBAE where
+  Num :: Int -> FBAE
+  Plus :: FBAE -> FBAE -> FBAE
+  Minus :: FBAE -> FBAE -> FBAE
+  Bind :: String -> FBAE -> FBAE -> FBAE
+  Lambda :: String -> FBAETy -> FBAE -> FBAE
+  App :: FBAE -> FBAE -> FBAE
+  Id :: String -> FBAE
+  If :: FBAE -> FBAE -> FBAE -> FBAE
+  deriving (Show,Eq)
+{% endhighlight %}
+
+Nothing changed other than adding the argument type to `Lambda`.  We'll see if we need this for evaluation, but we will certainly need it for type checking.  Still the same language, just with that small addition.
+
+With types references from the abstract syntax, we need to include the datatype for `FBAETy`:
+
+{% highlight haskell %}
+data FBAETy where
+  TNum :: FBAETy
+  TFun :: FBAETy -> FBAETy -> FBAETy
+  deriving (Show,Eq)
+{% endhighlight %}
+
+For completeness again we include the type for values introduced earlier for static scoping.  The important bit is the inclusion of closures for recording the static environment:
+
+{% highlight haskell %}
+data FBAEVal where
+  NumV :: Int -> FBAEVal
+  ClosureV :: String -> FBAE -> Env -> FBAEVal
+  deriving (Show,Eq)
+{% endhighlight %}
+
+Finally, the environment type:
+
+{% highlight haskell %}
+type Env = [(String,FBAEVal)]
+{% endhighlight %}
+
+Now we can define `evalM`, the monadic evaluator using the `Reader` monad.  `evalM` accepts an abstract syntax value and returns a `Reader` that we'll evaluate with `runR`.  The only change here is the `Reader` encapsulates a function of type `Env -> FBAEVal` rather than `Env -> FBAE` used previously:
+
+{% highlight haskell %}
+evalM :: FBAE -> Reader Env FBAEVal
+{% endhighlight %}
+
+Now the interpreter.  Same song, second verse.  Everything is identical until we get to the `Lambda`:
+
+{% highlight haskell %}
+evalM (Num x) = return (NumV x)
+evalM (Plus l r) = do
+  (NumV l') <- (evalM l)
+  (NumV r') <- (evalM r)
+  return (NumV (l'+r'))
+evalM (Minus l r) = do
+  (NumV l') <- (evalM l)
+  (NumV r') <- (evalM r)
+  return (NumV (l'-r'))
+evalM (Bind i v b) = do
+  v' <- evalM v
+  local (addVar i v') (evalM b)
+{% endhighlight %}
+
+When evaluating `Lambda` we need to grave the environment when it is defined.  When `env` was a parameter, this was easy.  Using `ask` it still is.  We simply execute `ask` to return a copy of the environment and bind the result to `env`.  Then creating the closure is exactly as it was in the non-monadic statically scoped interpreter.
+
+{% highlight haskell %}
+evalM (Lambda i b) = do
+  env <- ask
+  return (ClosureV i b env)
+{% endhighlight %}
+
+The returned closure contains the environment obtained with `ask` when the `lambda` is evaluated.  Note that we are evaluating a `lambda`, not an application.  That comes next.
+
+Evaluating `App` is where the environment from the closure is actually used.  In effect, when we evaluate the app we need to start with the environment from the closure rather than the enviornment maintained by the `Reader` to that point.  We don't want to add to the enviroment.  Instead we want to replace it.
+
+When evaluating the `App` we first evaluate `f` and `a` to get the closure and argument value.  For dynamic scoping we added a pair to the result of `ask` and replaced the environment with `local`.  We need to do the same thing again, but using the closure environment rather than the `Reader` environment.  We'll accomplish this by passing a new function to `local`.  Specifically:
+
+{% highlight haskell %}
+useClosure :: String -> FBAEVal -> Env -> Env -> Env
+useClosure i v e _ = (i,v):e
+{% endhighlight %}
+
+Look below how `useClosure` is used.  The first three arguments are instantiated with the identifier name, value and the environment from the closure.  The result is a function of type `Env -> Env`, exactly what `local` needs.  This particular function ignores that argument and produces a new environment using `e` from the closure:
+
+{% highlight haskell %}
+evalM (App f a) = do
+  (ClosureV i b e) <- (evalM f)
+  a' <- (evalM a)
+  local (useClosure i a' e) (evalM b)
+{% endhighlight %}
+
+Bingo.  `useClosure` creates a new environment by adding the new binding needed for evaluating `App` to the environment from the closure.  `local` plugs that in and we're now good go go.
+
+Now that we know how to build an environment from `app` and `bind`, it's time to evaluate identifiers by looking them up.  `ask` returns the environment that is in turn bound to `env`.  A `lookup` is performed to find `id` in `env`.  If it's there, return it.  If it's not, throw an error.
+
+{% highlight haskell %}
+evalM (Id id) = do
+  env <- ask
+  case (lookup id env) of
+    Just x -> return x
+    Nothing -> error "Varible not found"
+{% endhighlight %}
+
+It's useful to redefine `eval` using `evalM` so the interpreter operates in the same way as previous interpreters:
+
+{% highlight haskell %}
+eval x = runR (evalM x) []
+{% endhighlight %}
+
+Now we have a statically scoped interpreter for `FBAE` using a `Reader`.
+
+## Reader and Type Inference
+
+As you might have guessed, the `Reader` is also quite effective at type checking.  What is particularly interesting is the similarly between the type checker and evaluator.
+
+For completeness, the context type is defined as a list of string/type pairs:
+
+{% highlight haskell %}
+type Cont = [(String,FBAETy)]
+{% endhighlight %}
+
+{% highlight haskell %}
+lookupVarTy = lookup
+addVarTy :: String -> FBAETy -> Cont -> Cont
+addVarTy s i e = (s,i):e
+{% endhighlight %}
+
+The signature for our new type inference function is roughly the same as the evaluator, except that we return a `Reader` that encapsulates types.  We will still need to use `runR` to evaluate the result of called `typeofM`:
+
+{% highlight haskell %}
+typeofM :: FBAE -> Reader Cont FBAETy
+{% endhighlight %}
+
+The type of number constants is simply `TNum`.  Just return it:
+
+{% highlight haskell %}
+typeofM (Num n) = return TNum
+{% endhighlight %}
+
+The binary operations on numbers are identical modulo error messages.  Both find the types of their arguments and make sure both are numbers.  If they are, return `TNum` as the type of the operation.  If not, throw an error:
+
+{% highlight haskell %}
+typeofM (Plus l r) = do
+  l' <- (typeofM l)
+  r' <- (typeofM r)
+  return (if (l'==TNum && r'==TNum) then TNum else error "Type error in +")
+typeofM (Minus l r) = do
+  l' <- (typeofM l)
+  r' <- (typeofM r)
+  return (if (l'==TNum && r'==TNum) then TNum else error "Type error in -")
+{% endhighlight %}
+
+`bind` adds bindings to the context when type checking.  `typeofM` uses the `Reader` to pass along the context rather than the environment, but the operations are almost identical.  `typeofM` for `bind` first uses `ask` to get the current context.  It calculates the type of the identifier being added, and then uses `local` in the same way as `evalM` to add the binding to the local context:
+
+{% highlight haskell %}
+typeofM (Bind i v b) = do
+  con <- ask
+  v' <- typeofM v
+  local (addVarTy i v') (typeofM b)
+{% endhighlight %}
+
+To perform static type checking, we need to use the `lambda` variant that carries a type for its argument.  `(i,t)` is added to the context and `typeofM b` used to get `r'`, the range type, that is the typeof the function body.  The type of the `Lambda` becomes `(TFun t r')`:
+
+{% highlight haskell %}
+typeofM (Lambda i t b) = do
+  r' <- local (addVarTy i t) (typeofM b)
+  return (TFun t r')
+{% endhighlight %}
+
+The `App` case uses `typeofM` to get the type of the function and its argument.  The function type provides the domain and range of the associated function.  If the type of the argument is the domain type, then the `app` is the range type.  If they do not match, then `typeofM` throws an error.  The `if` expression is where all the work for this function is performed:
+
+{% highlight haskell %}
+typeofM (App f v) = do
+  (TFun i b) <- typeofM f
+  v' <- typeofM v
+  return (if i==v' then b else error "Type Error in app")
+{% endhighlight %}
+
+Finally finding the type of an identifier is simply looking it up on the context.  `ask` returns the context, a lookup is performed, and either a type is returned or an error message is thrown:
+
+{% highlight haskell %}
+typeofM (Id id) = do
+  ask >>= \env -> return (case (lookupVarTy id env) of
+                            Just x -> x
+                            Nothing -> error "Variable not found")
+{% endhighlight %}
+
+Like other functions, we can made the monadic version look like a traditional version with a quick definition:
+
+{% highlight haskell %}
+typeof x = runR (typeofM x) []
+{% endhighlight %}
+
+## Discussion
+
+The `Reader` is an exceptionally powerful and useful programming pattern.  Utility functions like `ask`, `asks`, and `local` are just  few samples of what kinds of operations can be defined on the environment.  Even the function `useClosure` could be rewritten as a  custom operation rather than using `local`:
+
+{% highlight haskell %}
+explicit :: e -> Reader t a -> Reader e a
+explicit e r = return (runR r e)
+{% endhighlight %}
+
+In our work thus far we have used our own `Reader`.  The standard Haskell libraries contain a `Reader` implementation.  However, when learning how to use the `Reader` it is far better to have visibility into the implementation than simply try to use the `Reader` interface.  Monad type signatures are not enough to understand their utility.
+
+It is worth spending time with a good Haskell tutorial and learning the `Reader` well.
+
+## Definitions
+
+## Exercises

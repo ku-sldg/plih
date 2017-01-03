@@ -199,6 +199,7 @@ typeof cont (App x y) = let tyY = typeof cont y
                                then tyXr
                                else error "Type mismatch in app"
                              _ -> error "First argument not lambda in app"
+{% endhighlight %}
 
 If the type of the `App`'s function argument is anything but a function, an error is thrown immediately.
 

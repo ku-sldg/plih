@@ -20,7 +20,7 @@ First, the immediate substitution interpreter defined by `evals`:
 {% highlight text %}
 bind n = 1 in
   bind f = (lambda x in x + n) in
-	app f 1
+    app f 1
 ==
 bind f = (lambda x in x + 1) in
   app f 1
@@ -45,7 +45,7 @@ bind n = 1 in                     [(n,1)]
 
 The first `bind` adds a binding from `n` to `1` while the second adds a binding from `f` to the lambda expression.  The term `app f 1` is evaluated in the context of the resulting environment.  `f` is first replaced by the lambda, then $\beta$-reduction adds a binding of `1` to `x` in.  Now the term can be evaluated.  `x` is replaced by `1` and `n` by `1` and we're done.  The result is again `2`.
 
-What happens in the second exam using nested binds?  Again, let's look at the immediate substitution interpreter:
+What happens in the second example using nested binds?  Again, let's look at the immediate substitution interpreter:
 
 {% highlight text %}
 bind n = 1 in

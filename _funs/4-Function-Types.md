@@ -33,16 +33,16 @@ $$
 
 # Function Types
 
-In prior chapters we have defined an interpreter over a laguage with only numbers, added Booleans, and showed how to handle and avoid type errors.  With functions, we don't need to add a thing to see this problem.  Consider the following legitimate expression:
+In prior chapters we have defined an interpreter over a language with only numbers, added Booleans, and showed how to handle and avoid type errors.  With functions, we don't need to add a thing to see this problem emerge again.  Consider the following expression:
 
 {% highlight text %}
-bind f = lambda x in x + 1 in
-  app f f
+bind inc = lambda x in x + 1 in
+  app inc inc
 {% endhighlight %}
 
-The value of `f` is a lambda specifying an increment function over numbers.  In the body of the `bind`, `f` is applied to itself.  There is of course nothing wrong with applying a function to itself, but in this case the body of `f` attempts to add 1 to its argument.  Adding 1 to a function is not defined and causes any of our interpreters to crash.
+What this expression does is apply `inc` to itself.  The value of `inc` is a lambda specifying an increment function over numbers.  In the body of the `bind`, `inc` is applied to itself.  There is of course nothing wrong with applying a function to itself, but in this case the body of `inc` attempts to add 1 to its argument.  Adding 1 to a function is not defined and causes any of our interpreters to crash.
 
-We can fix this problem as we have in the past - add run-time or predictive type checking.  Said using terminology from our disussion of scoping, we can add *dynamic* or *static* type checking.  Dynamic performed at run-time and static performed before run-time.
+We can fix this problem as we have in the past - add run-time or predictive type checking.  Said using terminology from our discussion of scoping, we can add *dynamic* or *static* type checking.  Dynamic performed at run-time and static performed before run-time.
 
 ## Function Types
 
@@ -76,9 +76,9 @@ Unfortunately, we have no way of inferring `Td` in the general case.  In the cas
 lambda (x:TNum) in x+x : TNum->Tr
 {% endhighlight %}
 
-Now we can easily find `Tr` by adding `x` to the context.  The type rule can be written:
+We can find `Tr` by adding `x` to the context.  The type rule can be written:
 
-$$\frac{\typeof(t,(t:T_d):c)=T_r}{\typeof(\llambda (x:T_d)\;\ t,c)=T_d\rightarrow T_r}$$
+$$\frac{\typeof(t,(t:T_d):c)=T_r}{\typeof((\llambda (x:T_d)\;\ t),c)=T_d\rightarrow T_r}$$
 
 and the type for the previous `lambda` becomes:
 
@@ -86,27 +86,147 @@ and the type for the previous `lambda` becomes:
 lambda (x:TNum) in x+x : TNum->TNum
 {% endhighlight %}
 
-This is interesting.  In our earlier discussion of types before functions appeared identifiers and values all had types that seemed to come from nowhere.  Numbers are all treated as type `TNum` and Booleans treated as type `TBool`.  As it turns out, all constants have a single type and that single type is defined as an axiom:
+The other new term to find types for is `app`. The two arguments to `app` must be a function and argument.  The function argument must be of type `Td->Tr` or it cannot be applied to anything.  For the function application to be successful, the argument type must be `Td`.  If we are going to evaluate `app f a`, then `a` must be of a type that `f` accepts.  The type of the `app` itself is then `T_r` because the function type `Td->Tr` says the output will be of type `Tr` if the input is of type `Td`.
 
-$$\frac{}{\typeof \ttrue\; c = \tbool}$$
+Here's the type rule that captures this:
 
-$$\frac{}{\typeof \ffalse\; c = \tbool}$$
+$$\frac{\typeof(f,c)=T_d \rightarrow T_r, \typeof(a,c)=T_d}{\typeof((\aapp f\; a),c) = T_r}$$
 
-$$\frac{}{\typeof\; \NUM\; c = \tbool}$$
+What does this say about the problem that motivated the chapter?  Specifically, what is the type of:
 
-## Dynamic Type Checking
+{% highlight text %}
+bind inc = lambda x in x + 1 in
+  app inc inc
+{% endhighlight %}
+
+First, we have to add a type to the function's formal parameter.  It has to be `TNum`.  (Think carefully about why.)  The expression now becomes:
+
+{% highlight text %}
+bind inc = lambda (x:TNum) in x + 1 in
+  app inc inc
+{% endhighlight %}
+
+The first rule allows us to find the type of `lambda` as `TNum -> TNum` by the rule for function types.  `x` is `TNum` thus `x+x` is `TNum` by the type rule for `+`.  Add the type of `f` to the context and now look at the type of `app`.  First find type of `inc` to be `TNum -> TNum` by looking it up in the context.  Hopefully it's clear the type of `app` cannot be found because `inc` expects a number, but will get a function.  If we let this run, it will crash.
 
 ## Static Type Checking
+
+Let's build `eval` and `typeof` for `FBAE`.  First thing we need to do is update the concrete syntax to include a parameter type for `lambda` and a new type constructor for function types:
 
 $$\begin{align*}
 t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
 	  & \mid \bbind \ID=t\; \iin t \\
-	  & \mid \llambda \ID\; \ID\; t\; t \\
-	  & \mid \aapp \ID \; t \\
-v ::=\; & \NUM \mid \llambda \ID\; \iin t \\
+	  & \mid \llambda (\ID:T)\; \iin t \\
+	  & \mid \aapp t \; t \\
+v ::=\; & \NUM \mid \llambda (\ID:T)\; \iin t \\
 T ::=\; & \tnum \mid T \rightarrow T \\
 \end{align*}$$
+
+No news here, we simply need to make new constructs available in the concrete syntax.
+
+The abstract syntax follows from the concrete syntax, again adding a type parameter to `Lambda`:
+
+{% highlight haskell %}
+data FBAE where
+  Num :: Int -> FBAE
+  Plus :: FBAE -> FBAE -> FBAE
+  Minus :: FBAE -> FBAE -> FBAE
+  Bind :: String -> FBAE -> FBAE -> FBAE
+  Lambda :: String -> TFBAE -> FBAE -> FBAE
+  App :: FBAE -> FBAE -> FBAE
+  Id :: String -> FBAE
+  If :: FBAE -> FBAE -> FBAE -> FBAE
+  deriving (Show,Eq)
+{% endhighlight %}
+
+and a function type constructor to `FBAETy':
+
+{% highlight haskell %}
+data TFBAE where
+  TNum :: TFBAE
+  (:->:) :: TFBAE -> TFBAE -> TFBAE
+  deriving (Show,Eq)
+{% endhighlight %}
+
+Note the constructor for function types uses the Haskell infix constructor notation allowing them to have the form `T:->T` similar to how they are written in rules.  Just a bit of Haskell trickery, nothing significant.
+
+Let's write the `typeof` function first using old-fashioned `let` notation to construct cases for each term type.  The signature of `typeof` is a context and term to a type:
+
+{% highlight haskell %}
+typeof :: Cont -> FBAE -> TFBAE
+{% endhighlight %}
+
+There is nothing new in how types for constants and operations:
+
+{% highlight haskell %}
+typeof cont (Num x) = TNum
+typeof cont (Plus l r) = let l' = (typeof cont l)
+                             r' = (typeof cont r)
+                         in if l'==TNum && r'==TNum
+                            then TNum
+                            else error "Type Mismatch in +"
+typeof cont (Minus l r) = let l' = (typeof cont l)
+                              r' = (typeof cont r)
+                          in if l'==TNum && r'==TNum
+                             then TNum
+                             else error "Type Mismatch in -"
+typeof cont (Bind i v b) = let v' = typeof cont v in
+                             typeof ((i,v'):cont) b
+typeof cont (Id id) = case (lookup id cont) of
+                        Just x -> x
+                        Nothing -> error "Varible not found"
+typeof cont (If c t e) = if (typeof cont c) == TNum
+                            && (typeof cont t)==(typeof cont e)
+                         then (typeof cont t)
+                         else error "Type mismatch in if"
+{% endhighlight %}
+
+After all our work defining type rules, the new cases for `typeof` follow quickly.  For `Lambda`, `typeof` is called on the `Lambda` body with the argument name bound to its type added to the original context.  `td` is known from the `lambda` and `tr` is learned by calling `typeof`:
+
+{% highlight haskell %}
+typeof cont (Lambda x td b) = let tr = typeof ((x,t):cont) b
+                             in td :->: tr
+{% endhighlight %}
+
+The final type becomes `td :->: tr` as defined by our previous type rule.
+
+`App` is a bit more involved, but nothing too dramatic.  First, the  `App`'s argument type is found and bound to and `tyY` respectively.  A `case` statement finds the type of the `App`'s function element.  If it is a function type, the domain type is compared to the argument type and the range type returned if they match.  If they don't, a mismatch occurs and an error results:
+
+{% highlight haskell %}
+typeof cont (App x y) = let tyY = typeof cont y
+                        in case typeof cont x of
+                             tyXd :->: tyXr ->
+                               if tyXd==tyY
+                               then tyXr
+                               else error "Type mismatch in app"
+                             _ -> error "First argument not lambda in app"
+
+If the type of the `App`'s function argument is anything but a function, an error is thrown immediately.
+
+That's it for `typeof` over `FBAE`.  Do we now need a new `eval`?  Other than accounting for the new abstract syntax for `lambda`, no changes are needed for the `eval` function for `FBAE`.  For brevity, we'll skip that small update.
+
+## Dynamic Type Checking
+
+The simplest way to do dynamic type checking on this new language with function types is to do nothing.  Literally.  We have an interpreter that performs dynamic checking on terms other than `lambda` and `app`.  While we could use the argument type from `lambda`, the simplest thing is to do what Lisp variants to and perform substitution and throw errors when expressions are evaluated.
+
+## Discussion
+
+In our discussion of static type checking for `FBAE` we did not discuss scoping.  Specifically, now that we've identified dynamic and static scoping as different approaches, do we need different type inference capabilities for each?
+
+The difference between static and dynamic scoping is whether the static declaration environment or the runtime environment is used to find symbol values.  Obviously, we don't know the runtime environment until, well, runtime.  Do you see the problem?  If we don't know what symbol is being referenced until runtime, we can't statically check it's type.  Look at this definition that slightly modifies an example from our discussion of static and dynamic scoping:
+
+{% highlight text %}
+bind n = 1 in
+  bind f = (lambda x in x + n) in 
+    bind n = true in
+      app f 1
+{% endhighlight %}
+
+Using static scoping, we know the `n` referenced in the `lambda` is the first `n` that is a number.  Using dynamic scoping, the second `n` gets used and it is a Boolean.  Delete that binding, and dynamic scoping matching static scoping.  The same function called in different places has different types, one legit and one not.
+
+It may be too strong to say we can't statically check this expression.  However, we would need to do something akin to evaluation statically.  That makes no sense.  Regardless, this is yet another argument against using dynamic scoping.
 
 ## Definitions
 * Static Type Checking - Type checking performed before interpretation
 * Dynamic Type Checking - Type checking performed at run-time.
+
+## Exercises

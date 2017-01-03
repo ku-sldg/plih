@@ -219,8 +219,7 @@ typeof cont (If c t e) = if (typeof cont c) == TNum
                          else error "Type mismatch in if"
 typeof cont (Lambda x t b) = let tyB = typeof ((x,t):cont) b
                              in t :->: tyB
-typeof cont (App x y) = let tyX = typeof cont x
-                            tyY = typeof cont y
+typeof cont (App x y) = let tyY = typeof cont y
                         in case typeof cont x of
                              tyXd :->: tyXr ->
                                if tyXd==tyY

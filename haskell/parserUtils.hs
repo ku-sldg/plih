@@ -19,7 +19,10 @@ languageDef =
                               , "else"
                               , "isZero"
                               , "true"
-                              , "false" ]
+                              , "false"
+                              , "lambda"
+                              , "fix"
+                              , "app" ]
             , reservedOpNames = [ "+","-","*","/","&&","||","<=","="]
             }
   

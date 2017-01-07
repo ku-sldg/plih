@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs,FlexibleContexts,UndecidableInstances #-}
+{-# LANGUAGE GADTs #-}
 
 -- Imports for QuickCheck
 import System.Random
@@ -17,67 +17,15 @@ import Text.ParserCombinators.Parsec.Token
 -- Imports for PLIH
 import ParserUtils
 
--- Definitions of Fixedpoint (Unused below)
-
-newtype Fix f = In {out :: f (Fix f) }
-
-newtype Any = Any {getAny :: Bool} deriving Show
-
-instance Show (f (Fix f)) => Show (Fix f) where
-  show x = "(" ++ show (out x) ++ ")"
-
-instance Eq (f (Fix f)) => Eq (Fix f) where
-  a == b = out a == out b
-
-instance Ord (f (Fix f)) => Ord (Fix f) where
-  a `compare` b = out a `compare` out b
-
-cata :: Functor f => (f a -> a) -> (Fix f -> a)
-cata f = f . fmap (cata f) . out
-
-type Env' a = Fix (L a)
-
-data L a b = NilF | ConsF a b deriving (Show)
-
-instance Functor (L a) where
-  fmap f x = case x of
-               NilF -> NilF
-               ConsF a b -> ConsF a (f b)
-
-lengthF :: Env' a -> Int
-lengthF = cata $ \x -> case x of
-                        NilF -> 0
-                        ConsF _ n -> n + 1
-
-sumF :: Num a => Env' a -> a
-sumF = cata $ \x -> case x of
-                     NilF -> 0
-                     ConsF a s -> a + s
-
-findF :: Num a => Eq a => (a -> Bool) -> Env' a -> Maybe a
-findF = \z -> cata $ \x -> case x of
-                             NilF -> Nothing
-                             ConsF a b -> if (z a) then Just a else b
-
-test3 = lengthF (In (ConsF 1 (In (ConsF 2 (In NilF)))))
-test4 = sumF (In (ConsF 1 (In (ConsF 2 (In NilF)))))
-
-g x = x==2
-h x = x==3
-
-test5 = findF g (In (ConsF 1 (In (ConsF 2 (In NilF)))))
-test6 = findF h (In (ConsF 1 (In (ConsF 2 (In NilF)))))
-
-f = In (ConsF 1 (In (ConsF 2 f)))
-
 --
--- Simple caculator with variables
+-- Arithmetic expression langage extended with bind, functions and static
+-- scoping.
 --
 -- Author: Perry Alexander
 -- Date: Wed Jul 13 21:20:26 CDT 2016
 --
 -- Source files for the Binding Arithmetic Expressions extended with
--- Function (FBAE) language from PLIH
+-- Functions and Static Scoping (FBAES) language from PLIH
 --
 
 data FBAE where
@@ -92,25 +40,7 @@ data FBAE where
   Fix :: FBAE -> FBAE
   deriving (Show,Eq)
                     
--- Fixedpoint Operator
-
--- (\f. (\x . f x x) (\x . f x x))
-
---bind fix=lambda f in lambda x in (app (app (app f x) x) (app (app f x) x))
--- in 
-
--- fix :: (a -> a) -> a
--- fix f = let x = f x in x
-
--- fix f = (\x -> f x x)(\x -> f x x)
-
 -- Parser
-
-fix = parseFBAE "(bind fix = (lambda f in (lambda x in (app (app (app f x) x) (app (app f x) x)))) in 0)"
-fact = parseFBAE "lambda f in if x then 0 else x + (app f (x - 1))"
-total = interp "(bind fix = (lambda f in (lambda x in (app (app (app f x) x) (app (app f x) x)))) in bind fact = lambda f in if x then 0 else x + (app f (x - 1)) in (app fix fact))"
-
-
 
 expr :: Parser FBAE
 expr = buildExpressionParser operators term
@@ -162,6 +92,11 @@ appExpr = do reserved lexer "app"
              a <- expr
              return (App f a)
 
+fixExpr :: Parser FBAE
+fixExpr = do reserved lexer "fix"
+             t <- expr
+             return (Fix t)
+
 term = parens lexer expr
        <|> numExpr
        <|> ifExpr
@@ -169,6 +104,7 @@ term = parens lexer expr
        <|> lambdaExpr
        <|> appExpr
        <|> identExpr
+       <|> fixExpr
 
 -- Parser invocation
 
@@ -187,41 +123,89 @@ pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b +
 pprint (Lambda s b) = "(lambda " ++ s ++ " " ++ pprint b ++ ")"
 pprint (App l r) = "(app " ++ pprint l ++ " " ++ pprint r ++ ")"
 
--- Interpreter (Dynamic Scoping)
+-- Substitution
 
-type Env = [(String,FBAE)]
+subst :: String -> FBAE -> FBAE -> FBAE
+subst _ _ (Num x) = (Num x)
+subst i v (Plus l r) = (Plus (subst i v l) (subst i v r))
+subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
+subst i v (Bind i' v' b') = if i==i'
+                            then (Bind i' (subst i v v') b')
+                            else (Bind i' (subst i v v') (subst i v b'))
+subst i v (Lambda i' b') = if i==i'
+                           then (Lambda i' b')
+                           else (Lambda i' (subst i v b'))
+subst i v (App l r) = (App (subst i v l) (subst i v r))
+subst i v (Id i') = if i==i'
+                    then v
+                    else (Id i')
+subst i v (If c t e) = (If (subst i v c) (subst i v t) (subst i v e))
+subst i v (Fix t) = (Fix (subst i v t))
+       
+evals :: FBAE -> FBAE
+evals (Num x) = (Num x)
+evals (Plus l r) = let (Num l') = (evals l)
+                       (Num r') = (evals r)
+                   in (Num (l' + r'))
+evals (Minus l r) = let (Num l') = (evals l)
+                        (Num r') = (evals r)
+                    in (Num (l' - r'))
+evals (Bind i v b) = (evals (subst i (evals v) b))
+evals (Lambda i b) = (Lambda i b)
+evals (App f a) = let (Lambda i b) = (evals f)
+                      a' = (evals a)
+                  in evals (subst i (evals a) b)
+evals (If c t e) = let (Num c') = (evals c)
+                   in if c'==0 then (evals t) else (evals e)
+evals (Id id) = error "Undeclared Variable"
+
+interps = evals . parseFBAE
+
+-- Interpreter (Static Scoping)
+
+data FBAEVal where
+  NumV :: Int -> FBAEVal
+  ClosureV :: String -> FBAE -> Env -> FBAEVal
+  deriving (Show,Eq)
+
+type Env = [(String,FBAEVal)]
          
-eval :: Env -> FBAE -> FBAE
-eval env (Num x) = (Num x)
-eval env (Plus l r) = let (Num l') = (eval env l)
-                          (Num r') = (eval env r)
-                      in (Num (l'+r'))
-eval env (Minus l r) = let (Num l') = (eval env l)
-                           (Num r') = (eval env r)
-                       in (Num (l'-r'))
+eval :: Env -> FBAE -> FBAEVal
+eval env (Num x) = (NumV x)
+eval env (Plus l r) = let (NumV l') = (eval env l)
+                          (NumV r') = (eval env r)
+                      in (NumV (l'+r'))
+eval env (Minus l r) = let (NumV l') = (eval env l)
+                           (NumV r') = (eval env r)
+                       in (NumV (l'-r'))
 eval env (Bind i v b) = let v' = eval env v in
                           eval ((i,v'):env) b
-eval env (Lambda i b) = (Lambda i b)
-eval env (App f a) = let (Lambda i b) = (eval env f)
+eval env (Lambda i b) = (ClosureV i b env)
+eval env (App f a) = let (ClosureV i b e) = (eval env f)
                          a' = (eval env a)
-                     in eval ((i,a'):env) b
+                     in eval ((i,a'):e) b
 eval env (Id id) = case (lookup id env) of
                      Just x -> x
                      Nothing -> error ("Varible " ++ id ++ " not found")
-eval env (If c t e) = let (Num c') = (eval env c)
+eval env (If c t e) = let (NumV c') = (eval env c)
                       in if c'==0 then (eval env t) else (eval env e)
-eval env (Fix t) = let (Lambda i b) = (eval env t) in
-                     eval ((i,(Fix (Lambda i b))):env) b
+eval env (Fix t) = let (ClosureV i b e) = (eval env t) in
+                     eval e (subst i (Fix (Lambda i b)) b)
 
 
-Interp = (eval []) .  parseFBAE
+interp = (eval []) .  parseFBAE
 
-
-ff = (Lambda "ie" (Lambda "x" (If (Id "x") (Num 10) (App (Id "ie") (Minus (Id "x") (Num 1))))))
+ff = (Lambda "ie" (Lambda "x" (If (Id "x") (Id "x") (Plus (Id "x") (App (Id "ie") (Minus (Id "x") (Num 1)))))))
+ffs = "app (fix (lambda ie in (lambda x in if x then x else x + app ie x - 1))) 5"
 
 -- Testing (Requires QuickCheck 2)
 
 test1 = interp "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
+
+test2 = let expr = "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
+        in let (NumV v1) = interp expr
+           in let (Num v2) = interps expr
+              in v1 == v2
 
 -- Arbitrary AST Generator
 

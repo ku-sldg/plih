@@ -16,6 +16,9 @@ collections:
   funs:
     output: true
     title: Functions
+  types:
+    output: true
+    title: Typed Fuctions
   state:
     output: true
     title: State

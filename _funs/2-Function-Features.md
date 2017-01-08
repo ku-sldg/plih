@@ -29,9 +29,33 @@ Currying or curried functions is a way of constructing multi-parameter functions
 f x y z = (((f x) y) z)
 {% endhighlight %}
 
-## DeBrujin Numbering
+## Untyped Recursion
 
-## Name Mangling
+-- Omega - Infinite combinator
+
+{% highlight text %}
+omega = (lambda x in (app x x)) (lambda x in (app x x))
+{% endhighlight %}
+
+-- Y - Fixed point Y combinator
+
+{% highlight text %}
+y = (lambda f (lambda x in (app f (app x x))) (lambda x in (app f (app x x))))
+{% endhighlight %}
+
+
+-- Z - Applicative Y combinator
+
+{% highlight text %}
+z = (lambda f (app (lambda x (app f (lambda v (app (app x x) v)))))
+                   (lambda x (app f (lambda v (app (app x x) v))))))
+{% endhighlight %}
+
+{% highlight text %}
+ff = lambda ie (lambda x (if x then x else x (app ie (x - 1))))
+{% endhighlight %}
+
+## DeBrujin Numbering
 
 ## Definitions
 

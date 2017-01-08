@@ -18,8 +18,8 @@ import Text.ParserCombinators.Parsec.Token
 import ParserUtils
 
 --
--- Arithmetic expression langage extended with bind, functions and static
--- scoping.
+-- Arithmetic expression langage extended with bind, functions static
+-- scoping, and a fixedpoint operator.
 --
 -- Author: Perry Alexander
 -- Date: Wed Jul 13 21:20:26 CDT 2016
@@ -198,6 +198,8 @@ interp = (eval []) .  parseFBAE
 ff = (Lambda "ie" (Lambda "x" (If (Id "x") (Id "x") (Plus (Id "x") (App (Id "ie") (Minus (Id "x") (Num 1)))))))
 ffs = "app (fix (lambda ie in (lambda x in if x then x else x + app ie x - 1))) 5"
 
+ffr = (Bind "f" (Lambda "x" (If (Id "x") (Id "x") (Plus (Id "x") (App (Id "f") (Minus (Id "x") (Num 1)))))) (App (Id "f") (Num 0)))
+
 -- Testing (Requires QuickCheck 2)
 
 test1 = interp "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
@@ -269,3 +271,7 @@ genFBAE n e =
 
 -- Arbitrary AST Generator
 
+z = (Lambda "f" (App (Lambda "x" (App (Id "f") (Lambda "v" (App (App (Id "x") (Id "x")) (Id "v")))))
+                     (Lambda "x" (App (Id "f") (Lambda "v" (App (App (Id "x") (Id "x")) (Id "v")))))))
+
+fff = (Lambda "ie" (Lambda "x" (If (Id "x") (Id "x") (Plus (Id "x") (App (Id "ie") (Minus (Id "x") (Num 1)))))))

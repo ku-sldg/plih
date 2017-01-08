@@ -177,7 +177,7 @@ eval env (App f a) = let (ClosureV i b e) = (eval env f)
                      in eval ((i,a'):e) b
 eval env (Id id) = case (lookup id env) of
                      Just x -> x
-                     Nothing -> error "Varible not found"
+                     Nothing -> error ("Varible " ++ id ++ " not found")
 eval env (If c t e) = let (NumV c') = (eval env c)
                       in if c'==0 then (eval env t) else (eval env e)
 
@@ -254,5 +254,24 @@ genFBAE n e =
                    , (genApp (n-1) e)]
      return term
 
--- Arbitrary AST Generator
 
+-- Combinators
+
+-- Omega - Infinite combinator
+
+omega = (App (Lambda "x" (App (Id "x") (Id "x"))) (Lambda "x" (App (Id "x") (Id "x"))))
+
+-- Y - Fixed point Y combinator
+
+y = (Lambda "f" (App (Lambda "x" (App (Id "f") (App (Id "x") (Id "x"))))
+                     (Lambda "x" (App (Id "f") (App (Id "x") (Id "x"))))))
+
+-- Z - Applicative Y combinator
+
+z = (Lambda "f" (App (Lambda "x" (App (Id "f") (Lambda "v" (App (App (Id "x") (Id "x")) (Id "v")))))
+                     (Lambda "x" (App (Id "f") (Lambda "v" (App (App (Id "x") (Id "x")) (Id "v")))))))
+
+
+-- Test Function
+
+ff = (Lambda "ie" (Lambda "x" (If (Id "x") (Id "x") (Plus (Id "x") (App (Id "ie") (Minus (Id "x") (Num 1)))))))

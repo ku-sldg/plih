@@ -162,6 +162,11 @@ appExpr = do reserved lexer "app"
              a <- expr
              return (App f a)
 
+fixExpr :: Parser FBAE
+fixExpr = do reserved lexer "fix"
+             t <- expr
+             return (Fix t)
+
 term = parens lexer expr
        <|> numExpr
        <|> ifExpr
@@ -169,6 +174,7 @@ term = parens lexer expr
        <|> lambdaExpr
        <|> appExpr
        <|> identExpr
+       <|> fixExpr
 
 -- Parser invocation
 
@@ -186,6 +192,25 @@ pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
 pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b ++ ")"
 pprint (Lambda s b) = "(lambda " ++ s ++ " " ++ pprint b ++ ")"
 pprint (App l r) = "(app " ++ pprint l ++ " " ++ pprint r ++ ")"
+
+-- Substitution
+
+subst :: String -> FBAE -> FBAE -> FBAE
+subst _ _ (Num x) = (Num x)
+subst i v (Plus l r) = (Plus (subst i v l) (subst i v r))
+subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
+subst i v (Bind i' v' b') = if i==i'
+                            then (Bind i' (subst i v v') b')
+                            else (Bind i' (subst i v v') (subst i v b'))
+subst i v (Lambda i' b') = if i==i'
+                           then (Lambda i' b')
+                           else (Lambda i' (subst i v b'))
+subst i v (App l r) = (App (subst i v l) (subst i v r))
+subst i v (Id i') = if i==i'
+                    then v
+                    else (Id i')
+subst i v (If c t e) = (If (subst i v c) (subst i v t) (subst i v e))
+subst i v (Fix t) = (Fix (subst i v t))
 
 -- Interpreter (Dynamic Scoping)
 
@@ -211,13 +236,15 @@ eval env (Id id) = case (lookup id env) of
 eval env (If c t e) = let (Num c') = (eval env c)
                       in if c'==0 then (eval env t) else (eval env e)
 eval env (Fix t) = let (Lambda i b) = (eval env t) in
-                     eval ((i,(Fix (Lambda i b))):env) b
+                     eval env (subst i (Fix (Lambda i b)) b)
+
+interp = (eval []) .  parseFBAE
 
 
-Interp = (eval []) .  parseFBAE
+ff = (Lambda "ie" (Lambda "x" (If (Id "x") (Id "x") (Plus (Id "x") (App (Id "ie") (Minus (Id "x") (Num 1)))))))
+ffs = "app (fix (lambda ie in (lambda x in if x then x else x + app ie x - 1))) 5"
 
-
-ff = (Lambda "ie" (Lambda "x" (If (Id "x") (Num 10) (App (Id "ie") (Minus (Id "x") (Num 1))))))
+ffr = (Bind "f" (Lambda "x" (If (Id "x") (Id "x") (Plus (Id "x") (App (Id "f") (Minus (Id "x") (Num 1)))))) (App (Id "f") (Num 5)))
 
 -- Testing (Requires QuickCheck 2)
 

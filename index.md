@@ -43,6 +43,14 @@ This is not even remotely close to done or ready for use.  Plenty of wrong thing
 
 ---
 
+# Typed Functions
+
+{% for post in site.types %}
+## <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
+{% endfor %}
+
+---
+
 # State
 
 {% for post in site.state %}

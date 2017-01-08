@@ -84,19 +84,26 @@ argExpr :: Parser String
 argExpr = do i <- identifier lexer
              return i
 
+-- appExpr :: Parser FBAE
+-- appExpr = do reserved lexer "app"
+--              f <- expr
+--              a <- expr
+--              return (App f a)
+
 appExpr :: Parser FBAE
 appExpr = do reserved lexer "app"
              f <- expr
              a <- expr
              return (App f a)
 
+
 term = parens lexer expr
        <|> numExpr
        <|> ifExpr
        <|> bindExpr
        <|> lambdaExpr
-       <|> appExpr
        <|> identExpr
+       <|> appExpr
 
 -- Parser invocation
 

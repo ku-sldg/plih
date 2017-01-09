@@ -110,7 +110,7 @@ and another:
 
 and we now have a final result.  But the function resulting from `plus3 1` is just as much a result as `6`.  This is something we do all the time in Haskell to define and use partially instantiated functions:
 
-{% endhighlight %}
+{% highlight text %}
 plus2 = plus3 0
 {% endhighlight %}
 
@@ -266,31 +266,95 @@ Whatever else is true about `F`, its first argument is the `Y` applied to `F`.  
 F = lambda g in if c then off else g)
 {% endhighlight %}
 
-`F`'s first argument is the recursive call.  If `c` is true, then `g` is not called and `(app Y F)` terminates.  We don't know what `c` is yet, but we can look at what happens when it is not true:
+`F`'s first argument is the recursive call.  If `c` is 1, then `g` is not called and `(app Y F)` terminates.  We don't know what `c` is yet, but we can look at what happens when it is not 1:
 
 {% highlight text %}
-(app Y (lambda g in if c then off else g))
-== (app (lambda x in (app (lambda g in if true then off else g) (app x x)))
-        (lambda x in (app (lambda g in if true then off else g) (app x x))))
+(app Y (lambda g in if 0 then off else g))
+== (app (lambda x in (app (lambda g in if 0 then off else g) (app x x)))
+        (lambda x in (app (lambda g in if 0 then off else g) (app x x))))
 == (app (lambda x in off)
         (lambda x in off))
 == off
 {% endhighlight %}
 
-Bingo.  If `c` is ever false, the whole thing shuts down and returns a value.  `off` is not really a value in this case, but serves as a placeholder.
+Bingo.  If `c` is ever 0, the whole thing shuts down and returns a value.  `off` is not really a value in this case, but serves as a placeholder.  What about 1?
+
+{% highlight text %}
+(app Y (lambda g in if 1 then off else g))
+== (app (lambda x in (app (lambda g in if 1 then off else g) (app x x)))
+        (lambda x in (app (lambda g in if 1 then off else g) (app x x))))
+== (app (lambda x in (app g (app x x)))
+        (lambda x in (app g (app x x))))
+...
+{% endhighlight %}
+
+That appears to work as well.  So, the inclusion of an `if` in `F` seems to give us the capability of turning off the recursion.
+
+One last problem.  `1` and `0` are great, but we really need the recursion to terminate as the result of a calculated value.  Plus, it would be nice to return something that is, well, calculated rather than some constant value like `off`.
+
+Remember that `g` is the function called to cause recursion and is right now the only argument to `F`.  Let's try adding another that will serve as the data input to the calculation performed by `F`.  Let's see how that works.  First, let's use a concrete value for `F` and although our interpreter doesn't do it, let's hold it abstract.  This particular `F` sums up the values from 0 to its input argument `n`.
 
 {% highlight text %}
 F = lambda g in (lambda z in if z then z else z + (app g z-1))
 {% endhighlight %}
 
-### Z
-
--- Z - Applicative Y combinator
+Now let's set up the `Y` in `bind`.  
 
 {% highlight text %}
-z = (lambda f (app (lambda x (app f (lambda v (app (app x x) v)))))
-                   (lambda x (app f (lambda v (app (app x x) v))))))
+bind F = (lambda g in (lambda z in if z then z else z + (app g z-1))) in
+  bind Y = (lambda f (app (lambda x in (app f (app x x)))
+                          (lambda x in (app f (app x x))))
+    in ((app Y F) 5)
 {% endhighlight %}
+
+The function we apply to `5` is obtained by applying `Y` to `F`.  Then we apply the result to `5`:
+
+{% highlight text %}
+== (app (app (lambda x in (app F (app x x))) (lambda x in (app F (app x x)))) 5)
+== (app (app F (app x x)) 5) [(x,(lambda x in (app F (app x x))))]
+{% endhighlight %}
+
+Let's evaluate the inner `app` first resulting in `x` bound to half of the `Y` combinator application to `F`.  Now lets expand `F` before going forward and evaluate the outermost `app`:
+
+{% highlight text %}
+== (app (app (lambda g in (lambda z in if z then z else z + (app g z-1))) (app x x)) 5) [(x,(lambda x in (app F (app x x))))]
+== (app (lambda z in if z then z else z + (app g z-1))) 5) [(g,(app x x)),(x,(lambda x in (app F (app x x))))]
+{% endhighlight %}
+
+The result is now `g` bound to `(app x x)` in the environment.  That seems a little odd, but look carefully at the environment.  `x` is already bound to half of the `Y` application.  That's perfect!  `g` is really the recursive call we want to make if that substitution is performed.  One more `app` evaluation binds `z` to 5:
+
+{% highlight text %}
+== if z then z else z + (app g z-1) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]
+{% endhighlight %}
+
+Now we need to evaluated identifiers by replacing them with their values from the environment.
+
+{% highlight text %}
+== 5 + (app g 5-1) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]
+== 5 + (app (app x x) 4) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]
+{% endhighlight %}
+
+Now we have `5+(app (app x x) 4)`, but remember what we said about `(app x x)`.  Using the current environment we can replace `x` with the `lambda` giving:
+
+{% highlight text %}
+== 5 + (app (app (lambda x in (app F (app x x))) (lambda x in (app F (app x x)))) 4) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]
+{% endhighlight %}
+
+This is exactly what we want.  Compare the second term of the sum with our original expression.  The only difference is we're using 4 rather than 5, but that's exactly what we want!  So the `Y` gives us a recursive operation builder that takes a non-recursive function like `F` and makes it recursive.  All this without `F` knowing about itself!
+
+### Z
+
+The Y just discussed is often called the lazy Y because it only works using lazy evaluation.  An alternative called the _Z combinator_ does the same thing for strict languages with just a few changes.  Z is often called the applicative Y combinator.
+
+The form of the Z is as follows:
+
+{% highlight text %}
+bind Z = (lambda f (app (lambda x (app f (lambda v (app (app x x) v)))))
+                   (lambda x (app f (lambda v (app (app x x) v)))))) in
+   ...
+{% endhighlight %}
+
+and unfortunately it is more involved than the traditional Y.
 
 {% highlight text %}
 ff = lambda ie (lambda x (if x then x else x (app ie (x - 1))))
@@ -303,5 +367,7 @@ ff = lambda ie (lambda x (if x then x else x (app ie (x - 1))))
 ## Exercises
 
 1. Many languages (Haskell included) allow both strict and lazy evaluation.  Define a new language that implements this feature by defining two versions of `App`, - `AppS` and `AppL`.  Do not worry about a concrete syntax.  Simply replace `App` in the abstract syntax and define a new `eval` function.
+2. Implement the Z combinator using FBAE with static scoping.
+3. Implement `multiply x y` that works by starting with `0` and adding `x` to it `y` times using the Z combinator.
  
 ## Notes

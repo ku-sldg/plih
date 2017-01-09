@@ -166,3 +166,4 @@ $$letrec x:T=t_1 in t_2 == bind x = fix (\lambda x:T in t_1) in t_2$$
 ## Exercises
 * Write the elaborator for pairs
 * Define `case` as a derived form using `if`.  You may use other language constructs if necessary
+* Define multi-argument functions as a derived form using currying.

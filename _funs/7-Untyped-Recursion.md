@@ -1,178 +1,9 @@
 ---
 layout: frontpage
-title: Function Features
+title: Untyped Recursion
 use_math: true
 categories: chapter ch2
 ---
-
-## Strict vs. Lazy Evaluation
-
-Among the chief distinctions among programming languages is whether function calls are evaluated using a _strict_ or _lazy_ approach.  Most commonly used languages employ strict evaluation where all parameters to a function are evaluated before the function is called.  This approach is also called _call-by-value_ and is used by Scheme, ML, Java, and C among others.
-
-Haskell uses a lazy evaluation mechanism where parameters are evaluated only when their values are needed.  This approach is also called _call-by-name_ and frequently implemented using a _call-by-need_ algorithm.
-
-Before proceeding, let's determine whether our interpreters implement a strict or lazy approach.  Look at the code for evaluating `App` from the interpreter for `FBAE`:
-
-{% highlight haskell %}
-eval env (App f a) = let (Lambda i b) = (eval env f)
-                         a' = (eval env a)
-                     in eval ((i,a'):env) b
-{% endhighlight %}
-
-The first argument to `App` is evaluated to get back a `Lambda`.  The second argument _is evaluated_ and assigned to `a'`.  `eval` then evaluates the lambda body by adding `(i,a')` to the environment and evaluating.  What is stored in the environment is the result of evaluating the `lambda`'s actual parameter implying that it is evaluated before the function gets called.  It should be clear that our evaluator implements call-by-value or strict evaluation.
-
-How hard is it to change to call-by-name?  Turns out rather simple.  If we don't want to evaluate `a` just store `a` in the environment without evaluating it first:
-
-{% highlight haskell %}
-eval env (App f a) = let (Lambda i b) = (eval env f)
-                     in eval ((i,a):env) b
-{% endhighlight %}
-
-All we did was delete the evaluation of `a` and that's it.  In this case, the argument is passed to the `lambda` without evaluation and we have implemented call-by-name or lazy evaluation.  The only additional change is to the type `Env` that must store `FBAE` abstract syntax rather than values:
-
-{% highlight haskell %}
-type Env = [(String,FBAE)]
-{% endhighlight %}
-
-There you go.  Now we have a lazy interpreter to go with our strict interpreter.
-
-Most languages are strict, but a few like Haskell are lazy.  Why choose one over the other?  As with most decisions, there is good and bad to both.
-
-First let's look at the biggest problem with lazy evaluation semantics.  Look at this function:
-
-{% highlight text %}
-bind silly = lambda x in x + x + x + x + x + x + x + x + x + x in
-  (app silly (app silly (app silly 1 + 3 - 7 + (app f 5) + 21)))
-{% endhighlight %}
-
-This really silly function uses `x` over and over again.  Using strict semantics, the actual parameter to `silly` is evaluated only once.  Using lazy semantics, the actual parameter to silly is evaluated every silly place you see `x`.  That's pretty huge.  Call-by-need evaluation semantics eliminates this problem by replacing every instance of `x` with a kind of pointer to one common `x`.  Whenever `x` is evaluated, that one `x` is evaluated once and all copies are immediately replaced with the same value.
-
-On the other hand, this `if` expression does not evaluate `silly` at all:
-
-{% highlight text %}
-bind silly = lambda x in x + x + x + x + x + x + x + x + x + x in
-  if 0 then (app silly 5) else 5
-{% endhighlight %}
-
-It's never used in the `if` and thus not evaluated.  Using strict semantics it would be.  `if` itself shows the distinction between lazy and strict.  If we wrote `if` as a function, strict semantics causes problems.  Look at this psuedocode:
-
-{% highlight text %}
-if x y z = lambda x in lambda y in ...
-{% endhighlight %}
-
-Using strict semantics, `x`, `y`, and `z` are all evaluated before `if` is evaluated.  This is a problem because we only want to evaluate one of `y` or `z`.  Using lazy semantics, `if` can be implemented by a simple data type:
-
-{% highlight haskell %}
-data Boolean where
-  true :: Boolean
-  false :: Boolean
-
-if x y z = case x of
-             true -> y
-             false -> z
-{% endhighlight %}
-
-Pretty groovy.  `if` is not special, but is just an ordinary function.
-
-The final pro-lazy argument has to do with infinit structures.  One can define a list in Haskell like this:
-
-{% highlight haskell %}
-alt10 = 1:0:alt10
-{% endhighlight %}
-
-If this were done in a strict language, it would be infinite.  In Haskell as long as you don't evaluate `alt10` directly.  In strict languages, pointers are used to accomplish a similar behavior.  The pointer value is evaluated without evaluating what it points to.
-
-## Currying
-
-Functions in all our languages thus far take only a single parameter.  What that may seem limiting, it's actually not. _Currying_ or _curried functions_ is a way of constructing multi-parameter functions using only single parameter functions.  If you're a Haskell programmer, currying is something you do all the time.  Look at the signature of an operation like `plus3` that adds three `Int`s as an example:
-
-{% highlight text %}
-plus3 :: Int -> Int -> Int -> Int
-{% endhighlight %}
-
-Usually we think about such a function as a mapping from three `Int` arguments to and `Int` result because of our upbrining in traditional languages.  However, what it literally defines is a function from the single parameter `Int` to another function of type `[Int] -> [Int] -> [Int]`.  Applying `plus3` to a single argument results in a function:
-
-{% highlight haskell %}
-(plus3 1) :: Int -> Int -> Int
-{% endhighlight %}
-
-Parenthesis added to the left side for emphasis.  Applying another parameter results in:
-
-{% highlight text %}
-((plus3 1) 2) :: Int -> Int
-{% endhighlight %}
-
-and another:
-
-{% highlight text %}
-(((plus3 1) 2) 3) :: Int
-{% endhighlight %}
-
-and we now have a final result.  But the function resulting from `plus3 1` is just as much a result as `6`.  This is something we do all the time in Haskell to define and use partially instantiated functions:
-
-{% highlight text %}
-plus2 = plus3 0
-{% endhighlight %}
-
-In `FBAE` and subsequent languages currying works the same way.  We simply use `app` to achieve application of a function to an argument.  Given that we had defined `plus3` in `FBAE`, the previous function application would look like this:
-
-{% highlight text %}
-(app (app (app plus3 1) 2) 3)
-{% endhighlight %}
-
-It's a bit messier, but it works just the same an emphasizes the currying that's happening.
-
-We can easily write `plus3` using `bind` and nested `lambda`s.  Let's walk through it starting with the `bind` of `plus3` to a `lambda` with one argument, 'x':
-
-{% highlight text %}
-bind plus3 = lambda x in ?? in 
-  ...
-{% endhighlight %}
-
-Now we need to figure out what to replace `??` with.  Literally, we want to add `x` to the result of adding two more arguments.  Let's write that much:
-
-{% highlight text %}
-bind plus3 = (lambda x in x + ??) in 
-  ...
-{% endhighlight %}
-
-Now we need to get the next argument.  The only way to do this is to use another nested `lambda`.  Remember, that `plus3 1` should return a function.  What should immediately follow `in` should be a function and that function needs to know about `x`:
-
-{% highlight text %}
-bind plus3 = (lambda x in (lambda y in x + y + ??)) in
-  ...
-{% endhighlight %}
-
-See where we're going?  If we evaluate `plus3 1` what we'll get is `lambda y in x + y + ??` waiting for the `y` parameter.  Another `lambda` will pick up the third integer:
-
-{% highlight text %}
-bind plus3 = (lambda x in (lambda y in (lambda z in x + y + z))) in
-  ...
-{% endhighlight %}
-
-Just what we want.  The `bind` now just needs a body where `plus3` is used.  Let's copy what we did earlier:
-
-{% highlight text %}
-bind plus3 to (lambda x in (lambda y in (lambda z in x + y + z))) in
-  (app (app (app plus3 1) 2) 3)
-{% endhighlight %}
-
-Now we can walk trough the evaluation of the `bind` body tracking the environment along the way:
-
-{% highlight text %}
-(app (app (app plus3 1) 2) 3)
-== (app (app (app (lambda x in (lambda y in (lambda z in x + y + z))) 1) 2) 3) []
-== (app (app (lambda y in (lambda z in x + y + z))) 2) 3) [(x,1)]
-== (app (lambda z in x + y + z))) 3) [(x,1),(y,2)]
-== x + y + z [(x,1),(y,2),(z,3)]
-...
-== 6
-{% endhighlight %}
-
-We could add additional syntax to make both application and definition of n-ary functions simpler.  We'll leave a bit of that to an exercise.
-
-Curried function semantics is used frequently to define multi-parameter function execution.  Haskell certainly uses this approach as does ML.  Scheme and Lisp on the other hand require explicit currying.  We'll not follow that path right now.
-
 ## Untyped Recursion
 
 ### Omega
@@ -360,14 +191,11 @@ and unfortunately it is more involved than the traditional Y.
 ff = lambda ie (lambda x (if x then x else x (app ie (x - 1))))
 {% endhighlight %}
 
-## DeBrujin Numbering
-
 ## Definitions
 
 ## Exercises
 
-1. Many languages (Haskell included) allow both strict and lazy evaluation.  Define a new language that implements this feature by defining two versions of `App`, - `AppS` and `AppL`.  Do not worry about a concrete syntax.  Simply replace `App` in the abstract syntax and define a new `eval` function.
-2. Implement the Z combinator using FBAE with static scoping.
-3. Implement `multiply x y` that works by starting with `0` and adding `x` to it `y` times using the Z combinator.
+1. Implement the Z combinator using FBAE with static scoping.
+2. Implement `multiply x y` that works by starting with `0` and adding `x` to it `y` times using the Z combinator.
  
 ## Notes

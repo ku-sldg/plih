@@ -4,7 +4,86 @@ title: Untyped Recursion
 use_math: true
 categories: chapter ch2
 ---
+> "You're very clever, young man, very clever," said the old lady. "But it's turtles all the way down!"
+
+# Recursion
+
+Recursion is among the simplest and most beautiful concepts in computer science.  In the simplest sense, a recursive structure refers to itself.  We most frequently think about recursion in functions like factorial where the function calls itself.  Among the most beautiful things about recursion is it can be added with almost no language extensions. For example, factorial looks something like this:
+
+{% highlight text %}
+bind fact =
+  lambda (x:TNum) in
+     if x=0 then 1 else x * (app fact x-1) in
+  app fact 3
+{% endhighlight %}
+
+We can write recursive functions with no extension to our language with virtually no extensions.  Now we have an iteration capability similar to what is provided by Haskell and Lisp and available in virtually every modern language.
+
+Let's evaluate this new structure using our most receive statically scoped interpreter for `FBAE` with types:
+
+{% highlight haskell %}
+interp "bind factorial ..."
+NumV *** Exception: Varible factorial not found 
+{% endhighlight %}
+
+Clearly `fact` is defined, so why did we get an error message?  Is `interp` badly implemented?  As it turns out, no.  The problem is the definition of `fact`.
+
+Now let's take a step backwards and evaluate `fact` with our dynamically scoped interpreter for `FBAE`:
+
+{% highlight haskell %}
+interp "bind factorial ..."
+(Num 6)
+{% endhighlight %}
+
+Works fine!  Why?  Obviously something different in the way static and dynamic scoping handle definitions.  Let's look at dynamic scoping and why `eval` works and then try to fix (no pun intended) the statically scoped `eval` to include recursion.
+
+## Recursion and Dynamic Scoping
+
+To understand why recursion works with no extensions using dynamic scoping we need only look at what makes dynamic scoping dynamic.  Remember, a dynamically scoped interpreter tries to evaluate a variable in the scope where it is used.  Let's look at `fact` again annotated with definitions in scope:
+
+{% highlight text %}
+bind fact =                                    []
+  lambda (x:TNum) in                           [(x,??)]
+     if x=0 then 1 else x * (app fact x-1) in  [(fact,(Lambda "x" ...))]
+  app fact 3
+{% endhighlight %}
+
+Execution begins with nothing in scope when `bind` begins evaluation.  As the `lambda` begins, it's parameter is added to scope.  Thus, the body of the `lambda` can use `x`.  When the `lambda` closes, `x` leaves scope, but as the `bind`'s declaration closes `fact` is added.  When `fact 3` evaluates, `fact` is define.
+
+The call to `fact` originally occurs within the scope of the `bind` defining it.  More importantly, the recursive call to factorial occurs in the same scope.  There are two calls to `fact` - one in `bind`'s body and another within `fact` itself.  When `fact` is called intially, it has clearly been defined.  When it is called recursively, it is in the scope of the original call - where it is evaluated.  Thus, the recursive call works just fine.
+
+## Recursion and Static Scoping
+
+To understand why recursion fails using static scoping, we need to look carefully at scoping again:
+
+{% highlight text %}
+bind fact =                                    []
+  lambda (x:TNum) in                           [(x,??)]
+     if x=0 then 1 else x * (app fact x-1) in  [(fact,(Closure "x" ...))]
+  app fact 3
+{% endhighlight %}
+
+This time we need to remember that the `lambda` looks for identifiers in the scope where it is defined rather than where it executes.  Looking at `lambda`, the only variable in scope in its body is `x`.  It doesn't yet have a value, but it is in scope when it is called on an actual parameter.  In the body of `bind`, where `fact` is applied to `3` its definition is in scope.  Why then do we get an error saying `fact` is not in scope?
+
+We get a hint if we do the same evaluation, but this time using `0` as the argument to `fact`:
+
+{% highlight text %}
+bind fact =                                    []
+  lambda (x:TNum) in                           [(x,??)]
+     if x=0 then 1 else x * (app fact x-1) in  [(fact,(Closure "x" ...))]
+  app fact 0
+== 1
+{% endhighlight %}
+
+When called on `0`, `fact` in fact works.  `fact 1 == 0`.  What about `fact 1`?  If you try this, `fact` crashes with the same error that `fact` is not found.  What gives?  It clearly was found once.  Why not the second time?
+
+The key is understanding `fact` is evaluated in two places.  The first time in the body of `bind` where it is defined.  The second time, `fact` is evaluated in the body of `fact` where it is not defined.  The only identifier in scope is `x`.  A way to understand this is that `fact` does not know about itself because it is in scope only in the body of `bind`.
+
 # Untyped Recursion
+
+The first solution for recursion in a statically typed language we will explore is writing _fixed-point combinators_ that implement recursion.  These combinators come from the _lambda calculus_ developed by Alonzo Church that along with Turing Machines are the two foundational models of algorithms and computing.  More on that later.  The term _combinator_ simply means a closed expression - one with no free variables.  A _fixed-point_ is a recursive structure used to construct sets.  For this study, you need not know any of these details, but if you are serious about the study of languages learning more about all of them is most definitely in your future!
+
+We will look at three recursive constructs.  The $\Omega$ is a trivial infinitely recursive structure.  We'll not be able to use it for much, but it defines a starting point for the `Y` and `Z` constructs.  `Y` is a lazy fixed-point and `Z` is an extension of `Y` for strict languages.  We'll look carefully at `Y` and take what we learn there to `Z`.
 
 ## Omega
 
@@ -190,6 +269,14 @@ and unfortunately it is more involved than the traditional Y.
 {% highlight text %}
 ff = lambda ie (lambda x (if x then x else x (app ie (x - 1))))
 {% endhighlight %}
+
+## Discussion
+
+While $\Omega$, `Y`, and `Z` are not commonly used constructs in common language settings, they are here because they are beautiful.  We have defined recursion without the concept of a global name space.  Neither `Y` or `Z` or the functions that are arguments to them directly reference themselves.  The only place we define names is in `lambda` definitions or `bind` definitions that could be replaced by `lambda` applications!  This is elegant and beautiful.  If you are interested in pursuing this kind of thing further, a good course in programming language semantics should be on your list of courses to take.
+
+The `Y` combinator is historically important as it is an implementation of Curry's Paradox.  That would be Haskell Curry for whom Haskell and currying are named.  Curry denied actually inventing currying, but that's another story entirely.  Curry's Paradox is important because it introduces a contradiction in the lambda calculus that renders it useless as a deductive system.  Another thing worth looking at that we don't have time for here.
+
+Finally, the Y Combinator that you're likely more familiar with is the venture capital firm started by Paul Graham.  Graham has several accomplishments to his name before the Y Combinator - PhD in Computer Science from MIT, MS in Painting from NYU, developed the first online web store for Yahoo (in Lisp I might add), just for starters.  Hopefully you can see why he chose the name Y Combinator for his firm.  The programming `Y` effectively creates copies of itself as many times as needed.  That's precisely the same thing that Graham's company does.
 
 ## Definitions
 

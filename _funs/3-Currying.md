@@ -96,7 +96,6 @@ We could add additional syntax to make both application and definition of n-ary 
 
 Curried function semantics is used frequently to define multi-parameter function execution.  Haskell certainly uses this approach as does ML.  Scheme and Lisp on the other hand require explicit currying.  We'll not follow that path right now.
 
-
 ## Definitions
 
 ## Exercises

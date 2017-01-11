@@ -4,9 +4,9 @@ title: Untyped Recursion
 use_math: true
 categories: chapter ch2
 ---
-## Untyped Recursion
+# Untyped Recursion
 
-### Omega
+## Omega
 
 Take a look at the following function application:
 
@@ -54,7 +54,7 @@ it terminates immediately because the second `lambda` simply returns its argumen
 
 Now we have $\Omega$ and it's groovy and we can't use it for a darn thing other than locking up our evaluator.  Time to move on.
 
-### Y
+## Y
 
 Omega showed us how `app` within `lambda` can create patterns.  Let's look at another one that is a touch more useful than omega:
 
@@ -173,7 +173,7 @@ Now we have `5+(app (app x x) 4)`, but remember what we said about `(app x x)`. 
 
 This is exactly what we want.  Compare the second term of the sum with our original expression.  The only difference is we're using 4 rather than 5, but that's exactly what we want!  So the `Y` gives us a recursive operation builder that takes a non-recursive function like `F` and makes it recursive.  All this without `F` knowing about itself!
 
-### Z
+## Z
 
 The Y just discussed is often called the lazy Y because it only works using lazy evaluation.  An alternative called the _Z combinator_ does the same thing for strict languages with just a few changes.  Z is often called the applicative Y combinator.
 

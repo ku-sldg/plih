@@ -284,6 +284,8 @@ Finally, the Y Combinator that you're likely more familiar with is the venture c
 
 ## Definitions
 
+* Fixed-point combinator - A function $y$ such that for any function $f$, $y f = f (y f)$
+
 ## Exercises
 
 1. Implement the Z combinator using FBAE with static scoping.

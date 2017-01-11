@@ -81,7 +81,11 @@ The key is understanding `fact` is evaluated in two places.  The first time in t
 
 # Untyped Recursion
 
-The first solution for recursion in a statically typed language we will explore is writing _fixed-point combinators_ that implement recursion.  These combinators come from the _lambda calculus_ developed by Alonzo Church that along with Turing Machines are the two foundational models of algorithms and computing.  More on that later.  The term _combinator_ simply means a closed expression - one with no free variables.  A _fixed-point_ is a recursive structure used to construct sets.  For this study, you need not know any of these details, but if you are serious about the study of languages learning more about all of them is most definitely in your future!
+The first solution for recursion in a statically typed language we will explore is writing _fixed-point combinators_ that implement recursion.  These combinators come from the _lambda calculus_ developed by Alonzo Church that along with Turing Machines are the two foundational models of algorithms and computing.  The term _combinator_ simply means a closed expression - one with no free variables.  A _fixed-point_ is a recursive structure used to construct sets.  A _fixed-point combinator_ is some $y$ such that:
+
+$$y f = f (y f)$$
+
+for any function, $f$.  For this study, you need not know any of these details, but if you are serious about the study of languages learning more about all of them is most definitely in your future!
 
 We will look at three recursive constructs.  The $\Omega$ is a trivial infinitely recursive structure.  We'll not be able to use it for much, but it defines a starting point for the `Y` and `Z` constructs.  `Y` is a lazy fixed-point and `Z` is an extension of `Y` for strict languages.  We'll look carefully at `Y` and take what we learn there to `Z`.
 

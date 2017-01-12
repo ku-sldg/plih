@@ -44,7 +44,7 @@ We will update our `ABE` evaluator to catch errors and run time rather than fall
 
 ### Eval
 
-Let's change the type signature of the `ABE` `eval` function just a bit and define a new function called `evalErr` that returns either a n `ABE` term or a string representing an error:
+Let's change the type signature of the `ABE` `eval` function just a bit and define a new function called `evalErr` that returns either an `ABE` term or a string representing an error:
 
 {% highlight haskell %}
 evalErr :: ABE -> Either String ABE
@@ -110,7 +110,7 @@ evalErr (Plus t1 t2) =
 
 {% endhighlight %}
 
-There is no magic here!  We calculate the values of both arguments and store the results in `r1` and `r2` respectively.  Then we apply the same pattern as `IsZero` and determine if the first argument is an error, number, or something else.  In the error and something else cases, we do exactly what we did previously.  In the number case, we repeat the same process for `r2` and do the same thing.  In the error and something else cases, we do exactly what we did previously.  IN the number case, we calculate the result of `Plus` and return it as `(Right (Num (v1+v2)))`.  The other binary operations follow similarly.
+There is no magic here!  We calculate the values of both arguments and store the results in `r1` and `r2` respectively.  Then we apply the same pattern as `IsZero` and determine if the first argument is an error, number, or something else.  In the error and something else cases, we do exactly what we did previously.  In the number case, we repeat the same process for `r2` and do the same thing.  In the error and something else cases, we do exactly what we did previously.  In the number case, we calculate the result of `Plus` and return it as `(Right (Num (v1+v2)))`.  The other binary operations follow similarly.
 
 The remaining operation is `if` that is treated like a one parameter expression.  The condition is evaluated and the outcome handled using the same pattern as other expressions.  If the condition evaluates to a Boolean, them we choose the expression to evaluate based on the Boolean value.  The final code has the following form:
 
@@ -193,9 +193,9 @@ Here we simply define axioms that give numbers, $\ttrue$ and $\ffalse$ their app
 
 Next we'll start with numerical operations from `AE`:
 
-$$\frac{\typeof t_1 = \tnum,\; \eval t_2 = \tnum}{\typeof t_1 + t_2 = TNum}\; [PlusT]$$
+$$\frac{\typeof t_1 = \tnum,\; \typeof t_2 = \tnum}{\typeof t_1 + t_2 = TNum}\; [PlusT]$$
 
-$$\frac{\typeof t_1 = \tnum,\; \eval t_2 = \tnum}{\typeof t_1 + t_2 = \tnum}\; [MinusT]$$
+$$\frac{\typeof t_1 = \tnum,\; \typeof t_2 = \tnum}{\typeof t_1 + t_2 = \tnum}\; [MinusT]$$
 
 In both rules the antecedents place requirements on the types of the operation's arguments.  Addition is a number if its arguments are numbers.  Similarly for subtraction.
 
@@ -218,7 +218,16 @@ The condition is required to be $\tbool$ as expected, but the true and false cas
 
 The $IfT$ rule ensures that any $\iif$ expression has only one type.  If the two cases were allowed to have different types, then  the $\iif$'s type cannot be predicted without knowing the value of the conditional.  This will only be known *dynamically* and we are trying to predict errors *statically*.  By requiring true and false cases to have the same type, we know that the $\iif$ expression will have that single type.
 
-The $\typeof$ relation implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function $\mathsf{typecheck}$ would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if $(\typeof t)$ is defined or $(\mathsf{typecheck} e t)$ is true.  As an exercise you will implement $\mathsf{typecheck}$ with $\typeof$.
+The $\typeof$ relation implements *type inference* where we calculate
+a type for an expression.  Haskell uses type inference extensively,
+but you're likely more familiar with languages that implement *type
+checking*.  In type checking we don't necessarily calculate a type,
+but instead annotate expressions with types and check to see if those
+annotations hold.  A function $\mathsf{typecheck}$ would accept an
+expression and a type as arguments and return a Boolean value if the
+expression has that type.  We'll say that an expression, $t$, is
+*well-typed* if $(\typeof t)$ is defined or $(\mathsf{typecheck} e t)$
+(TODO:  spacing of previous) is true.  As an exercise you will implement $\mathsf{typecheck}$ with $\typeof$.
 
 Back to comparison with $\eval$ rules.  Do you see the parallel between $\eval$ rules and $\typeof$ rules?  There is a one-to-one correspondence between the rules.  They are structured the same way and as we'll see soon, they will be implemented in roughly the same way.  This is not always true, but the similarity is something we'll revisit in later discussions.
 
@@ -232,7 +241,7 @@ typeof :: ABE -> Either TABE String
 
 We're building `typeof` like our new `eval` function so we can catch errors rather than use Haskell for reporting.
 
-`typeof` needs to return a type, yet `ABE` has no terms for types. We will handle this buy simply defining a new type for representing `ABE` types.  `TABE` is a new data type representing the two types of `ABE` expressions:
+`typeof` needs to return a type, yet `ABE` has no terms for types. We will handle this by simply defining a new type for representing `ABE` types.  `TABE` is a new data type representing the two types of `ABE` expressions:
 
 {% highlight haskell %}
 data TABE where

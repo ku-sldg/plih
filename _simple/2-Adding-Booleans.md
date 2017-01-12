@@ -182,7 +182,8 @@ ifExpr = do reserved lexer "if"
             return (If c t e)
 {% endhighlight %}
 
-Now we put the whole thing together to define `term`.  The `<|>` notation should be interpreted as or.  This the `term` parser looks for an expression in parenthesis, a number, a true or false, or an  if expression.  The `parens` parser is another built-in parser that puts things in parenthesis.  So `parens lexer expr` looks for `(expr)`.  The other parsers are what we built above.
+Now we put the whole thing together to define `term`.  The `<|>`
+notation should be interpreted as or.  The `term` parser looks for an expression in parenthesis, a number, a true or false, or an  if expression.  The `parens` parser is another built-in parser that puts things in parenthesis.  So `parens lexer expr` looks for `(expr)`.  The other parsers are what we built above.
 
 {% highlight haskell %}
 term = parens lexer expr
@@ -219,7 +220,9 @@ eval (Minus t1 t2) = let (Num v1) = (eval t1)
 
 The additional cases are largely as one would anticipate.  `And` `Leq` and `IsZero` each evaluate their arguments and return an appropriate result.  The only real change is operations can now return types that differ from their argument types.  This is not a big change, but operations are no longer closed.
 
-The `If` construct differs in that not arguments are evaluated before the `If`.  The condition is evaluated an the Haskell `if` expression used to evaluate the appropriate `then` or `else` expression.  Note that in both `ABE` and Haskell `if` is an expression that returns a value when calculated.  This is in contrast to languages like C or Java where `if` is a command that sequences execution.  We'll revisit this concept later.
+The `If` construct differs in that not all arguments are evaluated
+before the `If`.  The condition is evaluated and the Haskell `if`
+expression (TODO: is?) used to evaluate the appropriate `then` or `else` expression.  Note that in both `ABE` and Haskell `if` is an expression that returns a value when calculated.  This is in contrast to languages like C or Java where `if` is a command that sequences execution.  We'll revisit this concept later.
 
 {% highlight haskell %}
 eval (Boolean b) = (Boolean b)
@@ -242,12 +245,13 @@ interp = eval . parseABE
 {% endhighlight %}
 
 ## Testing ABE
-
 Let's fire up QuickCheck and see what we have.  Remember that all `AE` programs famously ran to termination and produced a value.  Will the same thing hold true for `ABE` programs?  I suspect you can easily figure the answer, but let's follow a rigorous process to see why.  The process will be useful to us when our languages become more complex.
 
 ### Term Generator
 
-We need to extend the generator from the `Testing` chapter to generate `ABE` elements.  Like our parser we simply need to define generators for the new `AST` elements and add them to the original generator.
+We need to extend the generator from the `Testing` chapter (TODO:
+Referencing the Testing chapter that comes later in book.  May not be
+a way to avoid this..) to generate `ABE` elements.  Like our parser we simply need to define generators for the new `AST` elements and add them to the original generator.
 
 Generating `Boolean` values is identical to generating `Num` values except we use `choose` to select among `True` and `False`:
 

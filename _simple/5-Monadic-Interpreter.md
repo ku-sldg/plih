@@ -28,7 +28,7 @@ $$
 $$
 
 
-> In addition to it begin useful, it is also cursed and the curse of the monad is that once you get the epiphany, once you understand - "oh that's what it is" - you lose the ability to explain it to anybody.   
+> In addition to it being useful, it is also cursed and the curse of the monad is that once you get the epiphany, once you understand - "oh that's what it is" - you lose the ability to explain it to anybody.   
 >  
 > -- Douglas Crockford
 
@@ -56,7 +56,7 @@ Two cases define the behavior of `>>=` for `Either`'s two constructors.  The fir
 The second case says that given `(Left e)`, just return `(Left e)`.  Again pretty simple, but lets say it again.  `(Left e) >>= k` will simply return `(Left e)` and return it regardless of what `k` is.  `(Left e)` simply passes through the bind operation as if `k` were an identity function.
 
 Remember the choice of `Right` for values and `Left` for errors?
-Thinking about `>>=` in those terms it woudl seem `>>=` applies a function to a value and passes an error through.  This is exactly the behavior we want if we're executing operations in sequence.
+Thinking about `>>=` in those terms it would seem `>>=` applies a function to a value and passes an error through.  This is exactly the behavior we want if we're executing operations in sequence.
 
 Let's look at the concept abstractly and then get concrete with some examples. If `x` is a value and `a`, `b`, and `c` were a sequence of 3 operations that might throw errors, the `>>=` behavior is exactly what we want:
 
@@ -81,6 +81,9 @@ a = \x -> if x<10 then (Left "less than 10") else (Right (x-10))
 b = \y -> if (y `mod` 2)==0 then (Right (y*y)) else (Left "odd result")
 c = \z -> (Right (z-5))
 {% endhighlight %}
+
+(TODO:  should be z+5 instead of z-5 to be consistent with
+description.  happens more below)
 
 Hopefully it's clear these expressions perform the three operations and check for local errors.  Names for the expressions aren't necessary, but will make things a bit simpler.  Without using either, we can compose these operations to do what we want on the value 10:
 
@@ -173,7 +176,14 @@ where `x` and `y` are used later than in the original expression.  If you use na
 
 ## Monadic eval
 
-Time to come back from the land of the monad and talk evaluation and type prediction again.  Why go there in the first place?  Other than numeric and Boolean constants, all terms in `BAE` are evaluated by evaluating their subterms and combining the results to give a value for the term.  Unless of course evaluating any of the subterms results in an error.  If an error occurs it should be passed back to the user and return as the result. Hopefully the role of the `Either` will become clear after looking at  few terms.
+Time to come back from the land of the monad and talk evaluation and
+type prediction again.  Why go there in the first place?  Other than
+numeric and Boolean constants, all terms in `ABE` are evaluated by
+evaluating their subterms and combining the results to give a value
+for the term.  Unless of course evaluating any of the subterms results
+in an error.  If an error occurs it should be passed back to the user
+and returned as the result. Hopefully the role of the `Either` will
+become clear after looking at a few terms.
 
 The signature does not change, but we will call the evaluation function `evalM` to designate that this is a monadic version.
 
@@ -290,13 +300,14 @@ typeofM (If c t e) = do
   c' <- (typeof c) ;
   t' <- (typeof t) ;
   e' <- (typeof e) ;
+  if (c' ==  TBool && t'==e') then (Right t') else (Left "Type Error in if")
 {% endhighlight %}
 
 Putting parsers and interpreters and type checkers together has always been an afterthought.  Let's take a look at it once again.  Again we'll take advantage of the `Either` monad.  Both the `typeofM` and `evalM` return `Either` monads of slightly different types.  But their error cases both use `Left` on strings.  Thus, if `typeofM t` fails and generates an error, bind passes the error through and does not call `evalM`.
 
 {% highlight haskell %}
 interpM t = do
-  te <- Right parseBAE t	
+  te <- Right parseABE t	
   ty <- typeofM t
   evalM te
 {% endhighlight %}

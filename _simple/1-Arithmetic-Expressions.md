@@ -220,6 +220,30 @@ The built in function `parse` is called with an argument representing the parser
 
 If the construction of the `AE` parser bothers you, it is save to simply use it for the time being.  We'll learn more about extending and writing parsers as we move along.  Don't get caught up in it now.
 
+## Pretty Printers
+
+A _pretty printer_ is the opposite of a parser.  It takes an AST and prints the concrete syntax of the represented program.  Pretty printers are used for many reasons, but our use is motivated by testing.  Specifically, a parser can be tested by parsing, pretty printing and re-parsing a program.  If the original parsed result matches the re-parsing result for all test cases we have strong evidence the parser is correct.  We will also use pretty printers to move from generated AST values to test cases for an interpreter.
+
+The pretty printer for `AE` looks very much like an evaluator.  For every AST constructor we return a string representing that construct:
+
+{% highlight haskell %}
+pprint :: AE -> String
+pprint (Num n) = show n
+pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
+pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
+{% endhighlight %}
+
+Numbers generate strings using `show` because `Int`'s are instances of class `Show`.  Composite terms are printed by pretty printing their parts and putting the results together.  Both `Plus` and `Minus` generate strings from their arguments and assemble the strings into text terms.
+
+One could easily make the data type `AE` an instance of `Show` using the new `pprint` function:
+
+{% highlight haskell %}
+instance Show AE where
+  show = pprint
+{% endhighlight %}
+
+Think carefully before doing this.  If you have defined `show` in this way, anytime an AST is printed you will get the pretty printed version.  Debugging is usually far simpler if the Haskell representation is printed rather than the string representation.
+
 ## Interpreters
 
 An *interpreter* converts an abstract syntax term into a value.  Ass noted earlier, values represent valid interpretation results.  If an interpreter produces something besides a value, something went wrong.  Either the input is invalid, the interpreter is written wrong, or the language definition is problematic.  We'll talk about these issues later.  For now, let's look at a fun interpretr where everything works as it should.

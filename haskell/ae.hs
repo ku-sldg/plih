@@ -43,6 +43,9 @@ pprint (Num n) = show n
 pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
 pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
 
+--instance Show AE where
+--  show = pprint
+
 -- Parser (Requires ParserUtils and Parsec)
 
 expr :: Parser AE

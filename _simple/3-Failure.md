@@ -482,3 +482,5 @@ Download [source]({{site.baseurl}}/haskell/abe.hs) for all interpreter code from
 [^1]:Modulo error messages implies the values are the same except for differences in the specific message.  (Left "Error message 1") and (Left "Different error message") are equivalent modulo error message.
 
 [^2]:The `ABET` is a tribute to my friend and colleague Nancy Kinnersley who passed away this past summer.  She was committed to service through the ABET accreditation organization.  Seems only fitting.
+
+[^3]:https://hackage.haskell.org/package/base-4.9.0.0/docs/Data-Either.html "Either Monad"

@@ -40,7 +40,7 @@ size Cons x xs = size xs + 1
 
 `Null` is the base case and `Cons` the recursive case for this definition.  The structure of `IntList` and any type created with `data` is such that a recursive function can be written using this pattern to process any such structure.  This is a powerful principle we will use repeatedly throughout this text.
 
-## The `do` Notation
+## The do Notation
 
 Haskell's `do` notation is a commonly used abstraction allowing sequential execution of monadic code.  If you are at all familiar with Haskell, you've likely seen this notation at work.  I suspect you've also tried hard to avoid the details of monadic computation and are reconsidering reading this text now that the monad has entered the conversation.
 
@@ -57,6 +57,47 @@ do {
 {% endhighlight %}
 
 The trick is that `f` and `g` must be monadic.  You can't do this with arbitrary functions.  The thing you get back is also monadic and not a simple value.  The benefit is the same `do` notation works for _any_ monad.  Just choose a monad to encapsulate your computations and you get the `do` notation for free.
+
+Let's see how this works with the `Maybe` monad with a very simple example.  Define two functions that return `Maybe` types:
+
+{% highlight haskell %}
+f x = if x > 3 then Just x else Nothing
+g x = if x < 4 then Nothing else Just x
+{% endhighlight %}
+
+These two functions are rather arbitrary, but both take integers and return `Maybe Int` based on their input with respect to a constant value.  There is nothing to see here other than both return `Maybe` types.
+
+Now a simple function `test` that uses `do` to sequence calculations:
+
+{% highlight haskell %}
+test1 = do {
+  a <- f 4 ;
+  b <- g a ;
+  return (a + b)
+  }
+test1
+== Just 8
+{% endhighlight %}
+
+You can see the sequential calculation.  `a` is calculated first and  `b` calculated from `a`.  Both `a` and `b` determine the return value.  Simple sequential execution.
+
+But there's more!
+
+If either the `a` or `b` calculation results in `Nothing`, the sequence of calculations returns `Nothing`:
+
+{% highlight haskell %}
+test2 = do {
+  a <- f 2 ;
+  b <- g a ;
+  return (a + b)
+  }
+test2
+== Nothing
+{% endhighlight %}
+
+All the handing of `Nothing` normally done with `case` statements is handled underneath the hood by the bind.  No need to check things in the calculation of `b` or the function `g`.
+
+Finally, all functions are written over `Int` and not `Maybe`.  `g`'s argument is an `Int` and `+` takes two `Int`s.  The `do` notation handles `Just` and in the `<-` sequence.  `f` returns `Just 4` in the first example, but `a` gets bound to `4`.  This is a wonderfully powerful feature that we'll discuss later.  For now, these examples show how the `do` notation sequences calculations and binds values to identifiers - a topic we'll dive into shortly.
 
 One plea before moving on.  Don't avoid monads.  They are truly beautiful computation structures that support a powerful, new abstraction for computing.  Spend some time with them and write your own.  The experience will serve you well!
 
@@ -158,8 +199,15 @@ Similarly, a multi-step evaluation strings together evaluation rules application
 == 0
 {% endhighlight %}
 
-`1+3-4` evaluates in one step to `4-4` and again to `0`.  In this case each occurance of `==` represents the application of an evaluation rule.
+`1+3-4` evaluates in one step to `4-4` and again to `0`.  In this case each occurance of `==` represents the application of an evalion rule.
+
+## Code
+
+Download [source]({{site.baseurl}}/haskell/do.hs) for `do` examples from this chapter.
+
+## Notes
 
 [1]:	https://cs.brown.edu/~sk/Publications/Books/ProgLangs/2007-04-26/ "PLAI"
 [2]:	http://learnyouahaskell.com "Learn You a Haskell for Great Good"
 [3]:	http://haskellbook.com "Haskell Book"
+[4]:	https://hackage.haskell.org/package/base-4.9.0.0/docs/Data-Maybe.html "Maybe Monad"

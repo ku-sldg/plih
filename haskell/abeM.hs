@@ -442,10 +442,3 @@ testEvalM :: Int -> IO ()
 testEvalM n = quickCheckWith stdArgs {maxSuccess=n}
   (\t -> (interpM $ pprint t) == (evalM t))
 
-a = \x -> if x<10 then (Left "less than 10") else (Right (x-10))
-b = \y -> if (y `mod` 2)==0 then (Right (y*y)) else (Left "odd result")
-c = \z -> (Right (z-5))
-f x = (Right x) >>= a >>= b >>= c
-
-test = (Right 5) >>= \x -> (if x<10 then (Left "less than 10") else (Right (x-10))) >>= \y -> (if (y `mod` 2)==0 then (Right (y*y)) else (Left "odd result")) >>= \z -> (Right (z-5))
-

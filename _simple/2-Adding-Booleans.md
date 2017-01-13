@@ -350,5 +350,13 @@ Working through `ABE` does have value.  We extended `AE` to include Boolean valu
 ## Exercises
 
 1. Add disjunction and negation to the `ABE` language.  Define concrete syntax and abstract syntax.  Update the parser, pretty printer, evaluator, and QuickCheck term generator.
+2. Add multiplication and division to the `ABE` language.  Define concrete syntax and abstract syntax.  Update the parser, pretty printer, evaluator, and QuickCheck term generator.
+3. Write a function that walks the `ABE` AST and counts the number of Boolean operations.
+
+## Source
+
+Download [source]({{site.baseurl}}/haskell/abe.hs) for all interpreter code from this chapter.
+
+## Notes
 
 [^1]: If you execute `testEval` in the same way, you will almost certainly generate a different counterexample due to the arbitrary nature of the generator.

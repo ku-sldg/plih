@@ -29,7 +29,7 @@ $$
 
 # Adding Identifiers
 
-The first significant addition we will make to our language is an _identifier_ using a `bind` expression.  The `bind` expression is like a _let_.  It defines a value to an identifier that may then be used in a subsequent expression.  Consider this trivial example defining `x` to be `5+2`:
+The first significant addition we will make to our language is an _identifier_ using a `bind` expression.  The `bind` expression is like a _let_.  It defines a value and binds it to an identifier that may then be used in a subsequent expression.  Consider this trivial example defining `x` to be `5+2`:
 
 {% highlight text %}
 bind x = 5+2 in
@@ -43,7 +43,7 @@ A general definition for `bind` would be $\bbind i=v\; \iin b$ where $i$ has the
 
 ## Binding and Scope
 
-Identifier _instance_, _binding_ and _scope_ are concepts used throughout language specification to describe identifier definition and usage.  An identifier _instance_ is any time that identifier is used.  In the following simple example there are two instances of 'x' and one instance of 'y'.
+Identifier _instance_, _binding_ and _scope_ are concepts used throughout language specification to describe identifier definition and usage.  An identifier _instance_ is any time that identifier is used.  In the following simple example there are two instances of `x` and one instance of `y`.
 
 {% highlight text %}
 bind x = 5+2 in

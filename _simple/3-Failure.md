@@ -44,7 +44,7 @@ We will update our `ABE` evaluator to catch errors and run time rather than fall
 
 ### Eval
 
-Let's change the type signature of the `ABE` `eval` function just a bit and define a new function called `evalErr` that returns either a n `ABE` term or a string representing an error:
+Let's change the type signature of the `ABE` `eval` function just a bit and define a new function called `evalErr` that returns either an `ABE` term or a string representing an error:
 
 {% highlight haskell %}
 evalErr :: ABE -> Either String ABE
@@ -471,6 +471,7 @@ An interesting question is whether the `ABE` interpreters can be made equivalent
 3. Using `typeof` implement a function `typecheck` that accepts an expression and a type and returns true if the expression has that type.
 4. Add multiplication and division to the `ABE` interpreter with run-time error handling.  Update definitions for concrete syntax, abstract syntax, inference rules for `eval`, and implementations.  If you can implement divide by zero error catching, do so.
 5. Add multiplication and division to the `ABE` interpreter with type checking.  Update definitions for concrete syntax, abstract syntax, inference rules for `eval` and `typeof`, and implementations.  If you can implement divide by zero error catching in `typeof`, do so.
+6. Rewrite `evalErr` to use `Maybe` instead of `Either`.  Recall that `Maybe` is a built-in Haskell construct with constructors `Just` and `Nothing` that allow returning just a value or nothing at all.  Are there advantages or disadvantages to using `Maybe`?
 
 ## Source
 

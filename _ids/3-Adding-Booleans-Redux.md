@@ -175,7 +175,6 @@ testEval n = quickCheckWith stdArgs {maxSuccess=n}
 {% endhighlight %}
 
 With everything in place, we evaluate over just a few cases and quickly learn that `eval` without any dynamic error checking or static type checking fails.  Hopefully this is not surprising to you.
-
 The next step is defining and implementing a type checker to statically determine if a `BBAE` expression will execute.
 
 ## Type Rules
@@ -387,7 +386,7 @@ genBBAE n e =
      return term
 {% endhighlight %}
 
-What changes here from the previous generators is the list of generators passed to `oneof`.  Instead of choosing only expressions from the numeric expression or the boolean expressions, we now choose from both.  For values, things work similarly choosing vrom both Boolean and numeric values.
+What changes here from the previous generators is the list of generators passed to `oneof`.  Instead of choosing only expressions from the numeric expression or the boolean expressions, we now choose from both.  For values, things work similarly choosing from both Boolean and numeric values.
 
 ## Discussion
 
@@ -400,6 +399,7 @@ Finally, we introduced the concept of a context that behaves like an environment
 Remember these things moving forward.  The step-by-step approach for defining a language and the composition of orthogonal language constructs are important design concepts.  Context is something we will continue to use throughout our study.
 
 ## Definitions
+
 * Context - list containing bindings of identifiers to types defining identifiers currently in scope.
 
 ## Exercises

@@ -29,7 +29,7 @@ $$
 
 # Adding Identifiers
 
-The first significant addition we will make to our language is an _identifier_ using a `bind` expression.  The `bind` expression is like a _let_.  It defines a value and binds it to an identifier that may then be used in a subsequent expression.  Consider this trivial example defining `x` to be `5+2`:
+The first significant addition we will make to our language is _identifiers_ using a `bind` expression.  The `bind` expression is like a _let_.  It defines a value and binds it to an identifier that may then be used in a subsequent expression.  Consider this trivial example defining `x` to be `5+2`:
 
 {% highlight text %}
 bind x = 5+2 in

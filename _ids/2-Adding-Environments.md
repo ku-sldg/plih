@@ -176,11 +176,15 @@ testCompare n = quickCheckWith stdArgs {maxSuccess=n}
   (\t -> (eval [] t) == (evals t))
 {% endhighlight %}
 
-Trying this on large sets of test cases results in no errors, giving us strong evidence that the new interpreter implements `BAE` in the same way as the original interpeter.
+Trying this on large sets of test cases results in no errors, giving us strong evidence that the new interpreter implements `BAE` in the same way as the original interpreter.
 
 To make testing more meaningful, `evals` and `eval` should be implemented with an `Either` return type like `ABE` earlier.  This is left as an exercise and will be explored in a later chapter.
 
 ## Discussion
+
+Unlike most of our earlier interpreters, the objective of adding an environment is not to add a new language feature or change what `eval` does.  The objective is to make evaluation more efficient by caching substitutions in the environment data structure.  In fact, we hope that adding and environment does not change the evaluation result at all.
+
+`bind` is a different kind of expression than `+` or `-`.  Arithmetic expressions calculate values and return them.  `2+1` evaluates to `3` and the new value is returned to whatever mechanism involved `eval`.  `bind` on the other hand doesn't calculate anything.  Its body does, but the `bind` itself is wrapped around the body.  The real work of the `bind` is performed on the environment.  Arithmetic expressions calculate values and in a sense, `bind` calculates a new environment by creating identifiers.  It's not necessary to make this distinction, but grouping expressions by their purpose can prove useful in both understanding and implementing interpreters.
 
 ## Definitions
 

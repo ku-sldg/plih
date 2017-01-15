@@ -9,7 +9,7 @@ We've seen repeatedly that the result of parsing an expression is an AST.  An in
 
 ## Optimization
 
-Most if not all modern compilers and interpreters perform some kind of optimization on programs they process.  Such optimizations range from simple function inlining and elimination of constant calculations to sophsticated variable elimination and loop unrolling.
+Most if not all modern compilers and interpreters perform some kind of optimization on programs they process.  Such optimizations range from simple function inlining and elimination of constant calculations to sophisticated variable elimination and loop unrolling.
 
 This simple example will take a BBAE program and perform zero elimination on numerical calculations.  Specifically, both plus and minus operations have cases involving `0` where a term can be eliminated:
 
@@ -47,7 +47,7 @@ optimize (Plus l r) = let l' = (optimize l)
                       in (Plus l' r')
 {% endhighlight %}
 
-Optimizing subtraction works similarly.  However, we will only elminate zero in the righthand term:
+Optimizing subtraction works similarly.  However, we will only eliminate zero in the righthand term:
 
 {% highlight haskell %}
 optimize (Minus l (Num 0)) = optimize l
@@ -89,7 +89,7 @@ testOptimizedEval n =
 Here we compare the result evaluating directly, `eval []`, with the result of optimizing before evaluating, `eval [] . optimize`.  Testing 10000 cases gives evidence that the optimization is correct.
 
 ## Discussion
-Elminating math operations over 0 is a trivial optimization.  However, it serves to demonstrate how an AST is just a data structure.  We wrote an operation over `BBAE` that simply transforms one program into another.  Both `eval` and `typeof` do the same thing, but are more traditionally associated with processing programs.
+Eliminating math operations over 0 is a trivial optimization.  However, it serves to demonstrate how an AST is just a data structure.  We wrote an operation over `BBAE` that simply transforms one program into another.  Both `eval` and `typeof` do the same thing, but are more traditionally associated with processing programs.
 
 Also note the structure of the `optimize` function.  It is essentially the same as the interpreter and type checker. Recursive function over the structure of an expression share a common for that we will see over and over again throughout this study.  Perhaps we can abstract that pattern out of these functions and use it directly.
 

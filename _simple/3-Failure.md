@@ -50,7 +50,7 @@ Let's change the type signature of the `ABE` `eval` function just a bit and defi
 evalErr :: ABE -> Either String ABE
 {% endhighlight %}
 
-If you're not familiar with the `Either` type constructor, there is ample documentation of its use.  In this example it provides two constructors, `Right` and `Left` that contain an `ABE` value and a `String` respectively.  We'll use the `Either` type to return either an `ABE` value, `v` (`Right v`) or a string error message, `s` (`Left s`).  We can then use a `case` expression to discriminate between values.  Any time we call `evalError` we can do something like this:
+If you're not familiar with the `Either` type constructor, there is ample documentation of its use.[^3]  In this example it provides two constructors, `Right` and `Left` that contain an `ABE` value and a `String` respectively.  We'll use the `Either` type to return either an `ABE` value, `v` (`Right v`) or a string error message, `s` (`Left s`).  We can then use a `case` expression to discriminate between values.  Any time we call `evalError` we can do something like this:
 
 {% highlight haskell %}
 case (evalErr t) of

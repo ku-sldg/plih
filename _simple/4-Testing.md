@@ -32,7 +32,7 @@ If we want to say that `p` holds for all `f`, we would prove the following prope
 
 $$\forall x:Int \cdot (p (f x))$$
 
-This tells us that for every integer $x$, $g$ holds for $f x$.  (This is actually an easy proof, but for discussion let's assume we  have only testing available to us.)
+This tells us that for every integer $x$, $p$ holds for $f x$.  (This is actually an easy proof, but for discussion let's assume we  have only testing available to us.)
 
 To test `p` we can easily write a function:
 
@@ -81,7 +81,7 @@ instance Arbitrary AE where
   arbitrary = ...
 {% endhighlight %}
 
-The type signature of `arbitrary` tells is what direction we need to follow:
+The type signature of `arbitrary` tells us what direction we need to follow:
 
 {% highlight haskell %}
 arbitrary :: Arbitrary a => Gen a
@@ -144,7 +144,15 @@ genPlusSecond =
      return (Plus s t)
 {% endhighlight %}
 
-If we do the same thing with `genMinusSecond` we will now generate arbitrary `ABE` terms.  Unfortunately, those arbitrary `ABE` terms are  of *arbitrary size*.  Mathematically this is perfectly fine as really big things don't bother us.  Pragmatically this is not perfectly fine as `genABEFirst` can now generate arbitrarily huge test cases.  If you want to see what this does, use `sample` to generate a few test cases and be prepared to terminate your Haskell process!
+If we do the same thing with `genMinusSecond` we will now generate
+arbitrary `ABE` terms.  Unfortunately, those arbitrary `ABE` terms are
+of *arbitrary size*.  Mathematically this is perfectly fine as really
+big things don't bother us.  Pragmatically this is not perfectly fine
+as `genABEFirst` can now generate arbitrarily huge test cases.  If you
+want to see what this does, use `sample` to generate a few test cases
+and be prepared to terminate your Haskell process!
+
+(TODO:  should all 'ABE' above be 'AE'?)
 
 How do we make our generator for `AE` not go into the weeds generating huge test cases?  The easiest way is to add a size limit to the `AE` generator function by adding a size parameter to `genAE` that is decremented on each call to `genAE`.
 
@@ -160,7 +168,10 @@ genAE n =
      return term
 {% endhighlight %}
 
-This new function takes a size counter and produces a generator.  If the size counter is zero, then the generator will only produce a number and will not recurse.  If the size counter is not zero, then the generator will produce an arbitrary while decrementing the size counter.  `genPlus` and `genMinus` must be similarly extended to include the size counter:
+This new function takes a size counter and produces a generator.  If
+the size counter is zero, then the generator will only produce a
+number and will not recurse.  If the size counter is not zero, then
+the generator will produce an arbitrary (TODO: term?) while decrementing the size counter.  `genPlus` and `genMinus` must be similarly extended to include the size counter:
 
 {% highlight haskell %}
 genPlus n =
@@ -179,7 +190,7 @@ instance Arbitrary AE where
     sized $ \n -> genAE (rem n 10)
 {% endhighlight %}
 
-What's going on here is obfuscated by underlying construction of generators, but let's see if we can make sense of it. `sized` is a function that accepts a argument of type `Int -> Gen a`.  `sized` then chooses an arbitrary positive integer and calls its argument on that value to produce a generator.  In effect, the parameter `n` is an arbitrary value that we can use to produce a generator.  We could just us `n` as an argument to `genAE`.  What I've done is use the `rem` function to convert `n` into an arbitrary value less than 10.  This is a bit of overkill, but demonstrates how we can use `sized` to arbitrarily size a structure.  Another alternative would define `arbitrary` this way:
+What's going on here is obfuscated by underlying construction of generators, but let's see if we can make sense of it. `sized` is a function that accepts an argument of type `Int -> Gen a`.  `sized` then chooses an arbitrary positive integer and calls its argument on that value to produce a generator.  In effect, the parameter `n` is an arbitrary value that we can use to produce a generator.  We could just use `n` as an argument to `genAE`.  What I've done is use the `rem` function to convert `n` into an arbitrary value less than 10.  This is a bit of overkill, but demonstrates how we can use `sized` to arbitrarily size a structure.  Another alternative would define `arbitrary` this way:
 
 {% highlight haskell %}
 arbitrary = sized $ \n -> genAE (rem n 10) + 10
@@ -187,7 +198,7 @@ arbitrary = sized $ \n -> genAE (rem n 10) + 10
 
 In this case the arbitrary values would have a maximum size ranging from 10 to 19.  There are all kinds of games one can play to generate interesting arbitrary cases.
 
-Before we go one, here's all the code for our generators and making `AE` and instance of `Abitrary` in one place:
+Before we go on, here's all the code for our generators and making `AE` and instance of `Abitrary` in one place:
 
 {% highlight haskell %}
 instance Arbitrary AE where

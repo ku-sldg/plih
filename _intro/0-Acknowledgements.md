@@ -12,7 +12,7 @@ Years ago I started teaching from two books I have grown to love.  I discovered 
 
 After teaching from Friedman’s book for two years, I discovered the first version of Shriram Krishnamurthy’s _Programming Languages: Application and Interpretation_.  Shriram writes beautifully and concisely and I have loved teaching from his text.  His work pulled me even more towards the building interpreters approach to teaching programming language fundamentals.  Plus, Shriram generously makes his book available [freely on the web][1].
 
-Both _Essentials of Programming Languages_ and _PLAI_ use Scheme (now Racket) as their host language for interpreters.  Learning Common Lisp in the 1980’s change my life.  Heck, I even met my wife because of Abelson and Sussman’s classic _Structure and Interpretation of Programming Languages_.  I love the Lisp approach and the simple elegance of Scheme.
+Both _Essentials of Programming Languages_ and _PLAI_ use Scheme (now Racket) as their host language for interpreters.  Learning Common Lisp in the 1980’s changed my life.  Heck, I even met my wife because of Abelson and Sussman’s classic _Structure and Interpretation of Programming Languages_.  I love the Lisp approach and the simple elegance of Scheme.
 
 Then I met Haskell.  My PhD student, Garrin Kimmell, decided that we should shift all our laboratory development work from Java to Haskell.  I wasn’t happy using Java, but I could hire students who knew Java.  If memory serves, I told Garrin that Haskell was an experimental language that would never catch on.  We needed to use Java.  This was Friday.  On Monday, our entire Rosetta tool suite was rewritten in Haskell.  When I saw the elegance of the code and became one with the type system, I was hooked.
 

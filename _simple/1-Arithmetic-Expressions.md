@@ -62,9 +62,9 @@ v ::= & \NUM \\
 
 The set of values is a subset of the set of terms.  It represents terms that result from interpretation.  The set of values define what we should get when we run an interpreter.  We will define this more formally later, but for now simply remember that $v$ is an interpretation result.
 
-If we define the predicate $AE(t)$ to be true whenever $t$ satisfies _AE_'s grammar rules, then the language can be defined as a set:
+If we define the predicate $ae(t)$ to be true whenever $t$ satisfies _AE_'s grammar rules, then the language can be defined as a set:
 
-$$AE = \{t:string\; \mid\; AE(s)\}$$
+$$AE = \{t:string\; \mid\; ae(t)\}$$
 
 In `AE` we can express precisely three things: (i) a number; (ii) adding two terms; and (iii) subtracting two terms.  Not the most useful of languages, but we have to start somewhere.
 

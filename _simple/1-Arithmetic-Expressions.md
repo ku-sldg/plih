@@ -175,13 +175,12 @@ command tells us that `t1 + t2` is an infix operation that is translated into `P
 x + 3 - y + 7 == ((x+3) - y) + 7
 {% endhighlight %}
 
-There are two operations in _AE_, so there are two `inFix` applications in a list.  The list itself tells the parser generator that `+` and `-` have the same precedent.  We'll see examples with different precedent as our languages grow more complex.  `opTable` is a list of lists where each internal list contains operators of the same precedence.  `+` and `-` are in a list together indicating they are at the same precedence level.
+There are two operations in _AE_, so there are two `inFix` applications in a list.  The list itself tells the parser generator that `+` and `-` have the same precedent.  We'll see examples with different precedent as our languages grow more complex.  `operators` is a list of lists where each internal list contains operators of the same precedence.  `+` and `-` are in a list together indicating they are at the same precedence level.
 
 {% highlight haskell %}
-opTable = [ [ inFix "+" Plus AssocLeft
-              , inFix "-" Minus AssocLeft ]
-            ]
-            
+operators = [ [ inFix "+" Plus AssocLeft
+                , inFix "-" Minus AssocLeft ]
+              ]
 {% endhighlight %}
 
 Now we have operators, but we don't have base terms for them to operate over.  In other words, we know how to parse `+` in `1+(3-2)`, but not the numbers or parens.  First, let's define a simple parser for numbers: 
@@ -200,12 +199,11 @@ A `term` in our language is either a parenthesized expression or a number.  This
 term = parens lexer expr <|> numExpr
 {% endhighlight %}
 
-Looking back at the definition of `expr` puts the entire thing together.  `expr` is a parser that returns `AE` and is built from `opTable` defining operations over `terms`.
+Looking back at the definition of `expr` puts the entire thing together.  `expr` is a parser that returns `AE` and is built from `operators` defining operations over `terms`.
 
 {% highlight haskell %}
 expr :: Parser AE
-expr = buildExpressionParser opTable (TODO:  named operators in ae.hs,
-but opTable in abe.hs?)  term
+expr = buildExpressionParser operators term
 {% endhighlight %}
 
 Following are several utility functions for calling your parser on strings and files.  `parseAE` takes a single argument, parses it, and either returns the resulting AST or displays the resulting error message.  `parseAEFile` does the same, except its input is taken from a file.

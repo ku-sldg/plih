@@ -123,7 +123,7 @@ come in handy right now.  The relationship between concrete syntax and
 associated abstract syntax should be a total function. Specifically,
 concrete syntax terms should have exactly one abstract syntax value
 and all concrete syntax terms should be associated with some abstract
-syntax value. (TODO:  is the last part of previous sentence redundant?)  Remember that errors are outputs.
+syntax value. Remember that errors are outputs.
 
 From this point forward I will use TLA[^1] *AST* when referring to abstract syntax data structures.  AST literally means abstract syntax *tree*.  It turns out that Haskell data types naturally form trees and trees are perfect representations for abstract syntax.  I'll come back to this later, but for now remember that AST, abstract syntax, and abstract syntax tree refer to the same Haskell data type.
 
@@ -168,7 +168,7 @@ inFix "+" Plus AssocLeft
 {% endhighlight %}
 
 The `inFix` function is defined in `ParserUtils` to simplify defining
-(TODO: and simply defines / to simply define?) inFix operations.  This
+inFix operations.  This
 command tells us that `t1 + t2` is an infix operation that is translated into `Plus (parseAE t1) (ParseAE t2)` and is left associative.  For now, we'll leave out details of what Parsec is doing.  It is sufficient to know that the `inFix` function creates a parser for `t1+t2` that returns an application of `Plus` to parsing `t1` and `t2`.  `AssocLeft` indicates the operator is left associative in the absence of parenthesis.  In other words:
 
 {% highlight text %}
@@ -293,7 +293,7 @@ computation follows from there. Given `(Plus t1 t2)` if `t1` evaluates
 to `(Num v1)` and `t2` evaluates to `(Num v2)` then `(Plus t1 t2)`
 evalautes to `(Num (v_1+v_2))`.  This is easily represented in Haskell
 using `let` to evaluate antecedents, pattern matching to bind `v1` and
-`v2`, add them in its body (TODO:  weird end of sentence):
+`v2`, add uses the bindings in its body:
 
 {% highlight haskell %}
 (Plus t1 t2) = let (Num v1) = eval t1
@@ -429,10 +429,6 @@ $$
 Thus if no case applies, then the terms are not equal.  So, $t_1+t_2$
 will never be equal to $t_1'-t_2'$.
 
-(TODO:  what about the Num case for extensionality?  is it implicit?)
-
-(TODO:  consider clarifying the difference between the "+" symbol in
-the AST and its interpretation in the eval inference rule)
 ## Definitions
 
 Lots of definitions to get us started:

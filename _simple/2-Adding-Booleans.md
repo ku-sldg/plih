@@ -359,7 +359,8 @@ Working through `ABE` does have value.  We extended `AE` to include Boolean valu
 
 ## Source
 
-Download [source]({{site.baseurl}}/haskell/abe.hs) for all interpreter code from this chapter.
+* Download [source]({{site.baseurl}}/haskell/abe.hs) for all interpreter code from this chapter.
+* Download [source]({{site.baseurl}}/haskell/parserUtils.hs) for the parser utilities used by the interpreters.
 
 ## Notes
 

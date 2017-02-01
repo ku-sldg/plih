@@ -484,7 +484,8 @@ An interesting question is whether the `ABE` interpreters can be made equivalent
 
 ## Source
 
-Download [source]({{site.baseurl}}/haskell/abe.hs) for all interpreter code from this chapter.
+* Download [source]({{site.baseurl}}/haskell/abe.hs) for all interpreter code from this chapter.
+* Download [source]({{site.baseurl}}/haskell/parserUtils.hs) for the parser utilities used by the interpreters.
 
 ## Notes
 

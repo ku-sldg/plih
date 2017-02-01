@@ -169,7 +169,7 @@ inFix "+" Plus AssocLeft
 
 The `inFix` function is defined in `ParserUtils` to simplify defining
 inFix operations.  This
-command tells us that `t1 + t2` is an infix operation that is translated into `Plus (parseAE t1) (ParseAE t2)` and is left associative.  For now, we'll leave out details of what Parsec is doing.  It is sufficient to know that the `inFix` function creates a parser for `t1+t2` that returns an application of `Plus` to parsing `t1` and `t2`.  `AssocLeft` indicates the operator is left associative in the absence of parenthesis.  In other words:
+command tells us that `t1 + t2` is an infix operation that is translated into `Plus (parseAE t1) (parseAE t2)` and is left associative.  For now, we'll leave out details of what Parsec is doing.  It is sufficient to know that the `inFix` function creates a parser for `t1+t2` that returns an application of `Plus` to parsing `t1` and `t2`.  `AssocLeft` indicates the operator is left associative in the absence of parenthesis.  In other words:
 
 {% highlight text %}
 x + 3 - y + 7 == ((x+3) - y) + 7

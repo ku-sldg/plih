@@ -454,8 +454,8 @@ Lots of definitions to get us started:
 
 ## Source
 
-Download [source]({{site.baseurl}}/haskell/ae.hs) for all interpreter code from this chapter.
-Download [source]({{site.baseurl}}/haskell/parserUtils.hs) for the parser utilities used by the interpreters.
+* Download [source]({{site.baseurl}}/haskell/ae.hs) for all interpreter code from this chapter.
+* Download [source]({{site.baseurl}}/haskell/parserUtils.hs) for the parser utilities used by the interpreters.
 
 ## Notes
 

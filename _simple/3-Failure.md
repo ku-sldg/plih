@@ -310,9 +310,9 @@ If `x` is true, then the type of the `if` is clearly number.  But if `x` is fals
 1 + if x then 5 else true
 {% endhighlight %}
 
-The addition operation requires both arguments to be numbers.  In this case, we can't say whether the `if` is or is not a number.  What we need is for the type to be independent of the Boolean condition.  If both `if` outcomes have the same type, then no matter then value of the conditional the expression has the same type.
+The addition operation requires both arguments to be numbers.  In this case, we can't say whether the `if` is or is not a number until we know the value of `x`.  This is key.  It's one thing to predict the type of `x`, but the value requires evaluating `x`.  Running the evaluator during type checking makes the two mutually recursive and is not wise.  At least for the time being. 
 
-For `if`, `typeof` checks the type of its conditional to determine if it is Boolean and then checks to determine if the types of the true and false conditions are the same.  If so, the type is returned.  The `If` construction's type is checked as follows:
+What we need is for the type to be independent of the Boolean condition.  If both `if` outcomes have the same type, then no matter then value of the conditional the expression has the same type.  Thus, `typeof` checks the type of its conditional to determine if it is Boolean and then checks to determine if the types of the true and false conditions are the same.  If so, the type is returned.  If not, an error is returned.  Putting all this together, the `If` expression's type is checked as follows:
 
 {% highlight haskell %}
 typeof (If c t e) = if (typeof c) == (Right TBool)
@@ -323,7 +323,7 @@ typeof (If c t e) = if (typeof c) == (Right TBool)
 
 If the condition is not Boolean or the result types are not the same, then `typeof` returns an error message using `Left`.
 
-Putting everything together, the result is the following `typeof` definition:
+Putting everything together for all expressions, the result is the following `typeof` definition:
 
 {% highlight haskell %}
 typeof :: ABE -> TABE
@@ -367,6 +367,16 @@ interpTyped e = let p=(parseABE e) in
 {% endhighlight %}
 
 `interpTyped` is does exactly what we need.  It parses and calls `typeof` on its input argument.  The `case` chooses between `Right` that contains a type and `Left` that contains an error message.  `eval` is called on the parsed input if a type is returned while an error message is simply returned in the error case.  Note that we're using `Either` the same way we did with the runtime error interpreter.  This is simply for consistency and will help us when  we start testing.
+
+{% comment %}
+(TODO: This needs to be checked.)
+We can also define `interpTyped` monadically:
+
+interpTyped :: String -> Either String ABE
+interpTyped e = do { typeof e ;
+                     eval e
+}
+{% endcomment %}
 
 ### QuickCheck
 

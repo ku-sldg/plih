@@ -355,12 +355,12 @@ testTypedThenErr n =
              (Right v) -> (Right v) == interpErr t'
              (Left _) -> True)
 
---The monadic interp is not ready to go yet.  Mixing monads is giving me fits.
---interpM :: String -> Either String ABE
---interpM s = do {
---                 ast <- parseABEM s ;
---                 typeof ast ;
---                 v <- eval ast ;
---                 return v
---               }
+-- The monadic interp is not quite eady to go yet.  I don't like the [return]
+-- used to kick the parse result into a monad when.
+interpM :: String -> Either String ABE
+interpM s = do {
+                 ast <- return (parseABE s) ;
+                 typeof ast ;
+                 return (eval ast)
+               }
                 

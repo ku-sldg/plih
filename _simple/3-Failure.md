@@ -368,15 +368,18 @@ interpTyped e = let p=(parseABE e) in
 
 `interpTyped` is does exactly what we need.  It parses and calls `typeof` on its input argument.  The `case` chooses between `Right` that contains a type and `Left` that contains an error message.  `eval` is called on the parsed input if a type is returned while an error message is simply returned in the error case.  Note that we're using `Either` the same way we did with the runtime error interpreter.  This is simply for consistency and will help us when  we start testing.
 
-{% comment %}
-(TODO: This needs to be checked.)
 We can also define `interpTyped` monadically:
 
-interpTyped :: String -> Either String ABE
-interpTyped e = do { typeof e ;
-                     eval e
-}
-{% endcomment %}
+{% highlight haskell %}
+interpTypedM :: String -> Either String ABE
+interpTypedM s = do {
+                 ast <- return (parseABE s) ;
+                 typeof ast ;
+                 return (eval ast)
+               }
+{% endhighlight %}
+
+It is not necessary to understand `interpTypedM` right now, but I thought I would throw it in for those with some knowledge of monads.
 
 ### QuickCheck
 
@@ -451,9 +454,9 @@ The concrete syntax for the counterexample is:
 if false then true else 59
 {% endhighlight %}
 
-According to the $IfT$ type rule, this term does not type check. The first term is Boolean as required, but the second two terms do not have the same type.  Thus, the antecedents of $IfT$ are violated.
+This term does not have a static type because its two outcomes have different types. The first term is Boolean as required, but the second two terms do not have the same type.  Thus, `typeof` throws an error.
 
-According to the implementation of $interpErr$, this term evaluates to 59.  The condition is `false`, thus the `else` expressin is evaluated.
+According to the implementation of `interpErr`, this term evaluates to 59.  The condition is `false`, thus the `else` expressin is evaluated.
 
 What gives?  Which is correct?
 
@@ -492,9 +495,9 @@ Running each on 1000 cases reveals the first property does not hold, while the s
 
 We end this chapter with two interpreters for `ABE` that are not equivalent.  Our first QuickCheck experiment quickly demonstrated that the `if` expression is handled differently when checked dynamically than when checked statically.  Our last two tests established that checking statically is more conservative than checking dynamically.  Specifically, handling errors at run time allowed more programs to execute than static type checking.
 
-Which interpreter is correct?  As it turns out, both are correct for two reasons.  First, the inference rules for `ABE` do not describe failure.  They only describe successful computations leaving failure completely up to the implementer.  Thus, neither of our `ABE` implementations violate the language definition.
+Which interpreter is correct?  As it turns out, both are correct for two reasons.  First, the definition of `ABE` does not describe failure.  The original definition only describes successful computations leaving failure completely up to the implementer.  Thus, neither of our `ABE` implementations violate the language definition.
 
-Second, `ABE` and `ABE` with types are two different languages.  `ABE` with types (`ABET`[^2]) uses the same rules for defining evaluation, but implicitly says that only languages satisfying its associated `typeof` function should be interpreted.  The `typeof` definition becomes a part of the `ABET` language.  We'll discuss this further in later chapters.
+Second, `ABE` and `ABE` with types are two different languages.  `ABE` with types (`ABET`[^2]) uses the same definition for evaluation, but implicitly says that only languages satisfying its associated `typeof` function should be interpreted.  The `typeof` definition becomes a part of the `ABET` language.  We'll discuss this further in later chapters.
 
 An interesting question is whether the `ABE` interpreters can be made equivalent.  The issue is in the `if` statement where the original interpreter does not require the true and false cases to have the same type while the typed interpreter does.  The simple answer is no.  Making the `ABE` interpreter with dynamic error handling catch cases where the true and false cases are not the same type requires having the interpreter predict types or execute both arms.  Making the type checker allow cases where the types are different, but the interpreter does not crash requires predicting how the result of the `if` will be used.  In essense, each interpreter would be required to implement the other.
 

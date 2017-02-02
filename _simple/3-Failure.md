@@ -38,7 +38,7 @@ Second, our only choice is to fail.  What if our interpreters can avoid failures
 
 Let's look at two approaches to handling errors.  The first will handle them *dynamically* or at run-time.  Our interpreter will generate error messages as data structures that we can process how we choose.  The second will handle them *statically* by predicting runtime failure before execution.
 
-## Runtime Error Checking
+## Runtime Error Prediction
 
 We will update our `ABE` evaluator to catch errors and run time rather than falling into Haskell using the `error` function.  The new evaluator will return either a value or an error message that we can handle however we want.
 
@@ -177,8 +177,9 @@ Where QuickCheck was helpful in earlier tests, it shines here.  We updated `eval
 
 If you get anything out of this missive, it should be that programs are simply data structures.  We can write programs that evaluate them, look at them, transform them, and synthesize them.  They are data structures and can be treated like any other data structure.
 
-In that spirit, let's look at our first example of an application that predicts failure before evaluating a program.  The specific failure we will look for is the same failure we caught dynamically in the previous example.  Specifically, when the types of arguments to an operator do not match that operator - a type checker.  This is an example of *static analysis* where we want to say something about a program without actually running it.
+In that spirit, let's look at our first example of an application that predicts failure before evaluating a program.  The specific failure we will look for is the same failure we caught dynamically in the previous example.  Specifically, we will predict when arguments to an operator do not match what the operator expects before execution.  This is an example of *static analysis* where we want to say something about a program without actually running it.
 
+{% comment %}
 ### Type Rules
 
 Like $\eval$ earlier, let's define a set of rules for the $\typeof$ function.  First the values:
@@ -217,31 +218,24 @@ $$\frac{\typeof t_0 = \tbool,\;\typeof t_1 = T,\;\typeof t_2 = T
 The condition is required to be $\tbool$ as expected, but the true and false cases are required to be of type $T$.  $T$ in this context is a *type variable* that can take any type value.  What the second two antecedents say is that both the true and false cases must have the same type, but that type can be either $\tbool$ or $\tnum$.
 
 The $IfT$ rule ensures that any $\iif$ expression has only one type.  If the two cases were allowed to have different types, then  the $\iif$'s type cannot be predicted without knowing the value of the conditional.  This will only be known *dynamically* and we are trying to predict errors *statically*.  By requiring true and false cases to have the same type, we know that the $\iif$ expression will have that single type.
+{% endcomment %}
 
-The $\typeof$ relation implements *type inference* where we calculate
-a type for an expression.  Haskell uses type inference extensively,
-but you're likely more familiar with languages that implement *type
-checking*.  In type checking we don't necessarily calculate a type,
-but instead annotate expressions with types and check to see if those
-annotations hold.  A function $\mathsf{typecheck}$ would accept an
-expression and a type as arguments and return a Boolean value if the
-expression has that type.  We'll say that an expression, $t$, is
-*well-typed* if $(\typeof t)$ is defined or $(\mathsf{typecheck} e t)$
+The $\typeof$ relation implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function $\mathsf{typecheck}$ would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if $(\typeof t)$ is defined or $(\mathsf{typecheck} e t)$
 (TODO:  spacing of previous) is true.  As an exercise you will implement $\mathsf{typecheck}$ with $\typeof$.
 
 Back to comparison with $\eval$ rules.  Do you see the parallel between $\eval$ rules and $\typeof$ rules?  There is a one-to-one correspondence between the rules.  They are structured the same way and as we'll see soon, they will be implemented in roughly the same way.  This is not always true, but the similarity is something we'll revisit in later discussions.
 
 ### Typeof
 
-Back to building things.  We'll build `typeof` by defining a function that predicts the type of an expression according to the type rules above.  The `typeof` function will take an `ABE` structure and return either its type or an error message:
+We'll build a functioned called `typeof` by defining a function that predicts the type of an expression.  The `typeof` function will take an `ABE` structure and return either its type or an error message:
 
 {% highlight haskell %}
 typeof :: ABE -> Either TABE String
 {% endhighlight %}
 
-We're building `typeof` like our new `eval` function so we can catch errors rather than use Haskell for reporting.
+where `TABE` is the type of an `ABE` expression.  We're structuring `typeof` like `eval` so we can catch errors rather than use Haskell for reporting.
 
-`typeof` needs to return a type, yet `ABE` has no terms for types. We will handle this by simply defining a new type for representing `ABE` types.  `TABE` is a new data type representing the two types of `ABE` expressions:
+We need to define `TABE` to represent all term types in `ABE`.  There are only two, number and Boolean.  We will handle this by  defining the new type `TABE` for representing `ABE` types:
 
 {% highlight haskell %}
 data TABE where
@@ -250,18 +244,20 @@ data TABE where
   deriving (Show,Eq)
 {% endhighlight %}
 
-$\tnum$ and $\tbool$ from our mathematical definitions correspond with `TNum` and `TBool` in the type definition.
+`TNum` is the type of numbers and `TBool` is the type of Booleans.
 
-Given an `ABE` expression, `typeof` will return its type if it is well-typed and fail if it is not.  The cases for `Num` and `Boolean` are trivial and simply return their associated types, `TNum` and `TBool` respectively:
+Given an `ABE` expression, `typeof` will return its type if it is well-typed and generate an error message if it is not.  Like `eval`, if we define one case for each `ABE` expression, we will completely define `typeof` for ABE.
+
+The cases for the `Num` and `Boolean` constructors are trivial.  All `Num` constructions are of type `TNum` and `Boolean` constructions are of type `TBool`.  The `typeof` cases for `Num` and `Boolean` simply return their associated types, `TNum` and `TBool` respectively:
 
 {% highlight haskell %}
 typeof (Num x) = (Right TNum)
 typeof (Boolean b) = (Right TBool)
 {% endhighlight %}
 
-They are both identical to their associated type rules from above.
+Note that each value has precisely one type.  It is important than every expression in `ABE` have a single type starting with values.
 
-`Plus` and `Minus` are also virtually identical to their associated rules $PlusT$ and $MinusT$.  The types of their arguments are checked to determine if they are type `TNum`.  If so, both are also of type `TNum`:
+Next we'll consider the `Plus` and `Minus` operations.  Both require their arguments to be of type `TNum`.  If they are, then the operation is also of type `TNum`.  In the following code snippet, arguments to `Plus` and `Minus` are checked to determine if they are type `TNum`.  If so, both are also of type `(Right TNum)` is returned to indicate a type was found and it is `TNum`:
 
 {% highlight haskell %}
 typeof (Plus l r) = let l' = (typeof l)
@@ -276,7 +272,9 @@ typeof (Minus l r) = let l' = (typeof l)
                         else Left "Type Mismatch in -"
 {% endhighlight %}
 
-More of the same for `And`, `Leq` and `IsZero`.  Each Haskell case for `typeof` virtually identical to its associated type rule:
+If either argument type is not `TNum`, then an error message is returned using `Left`.
+
+It's more of the same for `And`, `Leq` and `IsZero` except they require different argument types and produce different types.  `And` requires Boolean arguments and produces a Boolean type.  `Leq` requires numerical arguments and produces a Boolean type.  Finally, `isZero` requires a numerical argument and produces a Boolean type:
 
 {% highlight haskell %}
 typeof (And l r) = if (typeof l) == (Right TBool)
@@ -291,7 +289,30 @@ typeof (IsZero v) = if (typeof v) == (Right TNum)
                     else Left "Type mismatch in IsZero"
 {% endhighlight %}
 
-Finally `if` and we're done.  `if` checks the types of its conditional to determine if it is Boolean and they checks to see if the types of the true and false conditions are the same.  If so, the type is returned:
+In each case, an error is return if arguments are not of the correct type.
+
+`if` is the most interesting of the `ABE` expressions.  Unlike other expressions, `if` expressions do not always have the same time.  Consider two examples:
+
+{% highlight text %}
+if x then 5 else 7+1
+if x then true else 7<=1
+{% endhighlight %}
+
+where the first expression has type number and the second has type Boolean.  Is this expression okay:
+
+{% highlight text %}
+if x then 5 else true
+{% endhighlight %}
+
+If `x` is true, then the type of the `if` is clearly number.  But if `x` is false, then the type of the `if` is clearly Boolean.  What gives?  Can the `if` expression have two types?  For an answer, think about the expression:
+
+{% highlight text %}
+1 + if x then 5 else true
+{% endhighlight %}
+
+The addition operation requires both arguments to be numbers.  In this case, we can't say whether the `if` is or is not a number.  What we need is for the type to be independent of the Boolean condition.  If both `if` outcomes have the same type, then no matter then value of the conditional the expression has the same type.
+
+For `if`, `typeof` checks the type of its conditional to determine if it is Boolean and then checks to determine if the types of the true and false conditions are the same.  If so, the type is returned.  The `If` construction's type is checked as follows:
 
 {% highlight haskell %}
 typeof (If c t e) = if (typeof c) == (Right TBool)
@@ -300,7 +321,9 @@ typeof (If c t e) = if (typeof c) == (Right TBool)
                      else Left "Type mismatch in if"
 {% endhighlight %}
 
-The result is the following `typeof` definition:
+If the condition is not Boolean or the result types are not the same, then `typeof` returns an error message using `Left`.
+
+Putting everything together, the result is the following `typeof` definition:
 
 {% highlight haskell %}
 typeof :: ABE -> TABE

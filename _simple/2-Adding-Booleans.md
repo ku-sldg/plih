@@ -222,7 +222,7 @@ The additional cases are largely as one would anticipate.  `And` `Leq` and `IsZe
 
 The `If` construct differs in that not all arguments are evaluated
 before the `If`.  The condition is evaluated and the Haskell `if`
-expression (TODO: is?) used to evaluate the appropriate `then` or `else` expression.  Note that in both `ABE` and Haskell `if` is an expression that returns a value when calculated.  This is in contrast to languages like C or Java where `if` is a command that sequences execution.  We'll revisit this concept later.
+expression is used to evaluate the appropriate `then` or `else` expression.  Note that in both `ABE` and Haskell `if` is an expression that returns a value when calculated.  This is in contrast to languages like C or Java where `if` is a command that sequences execution.  We'll revisit this concept later.
 
 {% highlight haskell %}
 eval (Boolean b) = (Boolean b)
@@ -249,9 +249,7 @@ Let's fire up QuickCheck and see what we have.  Remember that all `AE` programs 
 
 ### Term Generator
 
-We need to extend the generator from the `Testing` chapter (TODO:
-Referencing the Testing chapter that comes later in book.  May not be
-a way to avoid this..) to generate `ABE` elements.  Like our parser we simply need to define generators for the new `AST` elements and add them to the original generator.
+We need to extend the generator from the `Testing` chapter to generate `ABE` elements.  Like our parser we simply need to define generators for the new `AST` elements and add them to the original generator.
 
 Generating `Boolean` values is identical to generating `Num` values except we use `choose` to select among `True` and `False`:
 

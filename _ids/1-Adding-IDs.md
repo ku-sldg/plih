@@ -1,7 +1,7 @@
 ---
 layout: frontpage
 title: Adding Identifiers
-use_math: true
+use\_math: true
 categories: chapter ch1
 ---
 
@@ -20,7 +20,7 @@ $$
 \newcommand\bbind{\mathsf{bind}\;}
 \newcommand\iin{\mathsf{in}\;}
 \newcommand\aand{\;\mathsf{\&\&}\;}
-\newcommand\lleq{\;\mathtt{<=}\;}
+\newcommand\lleq{\;\mathtt{\<=}\;}
 \newcommand\ttrue{\;\mathsf{true}}
 \newcommand\ffalse{\;\mathsf{false}}
 \newcommand\tnum{\;\mathsf{TNum}}
@@ -71,7 +71,7 @@ First, `bind` expressions can be be nested in simple ways with expected results:
 {% highlight text %}
 bind x = 4 in
   bind y = 5 in
-    x+y-4
+	x+y-4
 {% endhighlight %}
 
 Here the scope of `y` is the expression following `in`, `x+y-4`.  The scope of `x` is the expression following `in`, the nested `bind` expression.  Thus, `x` and `y` are in scope in `x+y-4`.
@@ -81,7 +81,7 @@ Bound variables may also be used in definitions of bound identifier values:
 {% highlight text %}
 bind x = 4 in
   bind y = 5+x in
-    x+y-4
+	x+y-4
 {% endhighlight %}
 
 Here `x` is defined and given the value `4` that can be used in the nested `bind` expression that defines `y`.  The expression `5+x` defines the value of `y` using the previously defined `x`. The expression `x+y-4` refers to both the definition of `x` and the nested definition of `y`.
@@ -91,9 +91,9 @@ There are yet more interesting ways to nest the `bind` expression whose differen
 {% highlight text %}
 bind y = 4 in
   y + bind x = y in
-        bind x = x+2 in
-          x+y-4
-      + x
+	    bind x = x+2 in
+	      x+y-4
+	  + x
 {% endhighlight %}
 
 defines `y` and nests a definition of `x` in another definition of `x`. Reflecting on what traditional languages do, the inner `x` will shadow the outer `x` in its scope.  The outer value is used in the definition of the inner `x` value, but the inner `x` is used in its defined scope.
@@ -103,9 +103,9 @@ Now a slight change placing parens around `x+y-4`.  What does this do?  How does
 {% highlight text %}
 bind y = 4 in
   y + bind x = y in
-        (bind x = x+2 in
-          x+y-4)
-      + x
+	    (bind x = x+2 in
+	      x+y-4)
+	  + x
 {% endhighlight %}
 
 The parentheses close the scope of the inner `x` before the last line.  The body of the innermost `bind` changes from `x+y-4+x` to `x+y-4`.  The final x is associated with the outer `bind` that defines `x`.
@@ -116,50 +116,50 @@ This is not a good way to define the semantics of `bind`.  It is confusing and a
 
 The concrete syntax for this new language is a simple extension of `AE` that includes identifiers and `bind`.  Note that we are back to `AE` without Booleans:
 
-$$\begin{align*}
+$$\begin{align\*}
 t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
 	  & \mid \bbind \ID=t\; \iin t \\
-\end{align*}$$
+\end{align\*}$$
 
 From the concrete syntax we can quickly define a Haskell data type for the abstract syntax:
 
 {% highlight haskell %}
 data BAE where
-  Num :: Int -> BAE
-  Plus :: BAE -> BAE -> BAE
-  Minus :: BAE -> BAE -> BAE
-  Bind :: String -> BAE -> BAE -> BAE
-  Id :: String -> BAE
+  Num :: Int -\> BAE
+  Plus :: BAE -\> BAE -\> BAE
+  Minus :: BAE -\> BAE -\> BAE
+  Bind :: String -\> BAE -\> BAE -\> BAE
+  Id :: String -\> BAE
 {% endhighlight %}
 
 The additions to `AE` that give us `BAE` are the `Bind` constructor and the `Id` constructor.  `Id` is defined over a string in the same way that `Num` is defined over numbers.  `Bind` accepts a string representing the new identifier, an expression representing the identifier value, and a scope for the identifier.
 
 ## Parsing and Printing
 
-Parsing `BAE` expressions is a simple extension of parsing 	`AE`.  We need only add parsers for the and `id` and `bind` cases:
+Parsing `BAE` expressions is a simple extension of parsing  `AE`.  We need only add parsers for the and `id` and `bind` cases:
 
 {% highlight haskell %}
 identExpr :: Parser BAE
-identExpr = do i <- identifier lexer
-               return (Id i)
+identExpr = do i \<- identifier lexer
+	           return (Id i)
 
 bindExpr :: Parser BAE
 bindExpr = do reserved lexer "bind"
-              i <- identifier lexer
-              reservedOp lexer "="
-              v <- expr
-              reserved lexer "in"
-              e <- expr
-              return (Bind i v e)
+	          i <- identifier lexer
+	          reservedOp lexer "="
+	          v <- expr
+	          reserved lexer "in"
+	          e <- expr
+	          return (Bind i v e)
 {% endhighlight %}
 
 Both cases are routine.  `identExpr` simply calls the built-in `identifier` parser and returns the result lifted into the `BAE` AST using `Id`.  `bindExpr` calls the identifier and `expr` parsers in sequence then `Bind` to create the term AST. Both cases are integrated into the main `term` parser in the same way as other expressions:
 
 {% highlight haskell %}
 term = parens lexer expr
-       <|> numExpr
-       <|> identExpr
-       <|> bindExpr
+	   <|> numExpr
+	   <|> identExpr
+	   <|> bindExpr
 {% endhighlight %}
 
 In the previous description, I used the term *lift* for the first time.  When we lift a term we are transforming a term from the host language into the external language.  The opposite of lift is *lower*.
@@ -189,7 +189,7 @@ Let's spend a bit of time to understand the definition of substitution and why i
 
 {% highlight text %}
 eval bind x=5 in x+7 
-== eval [x->5]x+7 [BindE]
+== eval [x-\>5]x+7 [BindE]
 == eval 5+7 [Substitution]
 == 12 [PlusE]
 {% endhighlight %}
@@ -200,11 +200,11 @@ Let's try another example with a nested `bind`:
 
 {% highlight text %}
 eval bind x=5 in
-       x + bind x=7 in x
-== eval [x->5]x + bind x=7 in x [BindE]
+	   x + bind x=7 in x
+== eval [x-\>5]x + bind x=7 in x [BindE]
 == eval 5 + bind x=7 in x [Substitution]
 == eval 5 + eval bind x=7 in x [PlusE]
-== eval 5 + eval [x->7]x [BindE]
+== eval 5 + eval [x-\>7]x [BindE]
 == eval 5 + eval 7 [substitution]
 == 5 + 7 [NumE]
 == 12 [PlusE]
@@ -217,10 +217,10 @@ A third example uses the bound identifier in the definition of a nested identifi
 
 {% highlight text %}
 eval bind x=5 in
-       x + bind y=7+x in y
-== [x->5]x + bind y=7+x in y
+	   x + bind y=7+x in y
+== [x-\>5]x + bind y=7+x in y
 == 5 + bind y=7+5 in y
-== 5 + [y->12]y
+== 5 + [y-\>12]y
 == 5 + 12
 == 17
 {% endhighlight %}
@@ -232,16 +232,16 @@ Here the `x` used in defining a value for `y` becomes free when the binding inst
 To define `eval` for `BAE` we need to first define substitution.  The function `subst x v s` will implement the substitition $[x\mapsto v]s$.  Once again we treat our program as a data structure and define `subst` over the `BAE` data type.
 
 {% highlight haskell %}
-subst :: String -> BAE -> BAE -> BAE
-subst _ _ (Num x) = (Num x)
+subst :: String -\> BAE -\> BAE -\> BAE
+subst \_ \_ (Num x) = (Num x)
 subst i v (Plus l r) = (Plus (subst i v l) (subst i v r))
 subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
 subst i v (Bind i' v' b') = if i==i'
-                            then (Bind i' (subst i v v') b')
-                            else (Bind i' (subst i v v') (subst i v b'))
+	                        then (Bind i' (subst i v v') b')
+	                        else (Bind i' (subst i v v') (subst i v b'))
 subst i v (Id i') = if i==i'
-                    then v
-                    else (Id i')
+	                then v
+	                else (Id i')
 {% endhighlight %}
 
 The cases for numbers and binary operations are trivial.  Substitution has no effect on numbers as they represent constant values.  For addition and subtraction, we simply call substitution recursively on the two expression terms.
@@ -250,16 +250,16 @@ Substituting over an identifier compares the identifier name with the name being
 
 {% highlight haskell %}
 subst i v (Id i') = if i==i'
-                    then v
-                    else (Id i')
+	                then v
+	                else (Id i')
 {% endhighlight %}
 
 How do we determine if an identifier is bound or free?  This is determined by where the identifier occurs and not the identifier itself.  Then `Bind` case takes care of this by turning off substitution for the binding instance it creates.  If the identifier being replaced is the same as the bound instance, then no substitution is performed in the `bind` body.  If the identifier being replace is not the same as the bound instance, substitution is performed on the bound body.  Substitution is always performed on the binding instance's value expression.
 
 {% highlight haskell %}
 subst i v (Bind i' v' b') = if i==i'
-                            then (Bind i' (subst i v v') b')
-                            else (Bind i' (subst i v v') (subst i v b'))
+	                        then (Bind i' (subst i v v') b')
+	                        else (Bind i' (subst i v v') (subst i v b'))
 {% endhighlight %}
 
 Note that the scope of an identifier bound by `bind` is the expression *following* the `in` keyword.  The value expression is explicitly not a part of the scope.  Aside from impacting substitution, this means that a bound instance cannot be used in its own definition. For example:
@@ -273,7 +273,7 @@ will not evaluate because the `x` in the value for `x` is free.  It has no bindi
 With `subst` defined we can easily define `evals`, an evaluator that performs substitution is specified by inference rules.  Cases for `Num`, `Plus` and `Minus` are unchanged from `AE`.  The case for `Bind` is implemented by substitution.  Specifically, the defined identifier is replaced by the value expression in the `bind` body.
 
 {% highlight haskell %}
-evals :: BAE -> Int
+evals :: BAE -\> Int
 evals (Num x) = x
 evals (Plus l r) = (evals l) + (evals r)
 evals (Minus l r) = (evals l) - (evals r)
@@ -297,8 +297,8 @@ Generating random names can be done in several ways.  Rather than generating arb
 
 {% highlight haskell %}
 genName =
-  do i <- choose ('a','z')
-     return [i]
+  do i \<- choose ('a','z')
+	 return [i]
 {% endhighlight %}
 
 `genName` will select a name from the range a to z and return it as a string.
@@ -307,18 +307,18 @@ Generating an ID from a name is done in the same way we generated numbers from i
 
 {% highlight haskell %}
 genId e =
-  do n <- choose ('a')
-     return (Id n)
+  do n \<- choose ('a')
+	 return (Id n)
 
 `genID` now generates completely arbitrary identifier names.
 
 The final term type is `Bind` and we'll generate it much the same way as other multi-argument forms.  `genBind` generates a name for the bound id, an expression for the bound id value, and an expression for the body.  The `Bind` constructor puts the elements together to generate an arbitrary `Bind` construction:
 
 genBind n e =
-  do i <- genName
-     v <- genBAE n
-     b <- genBAE n
-     return (Bind i v b)
+  do i \<- genName
+	 v <- genBAE n
+	 b <- genBAE n
+	 return (Bind i v b)
 {% endhighlight %}
 
 We can integrate both the `Id` and `Bind` generators into the arbitrary expression generator by adding them to the `oneof` argument lists for the base case and inductive case respectively.
@@ -327,7 +327,7 @@ Now for a QuickCheck test:
 
 {% highlight haskell %}
 testEvals n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> (interps $ pprint t) == (evals t))
+  (\t -\> (interps $ pprint t) == (evals t))
 {% endhighlight %}
 
 What happens is an almost immediate testing failure resulting from an undefined identifier.  An example `BAE` instance that causes such a failure is:
@@ -341,45 +341,45 @@ It is almost impossible to get QuickCheck to find an arbitrary term without a fr
 Thankfully this is not a difficult feature to add.  What we will do is input a list of bound identifiers to the `BAE` term generator:
 
 {% highlight haskell %}
-genBAE :: Int -> [String] -> Gen BAE
+genBAE :: Int -\> [String] -\> Gen BAE
 genBAE 0 e =
-  do term <- oneof (case e of
-                      [] -> [genNum]
-                      _ -> [genNum
-                           , (genId e)])
-     return term
+  do term \<- oneof (case e of
+	                  [] -> [genNum]
+	                  _ -> [genNum
+	                       , (genId e)])
+	 return term
 genBAE n e =
-  do term <- oneof [genNum
-                   , (genPlus (n-1) e)
-                   , (genMinus (n-1) e)
-                   , (genBind (n-1) e)]
-     return term
+  do term \<- oneof [genNum
+	               , (genPlus (n-1) e)
+	               , (genMinus (n-1) e)
+	               , (genBind (n-1) e)]
+	 return term
 {% endhighlight %}
 
 `genBind` will still generate an arbitrary symbol as its binding instance name.  When `genBind` calls `genBAE` to generate its body, the new identifier is added to a list of previously bound identifiers.
 
 {% highlight haskell %}
 genBind n e =
-  do i <- genName
-     v <- genBAE n e
-     b <- genBAE n (i:e)
-     return (Bind i v b)
+  do i \<- genName
+	 v <- genBAE n e
+	 b <- genBAE n (i:e)
+	 return (Bind i v b)
 {% endhighlight %}
 
 Now when `genId` is called it is given a list of bound identifiers.  Rather than using `choose` over a range of characters, the `elements` generator is used to select an arbitrary element of the bound identifier list:
 
 {% highlight haskell %}
 genId e =
-  do n <- elements e
-     return (Id n)
+  do n \<- elements e
+	 return (Id n)
 {% endhighlight %}
 
 Our new arbitrary term generator produces only terms that include bound identifiers.  We can QuickCheck `evals` to determine if it crashes as we did earlier versions of `eval`:
 
 {% highlight haskell %}
-testEvals :: Int -> IO ()
+testEvals :: Int -\> IO ()
 testEvals n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> (interps $ pprint t) == (evals t))
+  (\t -\> (interps $ pprint t) == (evals t))
 {% endhighlight %}
 
 ## Discussion
@@ -391,9 +391,9 @@ As an example, consider this intentionally obnoxious code fragment from `BAE`:
 {% highlight text %}
 let w=5 in
   let x=7+w in
-    let y=14+x+w in
-      let z=5+x+w+y in
-        w+x+y+z 
+	let y=14+x+w in
+	  let z=5+x+w+y in
+	    w+x+y+z 
 {% endhighlight %}
 
 To execute this code, `evals` would start by replacing `w` with 5 throughout the body of the outer `let`.  This results in:
@@ -401,8 +401,8 @@ To execute this code, `evals` would start by replacing `w` with 5 throughout the
 {% highlight text %}
 let x=7+5 in
   let y=14+x+5 in
-    let z=5+x+5+y in
-      5+x+y+z 
+	let z=5+x+5+y in
+	  5+x+y+z 
 {% endhighlight %}
 
 Each `bind` body and value expression are visited and `w` replaced with `5`.  Now we evaluate the outer `bind` body the same way, replacing `x` by 12.
@@ -410,7 +410,7 @@ Each `bind` body and value expression are visited and `w` replaced with `5`.  No
 {% highlight text %}
 let y=14+12+5 in
   let z=5+12+5+y in
-    5+12+y+z 
+	5+12+y+z 
 {% endhighlight %}
 
 Do you see the problem?  Every inner `bind` body and value expression are visited a second time to perform the second replacement.  The process now repeats for `y` and `z` causing the innermost body to be processed 4 times and the innermost `bind` value expression 3 times.  For this tiny code fragment, there is no problem.  For complex code, imagine visiting the entire executable program once for each identifier evaluated!  We must find a more efficient way.
@@ -434,7 +434,8 @@ As inefficient as they are, `interps` and `evals` as are still useful. `interps`
 
 ## Source
 
-Download [source]({{site.baseurl}}/haskell/bae.hs) for all interpreter code from this chapter.
+Download [source][1] for all interpreter code from this chapter.
 
 ## Notes
 
+[1]:	%7B%7Bsite.baseurl%7D%7D/haskell/bae.hs

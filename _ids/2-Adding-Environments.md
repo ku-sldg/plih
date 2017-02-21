@@ -29,7 +29,7 @@ $$
 
 # Adding Environments
 
-The substitution mechanism implemented in `evals` is a faithful implementation of our eval definition, but it is not optimized in any way. Let's try a far more efficient implementation of the `BAE` interpreter that waits to perform substitution until an identifier is evaluated.  To understand the approach, consider a simple example from the previous chapter:
+The substitution mechanism implemented in `evals` is a faithful implementation of our eval definition, but it is not optimized in any way. Let's try a far more efficient implementation of the `BAE` interpreter that waits to perform substitution until an identifier is evaluated rather that immediately substituting when an identifier is bound.  To understand the approach, consider a simple example from the previous chapter:
 
 {% highlight text %}
 bind x = 4 in
@@ -45,9 +45,9 @@ bind x = 4 in    [(x,4)]
     x+y-4
 {% endhighlight %}
 
-Evaluating the bind calculates the value of `x`, but does not immediately substitute.  It simply remembers that `x` is `4`.  The notation `[(x,4)]` depicts an *environment* containing the *binding* of `x` to `4`. `bind` adds to an environment.  The decorations after each `in` show the environment in each `bind` scope.  Following the first `in`, the environment contains the binding of `4` to `x`.
+Evaluating the bind calculates the value of `x`, but does not immediately substitute.  It simply remembers that `x` is `4`.  The notation `[(x,4)]` depicts an *environment* containing the *binding* of `x` to `4`.  The decorations after each `in` show the environment in each `bind`'s scope.  Each `bind` adds a binding to the current environment.  As shown above, following the first `in`, the environment contains the binding of `4` to `x`.
 
-Evaluation does the same thing for the inner bind, but this time it remembers that `y` is bound to `5` by adding it to the front of the list:
+Evaluation does the same thing for the inner bind, but this time it remembers that `y` is bound to `5` by adding it to the front of the list representing the enviornment:
 
 {% highlight text %}
 bind x = 4 in    [(x,4)]
@@ -55,7 +55,7 @@ bind x = 4 in    [(x,4)]
     x+y-4
 {% endhighlight %}
 
-After the second `in`, the environment contains bindings for both `y` and `x`.  As we will see later, order is important here.  New bindings are always added to the front of the environment.
+After the second `in`, the environment contains bindings for both `y` and `x`.  As we will see later, order is important here.  New bindings are always added to the beginning of the environment.
 
 Now we are ready to evaluate the body of the innermost `bind`.  The interpreter evaluates each identifier by simply looking it up in the current environment:
 
@@ -65,11 +65,9 @@ x+y-4     [(y,5),(x,4)]
 == 5
 {% endhighlight %}
 
-If constructed correctly, the environment should contain a binding for every bound instance.
+If constructed correctly, the environment should contain a binding for every bound instance.  Unlike `evals`, this new evaluator visits each element of the expression one time making evaluation far more efficient than constantly walking the code to perform substitution.
 
-Unlike `evals`, this new evaluator visits each element of the expression one time making evaluation far more efficient than constantly walking the code to perform substitution.
-
-Thus, an *environment* is a data structure containing *bindings* generated from binding instances.  As of now, binding instances are only create by `bind` expressions, thus environments are altered only by executing `bind`.  A binding is simply an identifier/value pair.  A binding is added to the environment each time a `bind` expression is evaluated.
+Summarizing, an *environment* is a data structure containing *bindings* generated from binding instances.  As of now, binding instances are only create by `bind` expressions, thus environments are altered only by executing `bind`.  A binding is simply an identifier/value pair.  A binding is added to the environment each time a `bind` expression is evaluated.
 
 ## Nesting Bind - Redux
 

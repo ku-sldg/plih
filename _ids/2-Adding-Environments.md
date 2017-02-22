@@ -98,6 +98,7 @@ bind y = 4 in         [(y,4)]
 In the example, the environment from the second `bind` is repeated for the last `x` for emphasis.  It is not created by somehow removing the outermost binding for `x`, but is simply returned to when the expression `x+y-4` finishes evaluating.  Thus the result is  14 rather than 16.
 
 When a free variable is encountered, it will have no binding in the current environment.
+
 {% highlight haskell %}
 bind x=5 in  [(x,5)]
   y+x
@@ -111,7 +112,7 @@ Another experiment tries to use `x` recursively in its own definition:
 bind x = x+1 in x
 {% endhighlight %}
 
-This definition seems odd from the outset, but try and use an environment to evaluate.  The environment resulting from the `bind` should contain a value for `x`, but what does the environment contain *before* `bind`?  That is the environment used to find the value of `x` in `x+1`.  As one might guess, the environment is empty and contains no bindings.  Thus, when `x` is evaluated in `x+1`, an undefined identifier error results.
+This definition seems odd from the outset, but try to use an environment to create a binding.  The environment resulting from the `bind` should contain a value for `x`, but what does the environment contain *before* `bind`?  That is the environment used to find the value of `x` in `x+1`.  As one might guess, the environment is empty and contains no bindings.  Thus, when `x` is evaluated in `x+1`, an undefined identifier error results.
 
 ## Defining an Environment
 
@@ -121,13 +122,23 @@ As noted earlier, an environment is simply a list of identifier/value pairs.  Th
 type Env = [(String,Int)]
 {% endhighlight %}
 
-`eval` becomes a function from an environment and expression to an integer.
+For example, environment"
+
+{% highlight haskell %}
+[("x",5),("frap",7),("z",10)]
+{% endhighlight %}
+
+contains three bindings for identifiers named `x`, `frap` and `z` in order of recency.
+
+To include an environment, `eval` becomes a function from an environment and expression to an integer:
 
 {% highlight haskell %}
 eval :: Env -> BAE -> Int
 {% endhighlight %}
 
-The cases for numbers, addition and subtraction are the same as for `evals` and earlier evaluators, except recursive calles to `eval` must include the environment, `env`:
+Every call to `eval` now includes the environment used by the evaluation.  As we'll see, evaluating `bind` involves adding a binding to the environment while evaluating other terms do not affect the binding.
+
+Implementing `eval` with an environment follows the same pattern as other interpreters with the addition of an environment parameter to recursive `eval` calls.  The cases for numbers, addition and subtraction are the same as for `evals` and earlier evaluators, except recursive calls to `eval` must include the environment, `env`:
 
 {% highlight haskell %}
 eval env (Num x) = x
@@ -135,28 +146,33 @@ eval env (Plus l r) = (eval env l) + (eval env r)
 eval env (Minus l r) = (eval env l) - (eval env r)
 {% endhighlight %}
 
-Cases for `Bind` and `Id` manage and use the environment respectively:
+The environment passed with `eval` does not change.  For example, when evaluating  `+` the same environment is used for subterms as is used for the term itself.
+
+Cases for `Bind` and `Id` manage and use the environment respectively.  `Bind` adds to the environment and `Id` searches the environment:
 
 {% highlight haskell %}
 eval env (Bind i v b) =
   let v' = eval env v in
     eval ((i,v'):env) b
+{% endhighlight %}
+
+The `Bind` case evaluates the value expression associated with the new identifier using the current environment.  The expression `((i,v'):env)` creates a new pair and adds it to the front of the original environment using cons.
+
+{% highlight haskell %}
 eval env (Id id) = case (lookup id env) of
                      Just x -> x
                      Nothing -> error "Varible not found"
 {% endhighlight %}
 
-The `Bind` case evaluates the value expression associated with the new identifier using the current environment.  The expression `((i,v'):env)` creates a new pair and adds it to the front of the original environment using cons.
-
 The `Id` case uses the builtin Haskell `lookup` function to search the environment for the first pair whose first element is equal to `id`, the name of the identifier.  `lookup` returns a `Maybe` instance where `Just a` is a value if if found and `Nothing` indicates and error.[^1]  The `case` statement implements a check for `Just a` or `Nothing` and returns `a` or throws and error respectively.
 
-Finally, the interpretation function is defined by composing `eval []` and the parser.  Note that the parser, pretty printer, and term generator from the immediate substitution example are completely unchanged.
+Finally, the interpretation function is defined by composing `eval []` and the parser.  Note that the parser, pretty printer, and term generator from the immediate substitution example are completely unchanged.  This is the first sign we have built the new interpreter correctly.
 
 {% highlight haskell %}
 interp = (eval []) . parseBAE
 {% endhighlight %}
 
-Remember that `eval []` results in a function with a single parameter of type `BAE`.  In effect, an instance of `eval` with an empty initial environment.  Still, it is a function and can be treated like any other function.
+Remember that `eval []` results in a function with a single parameter of type `BAE`.  It is still a function and can be treated like any other function.
 
 ## Testing
 

@@ -47,7 +47,7 @@ bind x = 4 in    [(x,4)]
 
 Evaluating the bind calculates the value of `x`, but does not immediately substitute.  It simply remembers that `x` is `4`.  The notation `[(x,4)]` depicts an *environment* containing the *binding* of `x` to `4`.  The decorations after each `in` show the environment in each `bind`'s scope.  Each `bind` adds a binding to the current environment.  As shown above, following the first `in`, the environment contains the binding of `4` to `x`.
 
-Evaluation does the same thing for the inner bind, but this time it remembers that `y` is bound to `5` by adding it to the front of the list representing the enviornment:
+Evaluation does the same thing for the inner bind, but this time it remembers that `y` is bound to `5` by adding it to the front of the list representing the environment:
 
 {% highlight text %}
 bind x = 4 in    [(x,4)]
@@ -161,7 +161,7 @@ The `Bind` case evaluates the value expression associated with the new identifie
 {% highlight haskell %}
 eval env (Id id) = case (lookup id env) of
                      Just x -> x
-                     Nothing -> error "Varible not found"
+                     Nothing -> error "Variable not found"
 {% endhighlight %}
 
 The `Id` case uses the builtin Haskell `lookup` function to search the environment for the first pair whose first element is equal to `id`, the name of the identifier.  `lookup` returns a `Maybe` instance where `Just a` is a value if if found and `Nothing` indicates and error.[^1]  The `case` statement implements a check for `Just a` or `Nothing` and returns `a` or throws and error respectively.

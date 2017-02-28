@@ -133,6 +133,8 @@ the value for `inc` is found just like the value for `l`.
 
 The use of function values in programming languages dates back to Lisp and is finding its way into many mainstream languages. It is an elegant solution to defining functions that requires little syntax and few semantic extensions.
 
+{% comment %}
+
 ## Implementing First Order Functions
 
 ### Concrete and Abstract Syntax
@@ -177,6 +179,8 @@ What does it mean to apply a first-order function?
 $$\frac{}{(\aapp (\llambda f\; i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reduction]$$
 
 The details of implementing `eval` for first-order functions is left as an exercise.
+
+{% endcomment %}
 
 ## Implementing First-Class Functions
 

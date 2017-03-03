@@ -218,11 +218,11 @@ Additions to abstract syntax include new fields for `Lambda` and `App`.  The def
 
 {% highlight haskell %}
 data FBAE where
-  Num :: Int -> BAE
-  Plus :: BAE -> BAE -> BAE
-  Minus :: BAE -> BAE -> BAE
+  Num :: Int -> FBAE
+  Plus :: FBAE -> FBAE -> FBAE
+  Minus :: FBAE -> FBAE -> FBAE
   Bind :: String -> BAE -> BAE -> BAE
-  Lambda :: String -> BAE
+  Lambda :: String -> BAE -> BAE
   App :: BAE -> BAE -> BAE
   Id :: String -> BAE
 {% endhighlight %}

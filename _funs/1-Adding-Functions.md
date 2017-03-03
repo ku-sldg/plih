@@ -33,7 +33,7 @@ $$
 
 For those of us in the functional language community, functions are the essence of computation.  From Church's Lambda Calculus forward, the use of functions to encapsulate and apply computation  has been an essential part of computer science.
 
-As an example of where we want to go, consider a haskell function `inc`  that simply increments the value of its argument and returns the result:
+As an example of where we want to go, consider a Haskell function `inc`  that simply increments the value of its argument and returns the result:
 
 {% highlight haskell %}
 inc x = x + 1

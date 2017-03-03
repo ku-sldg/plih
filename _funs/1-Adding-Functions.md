@@ -221,10 +221,10 @@ data FBAE where
   Num :: Int -> FBAE
   Plus :: FBAE -> FBAE -> FBAE
   Minus :: FBAE -> FBAE -> FBAE
-  Bind :: String -> BAE -> BAE -> BAE
-  Lambda :: String -> BAE -> BAE
-  App :: BAE -> BAE -> BAE
-  Id :: String -> BAE
+  Bind :: String -> FBAE -> FBAE -> FBAE
+  Lambda :: String -> FBAE -> FBAE
+  App :: FBAE -> FBAE -> FBAE
+  Id :: String -> FBAE
 {% endhighlight %}
 
 ### Formal Definition

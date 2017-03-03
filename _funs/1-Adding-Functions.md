@@ -407,6 +407,7 @@ We have successfully implemented an untyped function system by adding to our ori
 1. Write an `eval` function for a language with only first-class functions using direct substitutions and the `subst` operation defined for `bind`
 2. Modify your `eval` function for a language with only first-class functions to defer substitution using an environment that contains both functions and values.
 
-
+{% comment %}
 ## Notes
 * Reference for the lambda calculus
+{% endcomment %}

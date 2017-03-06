@@ -1,0 +1,39 @@
+name: PLIH
+version: 1.0
+cabal-version: 1.11
+build-type: Simple
+license: AllRightsReserved
+copyright: Copyright Perry Alexander
+maintainer: Perry Alexander
+stability: experimental
+synopsis: Haskell code for PLIH
+category: Education
+author: Perry Alexander
+x-ghc-framework-version: 7.10.3-5.18-2
+x-last-ide-version: HfM1.3.2
+Executable Untitled
+  main-is: Untitled.hs
+  buildable: True
+  build-depends:
+      base -any,
+      QuickCheck -any,
+      random -any,
+      parsec -any
+  other-modules:
+      Fbaer
+      Abe
+      Do
+      FbaeM
+      FbaesM
+      Fbaesr
+      Fbaes
+      AbeM
+      ParserUtils
+      Bbaeg
+      Fbae
+      Ae
+      Bbaet
+      Fobae
+      Bae
+      Fbaet
+      Fbbaet

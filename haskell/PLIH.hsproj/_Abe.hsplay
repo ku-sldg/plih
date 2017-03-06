@@ -1,0 +1,4 @@
+-- Haskell Playground 1.0
+interpTyped "1+1"
+interpTyped "2+2+3"
+interpTyped "1+true"

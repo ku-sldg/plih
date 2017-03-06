@@ -12,7 +12,7 @@ author: Perry Alexander
 x-ghc-framework-version: 7.10.3-5.18-2
 x-last-ide-version: HfM1.3.2
 Executable Untitled
-  main-is: Untitled.hs
+  main-is: Main.hs
   buildable: True
   build-depends:
       base -any,
@@ -29,11 +29,9 @@ Executable Untitled
       Fbaes
       AbeM
       ParserUtils
-      Bbaeg
       Fbae
       Ae
       Bbaet
-      Fobae
       Bae
       Fbaet
       Fbbaet

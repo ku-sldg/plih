@@ -1,5 +1,7 @@
 {-# LANGUAGE GADTs #-}
 
+module AbeM where
+
 -- Imports for QuickCheck
 import System.Random
 import Test.QuickCheck

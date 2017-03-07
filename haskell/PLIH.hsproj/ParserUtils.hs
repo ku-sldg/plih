@@ -24,7 +24,14 @@ languageDef =
                               , "false"
                               , "lambda"
                               , "fix"
-                              , "app" ]
+                              , "app"
+                              , "seq"
+                              , "print"
+                              , "cons"
+                              , "first"
+                              , "rest"
+                              , "isEmpty"
+                              , "empty" ]
             , reservedOpNames = [ "+","-","*","/","&&","||","<=","="]
             }
   

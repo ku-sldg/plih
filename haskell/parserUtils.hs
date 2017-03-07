@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module ParserUtils where
 
 import Control.Monad
@@ -22,7 +24,14 @@ languageDef =
                               , "false"
                               , "lambda"
                               , "fix"
-                              , "app" ]
+                              , "app"
+                              , "seq"
+                              , "print"
+                              , "cons"
+                              , "first"
+                              , "rest"
+                              , "isEmpty"
+                              , "empty" ]
             , reservedOpNames = [ "+","-","*","/","&&","||","<=","="]
             }
   

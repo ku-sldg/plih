@@ -3,6 +3,7 @@ version: 1.0
 cabal-version: 1.11
 build-type: Simple
 license: AllRightsReserved
+license-file: stack.yaml
 copyright: Copyright Perry Alexander
 maintainer: Perry Alexander
 stability: experimental
@@ -29,6 +30,8 @@ Executable Untitled
       Fbaes
       AbeM
       ParserUtils
+      Proj2
+      Proj2Utils
       Fbae
       Ae
       Bbaet

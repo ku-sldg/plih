@@ -125,11 +125,11 @@ From the concrete syntax we can quickly define a Haskell data type for the abstr
 
 {% highlight haskell %}
 data BAE where
-  Num :: Int -\> BAE
-  Plus :: BAE -\> BAE -\> BAE
-  Minus :: BAE -\> BAE -\> BAE
-  Bind :: String -\> BAE -\> BAE -\> BAE
-  Id :: String -\> BAE
+  Num :: Int -> BAE
+  Plus :: BAE -> BAE -> BAE
+  Minus :: BAE -> BAE -> BAE
+  Bind :: String -> BAE -> BAE -> BAE
+  Id :: String -> BAE
 {% endhighlight %}
 
 The additions to `AE` that give us `BAE` are the `Bind` constructor and the `Id` constructor.  `Id` is defined over a string in the same way that `Num` is defined over numbers.  `Bind` accepts a string representing the new identifier, an expression representing the identifier value, and a scope for the identifier.
@@ -140,7 +140,7 @@ Parsing `BAE` expressions is a simple extension of parsing  `AE`.  We need only 
 
 {% highlight haskell %}
 identExpr :: Parser BAE
-identExpr = do i \<- identifier lexer
+identExpr = do i <- identifier lexer
 	           return (Id i)
 
 bindExpr :: Parser BAE
@@ -189,7 +189,7 @@ Let's spend a bit of time to understand the definition of substitution and why i
 
 {% highlight text %}
 eval bind x=5 in x+7 
-== eval [x-\>5]x+7 [BindE]
+== eval [x->5]x+7 [BindE]
 == eval 5+7 [Substitution]
 == 12 [PlusE]
 {% endhighlight %}
@@ -201,10 +201,10 @@ Let's try another example with a nested `bind`:
 {% highlight text %}
 eval bind x=5 in
 	   x + bind x=7 in x
-== eval [x-\>5]x + bind x=7 in x [BindE]
+== eval [x->5]x + bind x=7 in x [BindE]
 == eval 5 + bind x=7 in x [Substitution]
 == eval 5 + eval bind x=7 in x [PlusE]
-== eval 5 + eval [x-\>7]x [BindE]
+== eval 5 + eval [x->7]x [BindE]
 == eval 5 + eval 7 [substitution]
 == 5 + 7 [NumE]
 == 12 [PlusE]
@@ -218,9 +218,9 @@ A third example uses the bound identifier in the definition of a nested identifi
 {% highlight text %}
 eval bind x=5 in
 	   x + bind y=7+x in y
-== [x-\>5]x + bind y=7+x in y
+== [x->5]x + bind y=7+x in y
 == 5 + bind y=7+5 in y
-== 5 + [y-\>12]y
+== 5 + [y->12]y
 == 5 + 12
 == 17
 {% endhighlight %}
@@ -232,8 +232,8 @@ Here the `x` used in defining a value for `y` becomes free when the binding inst
 To define `eval` for `BAE` we need to first define substitution.  The function `subst x v s` will implement the substitition $[x\mapsto v]s$.  Once again we treat our program as a data structure and define `subst` over the `BAE` data type.
 
 {% highlight haskell %}
-subst :: String -\> BAE -\> BAE -\> BAE
-subst \_ \_ (Num x) = (Num x)
+subst :: String -> BAE -> BAE -> BAE
+subst _ _ (Num x) = (Num x)
 subst i v (Plus l r) = (Plus (subst i v l) (subst i v r))
 subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
 subst i v (Bind i' v' b') = if i==i'
@@ -273,7 +273,7 @@ will not evaluate because the `x` in the value for `x` is free.  It has no bindi
 With `subst` defined we can easily define `evals`, an evaluator that performs substitution is specified by inference rules.  Cases for `Num`, `Plus` and `Minus` are unchanged from `AE`.  The case for `Bind` is implemented by substitution.  Specifically, the defined identifier is replaced by the value expression in the `bind` body.
 
 {% highlight haskell %}
-evals :: BAE -\> Int
+evals :: BAE -> Int
 evals (Num x) = x
 evals (Plus l r) = (evals l) + (evals r)
 evals (Minus l r) = (evals l) - (evals r)
@@ -297,7 +297,7 @@ Generating random names can be done in several ways.  Rather than generating arb
 
 {% highlight haskell %}
 genName =
-  do i \<- choose ('a','z')
+  do i <- choose ('a','z')
 	 return [i]
 {% endhighlight %}
 
@@ -307,7 +307,7 @@ Generating an ID from a name is done in the same way we generated numbers from i
 
 {% highlight haskell %}
 genId e =
-  do n \<- choose ('a')
+  do n <- choose ('a')
 	 return (Id n)
 
 `genID` now generates completely arbitrary identifier names.
@@ -327,7 +327,7 @@ Now for a QuickCheck test:
 
 {% highlight haskell %}
 testEvals n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -\> (interps $ pprint t) == (evals t))
+  (\t -> (interps $ pprint t) == (evals t))
 {% endhighlight %}
 
 What happens is an almost immediate testing failure resulting from an undefined identifier.  An example `BAE` instance that causes such a failure is:
@@ -341,15 +341,15 @@ It is almost impossible to get QuickCheck to find an arbitrary term without a fr
 Thankfully this is not a difficult feature to add.  What we will do is input a list of bound identifiers to the `BAE` term generator:
 
 {% highlight haskell %}
-genBAE :: Int -\> [String] -\> Gen BAE
+genBAE :: Int -> [String] -> Gen BAE
 genBAE 0 e =
-  do term \<- oneof (case e of
+  do term <- oneof (case e of
 	                  [] -> [genNum]
 	                  _ -> [genNum
 	                       , (genId e)])
 	 return term
 genBAE n e =
-  do term \<- oneof [genNum
+  do term <- oneof [genNum
 	               , (genPlus (n-1) e)
 	               , (genMinus (n-1) e)
 	               , (genBind (n-1) e)]
@@ -360,7 +360,7 @@ genBAE n e =
 
 {% highlight haskell %}
 genBind n e =
-  do i \<- genName
+  do i <- genName
 	 v <- genBAE n e
 	 b <- genBAE n (i:e)
 	 return (Bind i v b)
@@ -370,16 +370,16 @@ Now when `genId` is called it is given a list of bound identifiers.  Rather than
 
 {% highlight haskell %}
 genId e =
-  do n \<- elements e
+  do n <- elements e
 	 return (Id n)
 {% endhighlight %}
 
 Our new arbitrary term generator produces only terms that include bound identifiers.  We can QuickCheck `evals` to determine if it crashes as we did earlier versions of `eval`:
 
 {% highlight haskell %}
-testEvals :: Int -\> IO ()
+testEvals :: Int -> IO ()
 testEvals n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -\> (interps $ pprint t) == (evals t))
+  (\t -> (interps $ pprint t) == (evals t))
 {% endhighlight %}
 
 ## Discussion

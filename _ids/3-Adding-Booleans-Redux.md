@@ -411,4 +411,4 @@ Remember these things moving forward.  The step-by-step approach for defining a 
 
 ## Source
 
-Download [source]({{site.baseurl}}/haskell/bbae.hs) for all interpreter code from this chapter.
+Download [source]({{site.baseurl}}/haskell/bbaet.hs) for all interpreter code from this chapter.

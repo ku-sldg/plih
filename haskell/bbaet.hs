@@ -46,7 +46,7 @@ data BBAE where
   If :: BBAE -> BBAE -> BBAE -> BBAE
   deriving (Show,Eq)
 
--- AST Pretty Printer
+-- Ast Pretty Printer
 
 pprint :: BBAE -> String
 pprint (Num n) = show n

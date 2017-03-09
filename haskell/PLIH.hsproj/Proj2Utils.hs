@@ -36,8 +36,7 @@ data BBAE where
   Num :: Int -> BBAE
   Plus :: BBAE -> BBAE -> BBAE
   Minus :: BBAE -> BBAE -> BBAE
-  Bind :: (String,BBAE) -> BBAE -> BBAE
-  Binds :: [(String,BBAE)] -> BBAE -> BBAE
+  Bind :: String -> BBAE -> BBAE -> BBAE
   Id :: String -> BBAE
   Boolean :: Bool -> BBAE
   And :: BBAE -> BBAE -> BBAE
@@ -80,7 +79,7 @@ bindExpr = do reserved lexer "bind"
               v <- expr
               reserved lexer "in"
               e <- expr
-              return (Bind (i,v) e)
+              return (Bind i v e)
 
 trueExpr :: Parser BBAE
 trueExpr = do i <- reserved lexer "true"
@@ -150,10 +149,6 @@ term = parens lexer expr
        <|> printExpr
        <|> seqExpr
        
-parseBAE = parseString expr
-
-parseBAEFile = parseFile expr
-
 -- Parser invocation
 
 parseBBAE = parseString expr

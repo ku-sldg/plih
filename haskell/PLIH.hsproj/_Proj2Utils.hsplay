@@ -1,0 +1,3 @@
+-- Haskell Playground 1.0
+parseBBAE "1+1"
+parseBBAE "bind x=1 in x"

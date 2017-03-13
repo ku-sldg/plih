@@ -11,5 +11,5 @@ categories: chapter
 >
 > --Unknown
 
-This work is dedicated to my mom, Virgie Alexander, who has never for even one second been able to resist the urge to be kind.
+This ebook is dedicated to my mom, Virgie Alexander, who has never for even one second been able to resist the urge to be kind.
 

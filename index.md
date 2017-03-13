@@ -15,6 +15,8 @@ An introduction to programming languages using Haskell.
 ## <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
 {% endfor %}
 
+---
+
 # Introduction
 
 {% for post in site.intro %}

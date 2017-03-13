@@ -9,6 +9,12 @@ Support for EECS 662 at The University of Kansas.
 
 ---	
 
+# Acknowledgements
+
+{% for post in site.front %}
+## <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
+{% endfor %}
+
 # Introduction
 
 {% for post in site.intro %}

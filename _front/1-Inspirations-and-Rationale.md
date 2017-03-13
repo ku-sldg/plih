@@ -1,6 +1,6 @@
 ---
 layout: frontpage
-title: Acknowledgements
+title: Inspirations and Rationale
 use_math: true
 categories: chapter
 ---

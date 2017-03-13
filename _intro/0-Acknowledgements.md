@@ -2,7 +2,7 @@
 layout: frontpage
 title: Acknowledgements
 use_math: true
-categories: chapter ch0
+categories: chapter
 ---
 > The more I think about language, the more it amazes me that people ever understand each other.
 >  

@@ -5,12 +5,10 @@ evals (Binds [("x",(Num 1)),("y",(Num 2))] (Plus (Id "x") (Id "y")))
 
 eval [] (Binds [("x",(Num 1)),("y",(Num 2))] (Plus (Id "x") (Id "y")))
 
-testEval 100
-
-print 100
-
 parseBAE "cons 3 empty"
 parseBAE "print 3"
 parseBAE "empty"
 parseBAE "first 3"
 parseBAE "rest 4"
+
+evals (Print (Plus (Num 10) (Num 20)))

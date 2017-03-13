@@ -19,6 +19,9 @@ import Text.ParserCombinators.Parsec.Token
 -- Imports for PLIH
 import ParserUtils
 
+-- Imports for being naughty with IO
+import System.IO.Unsafe
+
 --
 -- Simple caculator with variables extended Booleans and both static and
 -- dynamic type checking.
@@ -228,8 +231,8 @@ evals (If c t e) = do { (Boolean c') <- (evals c) ;
                         }
 evals (Seq f s) = do { (evals f) ;
                        (evals s) }
-evals (Print t) = do { t' <- (evals t) ;
-                       let r = (print t') in (return (Num 0)) }
+evals (Print t) = let t' = evals t in
+  (seq (unsafePerformIO $ print t') return (Num 0))
 
 interps = evals . parseBAE
 

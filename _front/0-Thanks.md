@@ -4,6 +4,8 @@ title: Thanks
 use_math: true
 categories: chapter
 ---
+# Dedication
+
 > Never resist the urge to be kind.
 >
 > --Unknown

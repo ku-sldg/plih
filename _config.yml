@@ -4,6 +4,9 @@ subtitle: Support for EECS 662 at KU
 markdown: kramdown
 url: http://ku-sldg.github.io/plih
 collections:
+  front:
+    output: true
+    title: Acknowledgements
   intro:
     output: true
     title: Introduction

@@ -1,7 +1,7 @@
 ---
 layout: frontpage
 title: Adding Identifiers
-use\_math: true
+use_math: true
 categories: chapter ch1
 ---
 
@@ -434,8 +434,4 @@ As inefficient as they are, `interps` and `evals` as are still useful. `interps`
 
 ## Source
 
-Download [source][1] for all interpreter code from this chapter.
-
-## Notes
-
-[1]:	%7B%7Bsite.baseurl%7D%7D/haskell/bae.hs
+Download [source](http://ku-sldg.github.io/plih//haskell/bae.hs) for all interpreter code from this chapter.

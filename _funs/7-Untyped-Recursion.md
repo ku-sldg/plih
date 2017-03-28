@@ -12,7 +12,7 @@ Recursion is among the simplest and most beautiful concepts in computer science.
 
 {% highlight text %}
 bind fact =
-  lambda (x:TNum) in
+  lambda x in
      if x=0 then 1 else x * (app fact x-1) in
   app fact 3
 {% endhighlight %}
@@ -43,7 +43,7 @@ To understand why recursion works with no extensions using dynamic scoping we ne
 
 {% highlight text %}
 bind fact =                                    []
-  lambda (x:TNum) in                           [(x,??)]
+  lambda x in                                  [(x,??)]
      if x=0 then 1 else x * (app fact x-1) in  [(fact,(Lambda "x" ...))]
   app fact 3
 {% endhighlight %}
@@ -58,7 +58,7 @@ To understand why recursion fails using static scoping, we need to look carefull
 
 {% highlight text %}
 bind fact =                                    []
-  lambda (x:TNum) in                           [(x,??)]
+  lambda x in                                  [(x,??)]
      if x=0 then 1 else x * (app fact x-1) in  [(fact,(Closure "x" ...))]
   app fact 3
 {% endhighlight %}
@@ -69,7 +69,7 @@ We get a hint if we do the same evaluation, but this time using `0` as the argum
 
 {% highlight text %}
 bind fact =                                    []
-  lambda (x:TNum) in                           [(x,??)]
+  lambda x in                                  [(x,??)]
      if x=0 then 1 else x * (app fact x-1) in  [(fact,(Closure "x" ...))]
   app fact 0
 == 1

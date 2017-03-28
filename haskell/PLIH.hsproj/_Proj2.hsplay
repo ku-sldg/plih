@@ -10,5 +10,6 @@ parseBAE "print 3"
 parseBAE "empty"
 parseBAE "first 3"
 parseBAE "rest 4"
+parseBAE "seq 2 4"
 
 evals (Print (Plus (Num 10) (Num 20)))

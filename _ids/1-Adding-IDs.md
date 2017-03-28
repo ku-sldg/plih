@@ -434,4 +434,4 @@ As inefficient as they are, `interps` and `evals` as are still useful. `interps`
 
 ## Source
 
-Download [source](http://ku-sldg.github.io/plih//haskell/bae.hs) for all interpreter code from this chapter.
+Download [source](http://ku-sldg.github.io/plih/haskell/bae.hs) for all interpreter code from this chapter.

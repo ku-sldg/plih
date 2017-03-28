@@ -39,6 +39,7 @@ data AE where
 
 Note that `inc` is not defined in the original AST.  If we're going to add `inc` as a syntactic element, we need a different AST to include it.  Let's define `AEX` and add `inc`:
 
+{% highlight haskell %}
 data AEX where
   NumX :: Int -> AEX
   PlusX :: AEX -> AEX -> AEX
@@ -47,6 +48,7 @@ data AEX where
   DivX :: AEX -> AEX -> AEX
   IncX :: AEX -> AEX
   deriving (Show,Eq)
+{% endhighlight %}
 
 Note that we've renamed both the type and its constructors so we can tell them apart.  The elaborator translates AEX to AE:
 

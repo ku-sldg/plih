@@ -136,8 +136,8 @@ bind n = 1 in                     [(n,1)]
 == app (lambda x in x + n) 1
 == x + n                          [(n,1)]
 == 1 + n
-== 1 + 2
-== 3
+== 1 + 1
+== 2
 {% endhighlight %}
 
 Having information from the `lambda` definition plus the static environment in one data structure is a closure.  Psuedo-Haskell for the closure would be:

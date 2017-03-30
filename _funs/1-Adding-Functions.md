@@ -259,7 +259,7 @@ The `subst` function gets is identifier from the `bind` syntax as well as the va
 Before evaluating `App`, lets evaluate both its arguments.  Specifically, `f` to get a lambda value and `a` to get a value for the actual parameter:
 
 {% highlight haskell %}
-evals (App f a) = let (Lambda i t b) = (evals f)
+evals (App f a) = let (Lambda i b) = (evals f)
 	                  a' = (evals a)
 	              in evals (subst i a' b)
 {% endhighlight %}
@@ -273,7 +273,7 @@ evals (subst i (evals a) b)
 and embedding the substitution into the case for `App` gives us the following:
 
 {% highlight haskell %}
-evals (App f a) = let (Lambda i t b) = (evals f)
+evals (App f a) = let (Lambda i b) = (evals f)
 	                  a' = (evals a)
 	              in evals (subst i (evals a) b)
 {% endhighlight %}
@@ -283,7 +283,7 @@ And there we have it.  Substitute the argument in for the identifier in the body
 What about the `Lambda` case for `evals`?  As it turns out, `lambda`s are values.  Just like `True` or `(Num 0)`, `(Lambda x (Plus (Id x) (Num 1)))` is a value and is not evaluated further.  Thus, the evaluation of `Lambda` is trivial:
 
 {% highlight haskell %}
-evals (Lambda i t b) = (Lambda i t b)
+evals (Lambda i b) = (Lambda i b)
 {% endhighlight %}
 
 Putting the whole thing together with evaluation of remaining terms gives us a substituting interpreter for `FBAE`:
@@ -298,8 +298,8 @@ evals (Minus l r) = let (Num l') = (evals l)
                         (Num r') = (evals r)
                     in (Num (l' - r'))
 evals (Bind i v b) = (evals (subst i (evals v) b))
-evals (Lambda i t b) = (Lambda i t b)
-evals (App f a) = let (Lambda i t b) = (evals f)
+evals (Lambda i b) = (Lambda i b)
+evals (App f a) = let (Lambda i b) = (evals f)
                       a' = (evals a)
                   in evals (subst i (evals a) b)
 evals (If c t e) = let (Num c') = (evals c)
@@ -320,7 +320,7 @@ eval env (Bind i v b) =
 We can do a similar thing with function application.  In the same way we replaced the call to `subst` with an environment update in `bind`, we can literally do the same thing with function application:
 
 {% highlight haskell %}
-eval env (App f a) = let (Lambda i t b) = (eval env f)
+eval env (App f a) = let (Lambda i b) = (eval env f)
                          a' = (eval env a)
                      in eval ((i,a'):env) b
 {% endhighlight %}
@@ -343,8 +343,8 @@ eval env (Minus l r) = let (Num l') = (eval env l)
                        in (Num (l'-r'))
 eval env (Bind i v b) = let v' = eval env v in
                           eval ((i,v'):env) b
-eval env (Lambda i t b) = (Lambda i t b)
-eval env (App f a) = let (Lambda i t b) = (eval env f)
+eval env (Lambda i b) = (Lambda i b)
+eval env (App f a) = let (Lambda i b) = (eval env f)
                          a' = (eval env a)
                      in eval ((i,a'):env) b
 eval env (Id id) = case (lookup id env) of

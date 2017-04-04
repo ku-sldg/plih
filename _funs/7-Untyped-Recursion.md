@@ -183,20 +183,20 @@ F = lambda g in if c then off else g)
 `F`'s first argument is the recursive call.  If `c` is 1, then `g` is not called and `(app Y F)` terminates.  We don't know what `c` is yet, but we can look at what happens when it is not 1:
 
 {% highlight text %}
-(app Y (lambda g in if 0 then off else g))
-== (app (lambda x in (app (lambda g in if 0 then off else g) (app x x)))
-        (lambda x in (app (lambda g in if 0 then off else g) (app x x))))
+(app Y (lambda g in if true then off else g))
+== (app (lambda x in (app (lambda g in if true then off else g) (app x x)))
+        (lambda x in (app (lambda g in if true then off else g) (app x x))))
 == (app (lambda x in off)
         (lambda x in off))
 == off
 {% endhighlight %}
 
-Bingo.  If `c` is ever 0, the whole thing shuts down and returns a value.  `off` is not really a value in this case, but serves as a placeholder.  What about 1?
+Bingo.  If `c` is ever 	`false`, the whole thing shuts down and returns a value.  `off` is not really a value in this case, but serves as a placeholder.  What about 1?
 
 {% highlight text %}
-(app Y (lambda g in if 1 then off else g))
-== (app (lambda x in (app (lambda g in if 1 then off else g) (app x x)))
-        (lambda x in (app (lambda g in if 1 then off else g) (app x x))))
+(app Y (lambda g in if true then off else g))
+== (app (lambda x in (app (lambda g in if true then off else g) (app x x)))
+        (lambda x in (app (lambda g in if true then off else g) (app x x))))
 == (app (lambda x in (app g (app x x)))
         (lambda x in (app g (app x x))))
 ...
@@ -209,13 +209,13 @@ One last problem.  `1` and `0` are great, but we really need the recursion to te
 Remember that `g` is the function called to cause recursion and is right now the only argument to `F`.  Let's try adding another that will serve as the data input to the calculation performed by `F`.  Let's see how that works.  First, let's use a concrete value for `F` and although our interpreter doesn't do it, let's hold it abstract.  This particular `F` sums up the values from 0 to its input argument `n`.
 
 {% highlight text %}
-F = lambda g in (lambda z in if z then z else z + (app g z-1))
+F = lambda g in (lambda z in if z=0 then z else z + (app g z-1))
 {% endhighlight %}
 
 Now let's set up the `Y` in `bind`.  
 
 {% highlight text %}
-bind F = (lambda g in (lambda z in if z then z else z + (app g z-1))) in
+bind F = (lambda g in (lambda z in if z=0 then z else z + (app g z-1))) in
   bind Y = (lambda f (app (lambda x in (app f (app x x)))
                           (lambda x in (app f (app x x))))
     in ((app Y F) 5)
@@ -231,14 +231,14 @@ The function we apply to `5` is obtained by applying `Y` to `F`.  Then we apply 
 Let's evaluate the inner `app` first resulting in `x` bound to half of the `Y` combinator application to `F`.  Now lets expand `F` before going forward and evaluate the outermost `app`:
 
 {% highlight text %}
-== (app (app (lambda g in (lambda z in if z then z else z + (app g z-1))) (app x x)) 5) [(x,(lambda x in (app F (app x x))))]
-== (app (lambda z in if z then z else z + (app g z-1))) 5) [(g,(app x x)),(x,(lambda x in (app F (app x x))))]
+== (app (app (lambda g in (lambda z in if z=0 then z else z + (app g z-1))) (app x x)) 5) [(x,(lambda x in (app F (app x x))))]
+== (app (lambda z in if z=0 then z else z + (app g z-1))) 5) [(g,(app x x)),(x,(lambda x in (app F (app x x))))]
 {% endhighlight %}
 
 The result is now `g` bound to `(app x x)` in the environment.  That seems a little odd, but look carefully at the environment.  `x` is already bound to half of the `Y` application.  That's perfect!  `g` is really the recursive call we want to make if that substitution is performed.  One more `app` evaluation binds `z` to 5:
 
 {% highlight text %}
-== if z then z else z + (app g z-1) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]
+== if z=0 then z else z + (app g z-1) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]
 {% endhighlight %}
 
 Now we need to evaluated identifiers by replacing them with their values from the environment.
@@ -271,7 +271,7 @@ bind Z = (lambda f (app (lambda x (app f (lambda v (app (app x x) v)))))
 and unfortunately it is more involved than the traditional Y.
 
 {% highlight text %}
-ff = lambda ie (lambda x (if x then x else x (app ie (x - 1))))
+ff = lambda ie (lambda x (if x=0 then x else x (app ie (x - 1))))
 {% endhighlight %}
 
 ## Discussion

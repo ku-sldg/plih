@@ -1,0 +1,9 @@
+-- Haskell Playground 1.0
+parseCFAE "5"
+parseCFAE "lambda x in x+1"
+parseCFAE "app x 8"
+
+parseCFBAE "5"
+parseCFBAE "lambda x in x+1"
+parseCFBAE "app x 7"
+parseCFBAE "bind x=1 in y"

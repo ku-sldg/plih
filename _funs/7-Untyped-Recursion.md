@@ -241,7 +241,7 @@ The result is now `g` bound to `(app x x)` in the environment.  That seems a lit
 == if z=0 then z else z + (app g z-1) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]
 {% endhighlight %}
 
-Now we need to evaluated identifiers by replacing them with their values from the environment.
+Now we need to evaluate identifiers by replacing them with their values from the environment.
 
 {% highlight text %}
 == 5 + (app g 5-1) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]

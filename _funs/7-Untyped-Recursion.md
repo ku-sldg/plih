@@ -218,7 +218,7 @@ Now let's set up the `Y` in `bind`.
 bind F = (lambda g in (lambda z in if z=0 then z else z + (app g z-1))) in
   bind Y = (lambda f (app (lambda x in (app f (app x x)))
                           (lambda x in (app f (app x x))))
-    in ((app Y F) 5)
+    in (app (app Y F) 5)
 {% endhighlight %}
 
 The function we apply to `5` is obtained by applying `Y` to `F`.  Then we apply the result to `5`:

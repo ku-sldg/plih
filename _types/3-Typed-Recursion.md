@@ -29,7 +29,7 @@ Now `fact` will work for `0` as it did before and also for `1`.  Looking  up `fa
        [(fact,(ClosureV "x" (if ...) [(x,??)])),(x,??)])
 {% endhighlight %}
 
-Bingo.  Now the closure in the enviornment for the closure knows about the closure.  Now we can call `fact` on 0, 1, 2 and 3.  But not 4.  Do you see why?  The innermost closure will never have `fact` in its environment.  Any number of nested closures can always be exceeded by 1.  Built 10 and `fact` will fail for 11, 100 fails for 101 and so forth.  No matter how many nestings, eventually recursion fails.  Furthermore, this environment  is wasteful in that we may never heed 100 recursive calls.
+Bingo.  Now the closure in the environment for the closure knows about the closure.  Now we can call `fact` on 0, 1, 2 and 3.  But not 4.  Do you see why?  The innermost closure will never have `fact` in its environment.  Any number of nested closures can always be exceeded by 1.  Built 10 and `fact` will fail for 11, 100 fails for 101 and so forth.  No matter how many nestings, eventually recursion fails.  Furthermore, this environment  is wasteful in that we may never heed 100 recursive calls.
 
 What can we do to solve this?  No matter how many turtles we add, there is always one at the bottom we can try to jump under.
 

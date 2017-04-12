@@ -1,6 +1,6 @@
 ---
 layout: frontpage
-title: Function Types
+title: Adding Booleans (Redux)
 use_math: true
 categories: chapter ch3
 ---
@@ -33,3 +33,4 @@ $$
 
 # Adding Booleans
 
+Working here.  Please come back later for more info.

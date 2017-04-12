@@ -33,7 +33,6 @@ Bingo.  Now the closure in the environment for the closure knows about the closu
 
 What can we do to solve this?  No matter how many turtles we add, there is always one at the bottom we can try to jump under.
 
-
 The rule for the general recursive structure is:
 
 $$\frac{}{[\eval e \fix \llambda i t = eval e i\maplet (fix (\llambda i b))] b}$$

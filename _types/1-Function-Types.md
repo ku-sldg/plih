@@ -189,7 +189,7 @@ typeof cont (Lambda x D b) = let R = typeof ((x,D):cont) b
                              in D :->: R
 {% endhighlight %}
 
-`D` is given by the `lambda` declaration.  Find `R` by adding `(x,D)` to the context and finding the type of `b`.  Given `D` and `R`, the type of the `lambda` is `D:->:R`.
+`D` is given by the `lambda` declaration.  Find `R` by adding `(x,D)` to the context and finding the type of `b`.  Given `D` and `R`, the type of the `lambda` is `D->R`.
 
 The formal type rule can be written:
 
@@ -241,11 +241,11 @@ bind inc = lambda (x:TNum) in     [(x,TNum)]
   app inc inc
 {% endhighlight %}
 
-First find type of `inc` to be `TNum -> TNum` by looking it up in the context.  Hopefully it's clear the type of `app` cannot be found because `inc` expects a number, but will get a function.  If we let this run, it will crash.
+Finding the type of `app` requires finding the type of `inc` to be `TNum -> TNum` by looking it up in the context.  Now we apply a function of type `TNum -> TNum` to an argument of type `TNum -> TNum`.  Clearly this is a problem because the type of the argument and the type of function's domain do not match.  The type inference function will throw and error and we will know _before_ runtime that this program will crash.
 
 ## Static Type Checking
 
-Let's build `eval` and `typeof` for `FBAE`.  First thing we need to do is update the concrete syntax to include a parameter type for `lambda` and a new type constructor for function types:
+Now let's build `eval` and `typeof` for `FBAE`.  First thing we need to do is update the concrete syntax to include a parameter type for `lambda` and a new type constructor for function types:
 
 $$\begin{align*}
 t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
@@ -282,7 +282,7 @@ data TFBAE where
   deriving (Show,Eq)
 {% endhighlight %}
 
-Note the constructor for function types uses the Haskell infix constructor notation allowing them to have the form `T:->:T` similar to how they are written in rules.  Just a bit of Haskell trickery, nothing significant.
+Note the constructor for function types uses the Haskell infix constructor notation allowing them to have the form `T :->: T` similar to how they are written in rules.  Just a bit of Haskell trickery, nothing significant.
 
 Let's write the `typeof` function first using old-fashioned `let` notation to construct cases for each term type.  The signature of `typeof` is a context and term to a type:
 
@@ -361,8 +361,11 @@ Using static scoping, we know the `n` referenced in the `lambda` is the first `n
 
 It may be too strong to say we can't statically check this expression.  However, we would need to do something akin to evaluation statically.  That makes no sense.  Regardless, this is yet another argument against using dynamic scoping.
 
+An important observation is that `typeof` is simply an evaluation function that returns types rather than values.  Or, types _are_ values in this particular interpretation.  Programs are simply data structures and writing interpreters for them - regardless of the interpretation type - has the same form.  A great exercise to do now is rewrite the interpreter to use the values `odd` and `even` rather than numbers.  You will discover that you can reuse almost all your code from `eval` or `typeof` targeting these new values.
+
 ## Definitions
-* Static Type Checking - Type checking performed before interpretation
+* Context - A list of identifiers and their types currently in scope.
+* Static Type Checking - Type checking performed before interpretation.
 * Dynamic Type Checking - Type checking performed at run-time.
 
 ## Exercises

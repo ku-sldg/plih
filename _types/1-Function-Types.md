@@ -107,7 +107,7 @@ $$\frac{(i,T)\in cont}{(\typeof i)=T}$$
 
 If $(i,T)$ is in the current context, then type of $i$ is $T$.  This is a trivial definition, but necessary for completeness.  Now the rule for `bind`:
 
-$$\frac{(\typeof c v)=D\;\;\;(\typeof (i,D):c b)=R}{(\typeof c (\bbind i=a\;\iin\; b))=D\rightarrow R}$$
+$$\frac{(\typeof c\; v)=D\;\;\;(\typeof (i,D):c\; b)=R}{(\typeof c\; (\bbind i=a\;\iin\; b))=D\rightarrow R}$$
 
 Finding the type of `bind` gives us all the tools needed to talk about the type of `app` and `lambda`.  We've defined what a context is and how to add an identifier to the context in the scope of a `bind`.  As we move on to functions, keep these definitions in mind as finding their types will use quite similar techniques.
 

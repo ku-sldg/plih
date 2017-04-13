@@ -103,7 +103,7 @@ The type of the bound value, `v`, is first determined using the current context,
 
 Now the formal rules.  First for identifiers:
 
-$$\frac{(i,T)\in cont}{(\typeof i)=T}$$
+$$\frac{(i,T)\in c}{(\typeof c\; i)=T}$$
 
 If $(i,T)$ is in the current context, then type of $i$ is $T$.  This is a trivial definition, but necessary for completeness.  Now the rule for `bind`:
 

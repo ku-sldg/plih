@@ -212,18 +212,28 @@ $$\frac{\typeof(f,c)=D \rightarrow R, \typeof(a,c)=D}{\typeof((\aapp f\; a),c) =
 What does this say about the problem that motivated the chapter?  Specifically, what is the type of:
 
 {% highlight text %}
-bind inc = lambda x in x + 1 in
+bind inc = lambda x in
+              x + 1 in
   app inc inc
 {% endhighlight %}
 
-First, we have to add a type to the function's formal parameter.  It has to be `TNum`.  (Think carefully about why.)  The expression now becomes:
+Let's walk through the type derivation.  First, we add a type to the function's formal parameter.  It has to be `TNum`.  (Think carefully about why.)  The expression now becomes:
 
 {% highlight text %}
-bind inc = lambda (x:TNum) in x + 1 in
+bind inc = lambda (x:TNum) in
+              x + 1 in
   app inc inc
 {% endhighlight %}
 
-The type of the `lambda` is `TNum -> TNum` following the definition for function types.  `x` is `TNum` thus `x+1` is `TNum` by the definition of the type of `t1+t2`.  Now dd the type of `inc` to the context and  look at the type of `app`:
+To find the type of `inc`, we must find the type of the `lambda` bound to it.  `D` is given to be `TNum`, thus we add `(D,TNum)` to the context and determine the type of `x + 1` to get `R`:
+
+{% highlight text %}
+bind inc = lambda (x:TNum) in     [(x,TNum)]
+              x + 1 in
+  app inc inc
+{% endhighlight %}
+
+`x` is `TNum` thus `x+1` is `TNum` by the definition of the type of `t1+t2`.  The type of the `lambda` now becomes `TNum -> TNum` giving the type for `inc`.  Now add the type of `inc` to the context and look at the type of `app`, noting that the type of `x` drops from the context when the `lamdba`'s scope closes:
 
 {% highlight text %}
 bind inc = lambda (x:TNum) in     [(x,TNum)]

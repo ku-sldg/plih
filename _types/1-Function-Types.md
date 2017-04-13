@@ -44,25 +44,90 @@ This expression simply applys `inc` to itself, something that made sense when we
 
 We can fix this problem as we have in the past - add run-time or predictive type checking.  Said using terminology from our discussion of scoping, we can add *dynamic* or *static* type checking.  As usual, dynamic performed at run-time and static performed before run-time.
 
-## Function Types
+## Typing Bind
 
-A function can be viewed as a mapping from an input value to an output value.  If the input value has a type and the output value has a type, then it makes sense that a function type is a mapping from one type to another.  Specifically we extend available types with a function type:
+Before diving into types of functions, let's take a quick aside into finding the type of a `bind` remembering that like `lambda` and `app`, `bind` defines new identifiers and associates them with values.  To start with, let's examine a trivial bind that creates an identifier, binds it to a value, and returns the resulting identifier:
+
+{% highlight text %}
+bind x = 1 in
+  1+1
+{% endhighlight %}
+
+As always, `bind` evaluates its body and returns the result.  The type of that result in turn becomes the type of the `bind`.  If we can find the type of `1+1` we can find the type of what evaluating `bind` returns.  In this case, that's quite simple using typing rules we already have.  Specifically, any term of the form `t1+t2` is of type `TNum` if both `t1` and `t2` are also of type `TNum`.  The type of the `bind` is clearly `TNum`.
+
+Things are much more interesting if we use the bound identifier in the body of the `bind`.  Defining new identifiers and giving them values is what `bind` is all about.  Let's change the body of the `bind` to use the identifier:
+
+{% highlight text %}
+bind x = 1 in 
+  x+1
+{% endhighlight %}
+
+The same type rule applies to the body.  If `x:TNum` and `1:TNum` then `x+1:TNum`.  The second term is simple as `1:TNum` by definition.  The first term requires some thought, but is still rather obvious.  By definition `x` is bound to `1` in the body of the `bind` and `1` is of type `TNum`.  It follows that in the body of the `bind` the identifier `x` has type `TNum`.  We will implement this intuition using a _context_ that behaves much like an environment does in an evaluator.
+
+Thinking back to how environments work reveals the following simple annotation for the `bind`:
+
+{% highlight text %}
+bind x = 1 in     [(x,1)]
+  x+1
+{% endhighlight %}
+
+Following the `x = 1` binding instance the environment contains a binding of `x` to `1`.  When `x` appears in the `bind` body, it is looked up in the enviornment when evaluated.  A _context_ will serve the same role, but for types rather than values.  In the same way an environment stores identifiers and values during evaluation, a context will store identifiers an types during type checking.
+
+The context is maintained exactly like an environment.  When an identifier is bound, the type of the bound value is associated with the identifier in the context.  Using a similar notation, we can decorate the type inference process for `bind`:
+
+{% highlight text %}
+bind x = 1 in     [(x,TNum)]
+  x+1
+{% endhighlight %}
+
+Now when `x` is used in the term `x+1`, its type is looked up in the context maintained by the `typeof` function. Thus, `x+1` is known to have type `TNum` because both `x` and `1` are type `TNum`.
+
+Let's define the necessary type operations used by the `typeof` implementation that will perform the type inference operation.  First, the case for an identifier:
+
+{% highlight text %}
+typeof cont (Id id) = case (lookup id cont) of
+                        Just x -> x
+                        Nothing -> error "Varible not found"
+{% endhighlight %}
+
+The code is virtually identical to looking up the value of an identifier in an environment.  The function uses the identifier's name to look up the identifier's type in the context, `cont`.
+
+The type of a `bind` instance is again similar to evaluation:
+
+{% highlight text %}
+typeof cont (Bind i v b) = let v' = typeof cont v in
+                             typeof ((i,v'):cont) b
+{% endhighlight %}
+
+The type of the bound value, `v`, is first determined using the current context, `cont`.  Then type of the `bind` body is determined using a new context resulting from the original context with `i` bound to the bound value's type.  This looks just like evaluation, except we're generating types rather than values.  Hold that thought.
+
+Now the formal rules.  First for identifiers:
+
+$$\frac{(i,T)\in cont}{\typeof(i)=T}$$
+
+If $(i,T)$ is in the current context, then type of $i$ is $T$.  This is a trivial definition, but necessary for completeness.  Now the rule for `bind`:
+
+$$\frac{\typeof{v,c)=D\;\;\;\typeof(t,(t:D):c)=R}{\typeof((\bbind i=a\;\iin\; t),c)=D\rightarrow R}$$
+
+## Typing Functions
+
+A function can be viewed as a mapping from an input value to an output value.  If the input value has a type and the output value similarly has a type, then it makes sense that a function type is a mapping from one type to another.  Specifically we extend available types with this new function type in much the same way we defined binary operators like `+` or `-` by using a recursive construction:
 
 $$\begin{align*}
 T ::=\; & \tnum \mid T \rightarrow T \\
 \end{align*}$$
 
-This allows types such as $\tnum \rightarrow \tnum$, $\tnum
+This allows constructing types such as $\tnum \rightarrow \tnum$, $\tnum
 \rightarrow (\tnum \rightarrow \tnum)$, and $(\tnum \rightarrow \tnum)
-\rightarrow \tnum$.  An informal name for the $\rightarrow$ operation is a type former or a type function that takes two types and generates a new type.  The left type is called the _domain_ and the right type the _range_ of the function type.  If no parentheses are included, we assume that $\rightarrow$ is right associative.
+\rightarrow \tnum$.  An informal name for the $\rightarrow$ operation is a type former or a type function that takes two types and generates a new type.  Just like `+` takes to numbers and generates a new number.  The left type is called the _domain_ and the right type the _range_ of the function type.  If no parentheses are included, we assume that $\rightarrow$ is right associative.  We will often call the domain `D` and the range `R` while using the contention that any capitalized symbol is a type.
 
-Now that we have function types, we can assign them to `lambda` expressions by defining type rules.  Let's try to define the type rule iteratively by thinking about how we derived the type of a lambda.  Let's start with a simple function that doubles its input and see if we can find a type:
+Now that we have a means for function types, we can assign them to `lambda` expressions by defining type rules.  Let's try to define the type rule iteratively by thinking about how we derived the type of a lambda.  Let's start with a simple function that doubles its input and see if we can find a type:
 
 {% highlight text %}
 lambda x in x+x : T
 {% endhighlight %}
 
-The first thing we know is that `T` must be a function type of the form `D->R` where `D` is the domain type and `R` is the range type.  We don't know what either type is yet, but we do know:
+First, we know is that `T` must be a function type of the form `D->R` where `D` is the domain type and `R` is the range type.  We don't know what either type is yet, but we do know that a function should have a function type:
 
 {% highlight text %}
 lambda x in x+x : D->R

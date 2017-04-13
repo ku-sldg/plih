@@ -33,16 +33,16 @@ $$
 
 # Function Types
 
-In prior chapters we have defined an interpreter over a language with only numbers, added Booleans, and showed how to handle and avoid type errors.  With functions, we don't need to add a thing to see this problem emerge again.  Consider the following expression:
+In prior chapters we have defined an interpreter over a language with only numbers, added Booleans, and showed how to handle and avoid type errors.  With functions, we don't need to add Booleans to see the same problem emerge again.  Consider the following expression:
 
 {% highlight text %}
 bind inc = lambda x in x + 1 in
   app inc inc
 {% endhighlight %}
 
-What this expression does is apply `inc` to itself.  The value of `inc` is a lambda specifying an increment function over numbers.  In the body of the `bind`, `inc` is applied to itself.  There is of course nothing wrong with applying a function to itself, but in this case the body of `inc` attempts to add 1 to its argument.  Adding 1 to a function is not defined and causes any of our interpreters to crash.
+This expression simply applys `inc` to itself, something that made sense when we discussed untyped recursion.  However, in this context trying to increment an increment function makes little sense.  The value of `inc` is a lambda specifying an increment function over numbers.  In the body of the `bind`, `inc` is applied to itself.  There is of course nothing wrong with applying a function to itself, but in this case the body of `inc` attempts to add 1 to its argument.  Adding 1 to a function is not defined and causes any of our interpreters to crash.
 
-We can fix this problem as we have in the past - add run-time or predictive type checking.  Said using terminology from our discussion of scoping, we can add *dynamic* or *static* type checking.  Dynamic performed at run-time and static performed before run-time.
+We can fix this problem as we have in the past - add run-time or predictive type checking.  Said using terminology from our discussion of scoping, we can add *dynamic* or *static* type checking.  As usual, dynamic performed at run-time and static performed before run-time.
 
 ## Function Types
 
@@ -56,29 +56,29 @@ This allows types such as $\tnum \rightarrow \tnum$, $\tnum
 \rightarrow (\tnum \rightarrow \tnum)$, and $(\tnum \rightarrow \tnum)
 \rightarrow \tnum$.  An informal name for the $\rightarrow$ operation is a type former or a type function that takes two types and generates a new type.  The left type is called the _domain_ and the right type the _range_ of the function type.  If no parentheses are included, we assume that $\rightarrow$ is right associative.
 
-Now that we have function types, we can assign them to lambda expressions by defining type rules.  Let's try to define the type rule iteratively by thinking about how we derived the type of a lambda.  Let's start with a simple function that doubles its input and see if we can find a type:
+Now that we have function types, we can assign them to `lambda` expressions by defining type rules.  Let's try to define the type rule iteratively by thinking about how we derived the type of a lambda.  Let's start with a simple function that doubles its input and see if we can find a type:
 
 {% highlight text %}
 lambda x in x+x : T
 {% endhighlight %}
 
-The first thing we know is that `T` must be a function type of the form `Td->Tr` where `Td` is the domain type and `Tr` is the range type.  We don't know what either type is yet, but we do know:
+The first thing we know is that `T` must be a function type of the form `D->R` where `D` is the domain type and `R` is the range type.  We don't know what either type is yet, but we do know:
 
 {% highlight text %}
-lambda x in x+x : Td->Tr
+lambda x in x+x : D->R
 {% endhighlight %}
 
-Now we need to find `Td` and `Tr`.  We know the type of `x` is `Td` as `x` is the only input to the function.  Given this, we can infer the type of `Tr` by adding `x:Td` to the context and calling `typeof` as normal.
+Now we need to find `D` and `R`.  We know the type of `x` is `D` as `x` is the only input to the function.  Given this, we can infer the type of `R` by adding `x:D` to the context and calling `typeof` as normal.
 
-Unfortunately, we have no way of inferring `Td` in the general case.  In the case of `x+x` we can because `+` takes two numbers.  Although there will be numerous cases like this, it isn't possible to always infer the input type.  The way around this is decorating the function's input parameter with a type.  In this case, `TNum`:
+Unfortunately, we have no way of inferring `D` in the general case.  In the case of `x+x` we can because `+` takes two numbers.  Although there will be numerous cases like this, it isn't possible to always infer the input type.  The way around this is decorating the function's input parameter with a type.  In this case, `TNum`:
 
 {% highlight text %}
-lambda (x:TNum) in x+x : TNum->Tr
+lambda (x:TNum) in x+x : TNum->R
 {% endhighlight %}
 
-We can find `Tr` by adding `x` to the context.  The type rule can be written:
+We can find `R` by adding `x` to the context.  The type rule can be written:
 
-$$\frac{\typeof(t,(t:T_d):c)=T_r}{\typeof((\llambda (x:T_d)\;\ t),c)=T_d\rightarrow T_r}$$
+$$\frac{\typeof(t,(t:D):c)=R}{\typeof((\llambda (x:D)\;\ t),c)=T_d\rightarrow R}$$
 
 and the type for the previous `lambda` becomes:
 
@@ -86,11 +86,11 @@ and the type for the previous `lambda` becomes:
 lambda (x:TNum) in x+x : TNum->TNum
 {% endhighlight %}
 
-The other new term to find types for is `app`. The two arguments to `app` must be a function and argument.  The function argument must be of type `Td->Tr` or it cannot be applied to anything.  For the function application to be successful, the argument type must be `Td`.  If we are going to evaluate `app f a`, then `a` must be of a type that `f` accepts.  The type of the `app` itself is then `T_r` because the function type `Td->Tr` says the output will be of type `Tr` if the input is of type `Td`.
+The other new term to find types for is `app`. The two arguments to `app` must be a function and argument.  The function argument must be of type `D->R` or it cannot be applied to anything.  For the function application to be successful, the argument type must be `Td`.  If we are going to evaluate `app f a`, then `a` must be of a type that `f` accepts.  The type of the `app` itself is then `R` because the function type `D->R` says the output will be of type `Tr` if the input is of type `D`.
 
 Here's the type rule that captures this:
 
-$$\frac{\typeof(f,c)=T_d \rightarrow T_r, \typeof(a,c)=T_d}{\typeof((\aapp f\; a),c) = T_r}$$
+$$\frac{\typeof(f,c)=D \rightarrow R, \typeof(a,c)=D}{\typeof((\aapp f\; a),c) = R}$$
 
 What does this say about the problem that motivated the chapter?  Specifically, what is the type of:
 
@@ -147,7 +147,7 @@ data TFBAE where
   deriving (Show,Eq)
 {% endhighlight %}
 
-Note the constructor for function types uses the Haskell infix constructor notation allowing them to have the form `T:->T` similar to how they are written in rules.  Just a bit of Haskell trickery, nothing significant.
+Note the constructor for function types uses the Haskell infix constructor notation allowing them to have the form `T:->:T` similar to how they are written in rules.  Just a bit of Haskell trickery, nothing significant.
 
 Let's write the `typeof` function first using old-fashioned `let` notation to construct cases for each term type.  The signature of `typeof` is a context and term to a type:
 
@@ -180,11 +180,11 @@ typeof cont (If c t e) = if (typeof cont c) == TNum
                          else error "Type mismatch in if"
 {% endhighlight %}
 
-After all our work defining type rules, the new cases for `typeof` follow quickly.  For `Lambda`, `typeof` is called on the `Lambda` body with the argument name bound to its type added to the original context.  `td` is known from the `lambda` and `tr` is learned by calling `typeof`:
+After all our work defining type rules, the new cases for `typeof` follow quickly.  For `Lambda`, `typeof` is called on the `Lambda` body with the argument name bound to its type added to the original context.  `D` is known from the `lambda` and `R` is learned by calling `typeof`:
 
 {% highlight haskell %}
 typeof cont (Lambda x td b) = let tr = typeof ((x,t):cont) b
-                             in td :->: tr
+                             in D :->: R
 {% endhighlight %}
 
 The final type becomes `td :->: tr` as defined by our previous type rule.

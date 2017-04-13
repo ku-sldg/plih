@@ -113,64 +113,99 @@ Finding the type of `bind` gives us all the tools needed to talk about the type 
 
 ## Typing Functions
 
-A function is best viewed as a mapping from an input value to an output value.  If the input value always has a type and the output value similarly always has a type, then it follows that a function type is a mapping from one type to another.  To represent this, we extend our current type definition with a new function type in much the same way we defined binary operators like `+` or `-` by using a recursive construction:
+After a diversion into `bind`, let's think about how to determine the type of a `lambda`.  A function is at its essence a mapping from an input value to an output value.  For example:
+
+{% highlight text %}
+lambda x in x+1 
+{% endhighlight %}
+
+takes a value and returns that value plus 1.  It is also true that this function will only work correctly on numbers.  Applying `(lambda x in x+1)` to a Boolean or another function always results in an error.  We can express this by saying that `x` must be of type `TNum` using the notation `x:TNum`.  When applied to an argument of the correct type this `lambda` should result in a good value.  For example:
+
+{% highlight text %}
+(app (lambda x in x+1) 5)
+{% endhighlight %}
+
+Furthermore, the type of the resulting value can be predicted.  In this case, the `app` results in a value of type `TNum`.  Putting everything together, we can say that this `lambda` expression applied to any `TNum` will result in `TNum` should it terminate.  To represent this we use a _function type_.  Specifically, we extend our current type definition with a new function type in much the same way we defined binary operators over values like `+` or `-` by using a recursive construction:
 
 $$\begin{align*}
 T ::=\; & \tnum \mid T \rightarrow T \\
 \end{align*}$$
 
-This new definition allows constructing types form other types including $\tnum \rightarrow \tnum$, $\tnum
+This new definition is quite different from our other types.  It allows constructing new types form existing types such as $\tnum \rightarrow \tnum$, $\tnum
 \rightarrow (\tnum \rightarrow \tnum)$, and $(\tnum \rightarrow \tnum)
-\rightarrow \tnum$.  An informal name for the $\rightarrow$ operation is a type former or a type function that takes two types and generates a new type.  Just like `+` takes two numbers and generates a new number, `->` will take two types and generate a new type.  The left type is called the _domain_ and the right type the _range_ of the function type.  If no parentheses are included, we assume that $\rightarrow$ is right associative.  We will often use `D` for the domain type and the `R` for the range type and follow the contention that any capitalized symbol is a type.
+\rightarrow \tnum$.  An informal name for the $\rightarrow$ operation is a type former or a type function that takes two types and generates a new type.  Just like `+` takes two numbers and generates a new number, $\rightarrow$ will take two types and generate a new type.  The left type is called the _domain_ and the right type the _range_ of the function type.  If no parentheses are included, we assume that $\rightarrow$ is right associative.  We will often use `D` for the domain type and the `R` for the range type.
 
-Now that we have a means for function types, we can assign `lambda` expressions like we did `bind`.  Let's try to define type inference iteratively by thinking about how we derive the type of a trivial `lambda`.  Let's start with a simple function that doubles its input and see if we can find a type:
-
-{% highlight text %}
-lambda x in x+x : T
-{% endhighlight %}
-
-First, we know that `T` must be a function type of the form `D->R` where `D` is the domain type and `R` is the range type.  We don't know what either `D` or `R` is yet, but we do know that a function should have a function type:
+Now that we have a means for defining function types, we can find types for `lambda` expressions like we did `bind`.  Let's try to define type inference iteratively by thinking about how we derive the type of a trivial `lambda`.  Let's start with the simple increment function and see if we can find its type.  Specifically, we would like to find `T` in the following expression:
 
 {% highlight text %}
-lambda x in x+x : D->R
+lambda x in x+1 : T
 {% endhighlight %}
 
-Now we need to find `D` and `R` and will appeal to how we calculated the type of `bind`.  Like the bind, we know that `x` is defined in the body of the `lambda`, in this case `x+x`.  If we can find the type of `x+x` we will know `R`, the return type of the `lambda`.  To find `R` we must know the type of `x`.  Again appealing to `bind` as an example we want to add a binding of `x` and its type to the context.
+All lambda expressions must have a function type, thus `T` must have the form `D->R` where `D` is the domain type and `R` is the range type.  We don't know what either `D` or `R` is yet, but we do know that this particular function should have a function type:
 
-Unfortunately, we have no way of inferring `D`, the type of `x`, in the general case.  In the case of `x+x` we can because `+` takes two numbers.  What if the we had this trivial `lambda` instance:
+{% highlight text %}
+lambda x in x+1 : D->R
+{% endhighlight %}
+
+Now we need to find `D` and `R` and will appeal to how we calculated the type of `bind`.  Like the `bind`,  `x` is the newly boudn identifier and `x+1` is the body where `x` is bound.  Just like `bind` if we can find the type of `x+1` we will know `R`, but to find `R` we must know the type of `x`.  `bind` uses a context to track defined identifiers and their types during type checking like evaluation uses an environment to track identifiers and their values during execution.  If we can add a binding of `x` to its type to the context, its type will be known when we calculate tye type of `x+1`.  Specifically using the same notation to track context:
+
+{% highlight text %}
+lambda x in    [(x,D)]
+  x+1
+{% endhighlight %}
+
+Unfortunately, we have no way of inferring `D` in the general case.  Look carefully at a similar `bind`:
+
+{% highlight text %}
+bind x = 1 in    [(x,TNum)]
+  x+1
+{% endhighlight %}
+
+
+Here we do know `D` because `x` is given a value that has an associated type.  We do know know what value might be given to `x` until the `lambda` is applied to an argument.  In the specific case of `x+1` we can know `D` because `+` takes two numbers.  But consider this trivial `lambda` instance:
 
 {% highlight text %}
 lambda x in x
 {% endhighlight %}
 
-There is no way to infer `D` without knowing the value for `x` and that value will not be known until `app` evaluates the `lambda`.  It simply isn't possible to infer the input type in every case.  The way around this is changing the `lambda` definition and _ascribing_ a type to the function's input parameter.  In this case, `TNum`:
+There is no way to infer `D` without knowing the value for `x` and that value will not be known until `app` evaluates the `lambda`.  It simply isn't possible to infer the input type in every case.
+
+The way forward is changing the `lambda` definition and _ascribing_ a type to the function's input parameter declaring what type `D` should be. In this case, `TNum`:
 
 {% highlight text %}
-lambda (x:TNum) in x+x : TNum->R
+lambda (x:TNum) in x+1 : TNum->R
 {% endhighlight %}
 
-Because we know the type of `x`, we now know that `D` = `TNum` and substitute appropriately.  Given `x:TNum`, we can find `R` by adding `(x,TNum)` to the context.  When calculating the type of `x+x` we simply look up the type of `x` in the current context.  The type for the previous `lambda` becomes:
+The notation `(x:TNum)` declares that `x` must be of type `TNum` and thus `D` becomes `TNum`.  Because we now know the type of `x` we can find `R` by adding `(x,TNum)` to the context and finding the type of `x+1`.  When calculating the type of `x+1` using the definition for the type of `+` we simply look up `x` in the current context.  Finally, type for the `lambda` becomes:
 
 {% highlight text %}
 lambda (x:TNum) in x+x : TNum->TNum
 {% endhighlight %}
 
-The code for funding the type of a `lambda` in `typeof` looks like this:
+Generalizing this example, the case for funding the type of a `lambda` in `typeof` looks like this:
 
 {% highlight haskell %}
 typeof cont (Lambda x D b) = let R = typeof ((x,D):cont) b
                              in D :->: R
 {% endhighlight %}
 
-Find `R` by adding `x:D` to the context and finding the type of `b`.  Given `D` and `R`, the type of the `lambda` is `D->R` as it should be.
+`D` is given by the `lambda` declaration.  Find `R` by adding `(x,D)` to the context and finding the type of `b`.  Given `D` and `R`, the type of the `lambda` is `D:->:R`.
 
 The formal type rule can be written:
 
 $$\frac{\typeof(t,(t:D):c)=R}{\typeof((\llambda (x:D)\;\ t),c)=T_d\rightarrow R}$$
 
-The other new term to find types for is `app`. The two arguments to `app` must be a function and argument.  The function argument must be of type `D->R` or it cannot be applied to anything.  For the function application to be successful, the argument type must be `D`.  If we are going to evaluate `app f a`, then `a` must be of a type that `f` accepts.  The type of the `app` itself is then `R` because the function type `D->R` says the output will be of type `R` if the input is of type `D`.
+## Typing Applications
 
-Here's the type rule that captures this:
+Knowing how to type `lambda`, we now turn to `app`.  The two arguments to `app` should be a function and an argument to the function.  Let's consider applying the increment function from the `lambda` example and finding the resulting type:
+
+{% highlight text %}
+(app (lambda (x:TNum) in x+1) 5) : T
+{% endhighlight %}
+
+The first argument to `app` must be a fucntion or it cannot be applied to anything.  Thus we know that it must have the form `D->R`.  In this example, `(lambda (x:TNum) in x+1)` has type `TNum -> TNum` and both `D` and `R` are `TNum`.  For the function application to be successful, we also know the the argument type must be `D`.  If we are going to evaluate `app f a`, then `a` must be of a type that `f` accepts.  In this case, `5` must have type `TNum` as it does.  The type of the `app` itself is then `R` because the function type `D->R` says the output will be of type `R` if the input is of type `D`.  In this case, the type of the `app` is `TNum` because the type of `x+1` in the context of `x:TNum` is `TNum`.
+
+Let's make this way simpler.  Given some `f:D->R` and `a:D`, then `(app f a):R`.  Simple as that.  Here's the type rule that captures this:
 
 $$\frac{\typeof(f,c)=D \rightarrow R, \typeof(a,c)=D}{\typeof((\aapp f\; a),c) = R}$$
 
@@ -188,7 +223,15 @@ bind inc = lambda (x:TNum) in x + 1 in
   app inc inc
 {% endhighlight %}
 
-The first rule allows us to find the type of `lambda` as `TNum -> TNum` by the rule for function types.  `x` is `TNum` thus `x+x` is `TNum` by the type rule for `+`.  Add the type of `f` to the context and now look at the type of `app`.  First find type of `inc` to be `TNum -> TNum` by looking it up in the context.  Hopefully it's clear the type of `app` cannot be found because `inc` expects a number, but will get a function.  If we let this run, it will crash.
+The type of the `lambda` is `TNum -> TNum` following the definition for function types.  `x` is `TNum` thus `x+1` is `TNum` by the definition of the type of `t1+t2`.  Now dd the type of `inc` to the context and  look at the type of `app`:
+
+{% highlight text %}
+bind inc = lambda (x:TNum) in     [(x,TNum)]
+              x + 1 in            [(inc,TNum->TNum)]
+  app inc inc
+{% endhighlight %}
+
+First find type of `inc` to be `TNum -> TNum` by looking it up in the context.  Hopefully it's clear the type of `app` cannot be found because `inc` expects a number, but will get a function.  If we let this run, it will crash.
 
 ## Static Type Checking
 

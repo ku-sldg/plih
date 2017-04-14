@@ -35,6 +35,8 @@ $$
 
 Having added function types, let's revisit adding Boolean types back into the mix.  Very little changes, thus we will review this implementation as an exercise rather than work through it in great detail.  What we will see is a more complete language developed by combining type inference and interpretation.
 
+The rest of this chapter will be posted following submission of Project 3.
+
 {% comment %}
 
 ## AST

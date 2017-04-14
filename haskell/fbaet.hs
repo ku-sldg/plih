@@ -134,46 +134,11 @@ pprintTy :: TFBAE -> String
 pprintTy TNum = "Nat"
 pprintTy (t1 :->: t2) = "(" ++ pprintTy t1 ++ " -> " ++ pprintTy t2 ++ ")"
 
--- Substitution
-
-subst :: String -> FBAE -> FBAE -> FBAE
-subst _ _ (Num x) = (Num x)
-subst i v (Plus l r) = (Plus (subst i v l) (subst i v r))
-subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
-subst i v (Bind i' v' b') = if i==i'
-                            then (Bind i' (subst i v v') b')
-                            else (Bind i' (subst i v v') (subst i v b'))
-subst i v (Lambda i' t b') = if i==i'
-                           then (Lambda i' t b')
-                           else (Lambda i' t (subst i v b'))
-subst i v (App l r) = (App (subst i v l) (subst i v r))
-subst i v (Id i') = if i==i'
-                    then v
-                    else (Id i')
-       
-evals :: FBAE -> FBAE
-evals (Num x) = (Num x)
-evals (Plus l r) = let (Num l') = (evals l)
-                       (Num r') = (evals r)
-                   in (Num (l' + r'))
-evals (Minus l r) = let (Num l') = (evals l)
-                        (Num r') = (evals r)
-                    in (Num (l' - r'))
-evals (Bind i v b) = (evals (subst i (evals v) b))
-evals (Lambda i t b) = (Lambda i t b)
-evals (App f a) = let (Lambda i t b) = (evals f)
-                      a' = (evals a)
-                  in evals (subst i (evals a) b)
-evals (If c t e) = let (Num c') = (evals c)
-                   in if c'==0 then (evals t) else (evals e)
-evals (Id id) = error "Undeclared Variable"
-
 -- Interpreter
 
 type Env = [(String,FBAE)]
 type Cont = [(String,TFBAE)]
 
-         
 eval :: Env -> FBAE -> FBAE
 eval env (Num x) = (Num x)
 eval env (Plus l r) = let (Num l') = (eval env l)
@@ -370,12 +335,12 @@ testTyGen n = do
     (\ty -> (let t=unGen (genTy 0 [] ty) (mkStdGen i) 3 in
                (typeof [] t) == ty))
 
-testInterp :: Int -> IO ()
-testInterp n = do
-  i <- randomIO
-  quickCheckWith stdArgs {maxSuccess=n}
-    (\ty -> (let t=unGen (genTy 0 [] ty) (mkStdGen i) 3 in
-               (eval [] t == evals t)))
+--testInterp :: Int -> IO ()
+--testInterp n = do
+--  i <- randomIO
+--  quickCheckWith stdArgs {maxSuccess=n}
+--    (\ty -> (let t=unGen (genTy 0 [] ty) (mkStdGen i) 3 in
+--               (eval [] t == evals t)))
     
 -- randomIO produces a random number in the IO monad
 

@@ -1,3 +1,5 @@
+{-# LANGUAGE GADTs #-}
+
 import Text.ParserCombinators.Parsec
 import Control.Monad
 import Text.ParserCombinators.Parsec.Language
@@ -104,6 +106,7 @@ bindExpr = do reserved "bind"
 lambdaExpr :: Parser FBAE
 lambdaExpr = do reserved "lambda"
                 (i,t) <- parens argExpr
+                reserved "in"
                 b <- expr
                 return (Lambda i t b)
 
@@ -168,99 +171,153 @@ parseFBAEFile = parseFile expr
 type Env = [(String,FBAE)]
 type Cont = [(String,TFBAE)]
          
-eval :: FBAE -> Env -> FBAE
-eval (Num x) env = (Num x)
-eval (Plus l r) env = let (Num l') = (eval l env)
-                          (Num r') = (eval r env)
+eDyn :: Env -> FBAE -> FBAE
+eDyn env (Num x) = (Num x)
+eDyn env (Plus l r) = let (Num l') = (eDyn env l)
+                          (Num r') = (eDyn env r)
                       in (Num (l'+r'))
-eval (Minus l r) env = let (Num l') = (eval l env)
-                           (Num r') = (eval r env)
+eDyn env (Minus l r) = let (Num l') = (eDyn env l)
+                           (Num r') = (eDyn env r)
                        in (Num (l'-r'))
-eval (Mult l r) env = let (Num l') = (eval l env)
-                          (Num r') = (eval r env)
+eDyn env (Mult l r) = let (Num l') = (eDyn env l)
+                          (Num r') = (eDyn env r)
                       in (Num (l'*r'))
-eval (Div l r) env = let (Num l') = (eval l env)
-                         (Num r') = (eval r env)
+eDyn env (Div l r) = let (Num l') = (eDyn env l)
+                         (Num r') = (eDyn env r)
                       in (Num (div l' r'))
-eval (Bind i v b) env = let v' = eval v env in
-                          eval b ((i,v'):env)
-eval (Lambda i t b) env = (Lambda i t b)
-eval (App f a) env = let (Lambda i t b) = (eval f env)
-                         a' = (eval a env)
-                     in eval b ((i,a'):env)
-eval (Id id) env = case (lookup id env) of
+eDyn env (Bind i v b) = let v' = eDyn env v in
+                          eDyn ((i,v'):env) b
+eDyn env (Lambda i t b) = (Lambda i t b)
+eDyn env (App f a) = let (Lambda i t b) = (eDyn env f)
+                         a' = (eDyn env a)
+                     in eDyn ((i,a'):env) b
+eDyn env (Id id) = case (lookup id env) of
                      Just x -> x
                      Nothing -> error "Varible not found"
-eval (Boolean b) env = (Boolean b)
-eval (And l r) env = let (Boolean l') = (eval l env)
-                         (Boolean r') = (eval r env)
+eDyn env (Boolean b) = (Boolean b)
+eDyn env (And l r) = let (Boolean l') = (eDyn env l)
+                         (Boolean r') = (eDyn env r)
                       in (Boolean (l' && r'))
-eval (Or l r) env = let (Boolean l') = (eval l env)
-                        (Boolean r') = (eval r env)
+eDyn env (Or l r) = let (Boolean l') = (eDyn env l)
+                        (Boolean r') = (eDyn env r)
                     in (Boolean (l' || r'))
-eval (Leq l r) env = let (Num l') = (eval l env)
-                         (Num r') = (eval r env)
+eDyn env (Leq l r) = let (Num l') = (eDyn env l)
+                         (Num r') = (eDyn env r)
                       in (Boolean (l' <= r'))
-eval (IsZero v) env = let (Num v') = (eval v env)
+eDyn env (IsZero v) = let (Num v') = (eDyn env v)
                       in (Boolean (v' == 0))
-eval (If c t e) env = let (Boolean c') = (eval c env)
-                      in if c' then (eval t env) else (eval e env)
+eDyn env (If c t e) = let (Boolean c') = (eDyn env c)
+                      in if c' then (eDyn env t) else (eDyn env e)
+
+type EnvS = [(String,FBAEVal)]
+type ContS = [(String,TFBAE)]
+
+data FBAEVal where
+  NumV :: Int -> FBAEVal
+  BooleanV :: Bool -> FBAEVal
+  ClosureV :: String -> TFBAE -> FBAE -> EnvS -> FBAEVal
+  deriving (Show,Eq)
+
+eSta :: EnvS -> FBAE -> FBAEVal
+eSta env (Num x) = (NumV x)
+eSta env (Plus l r) = let (NumV l') = (eSta env l)
+                          (NumV r') = (eSta env r)
+                      in (NumV (l'+r'))
+eSta env (Minus l r) = let (NumV l') = (eSta env l)
+                           (NumV r') = (eSta env r)
+                       in (NumV (l'-r'))
+eSta env (Mult l r) = let (NumV l') = (eSta env l)
+                          (NumV r') = (eSta env r)
+                      in (NumV (l'*r'))
+eSta env (Div l r) = let (NumV l') = (eSta env l)
+                         (NumV r') = (eSta env r)
+                      in (NumV (div l' r'))
+eSta env (Bind i v b) = let v' = eSta env v in
+                          eSta ((i,v'):env) b
+eSta env (Lambda i t b) = (ClosureV i t b env)
+eSta env (App f a) = let (ClosureV i t b e) = (eSta env f)
+                         a' = (eSta env a)
+                     in eSta ((i,a'):e) b
+eSta env (Id id) = case (lookup id env) of
+                     Just x -> x
+                     Nothing -> error "Varible not found"
+eSta env (Boolean b) = (BooleanV b)
+eSta env (And l r) = let (BooleanV l') = (eSta env l)
+                         (BooleanV r') = (eSta env r)
+                      in (BooleanV (l' && r'))
+eSta env (Or l r) = let (BooleanV l') = (eSta env l)
+                        (BooleanV r') = (eSta env r)
+                    in (BooleanV (l' || r'))
+eSta env (Leq l r) = let (NumV l') = (eSta env l)
+                         (NumV r') = (eSta env r)
+                      in (BooleanV (l' <= r'))
+eSta env (IsZero v) = let (NumV v') = (eSta env v)
+                      in (BooleanV (v' == 0))
+eSta env (If c t e) = let (BooleanV c') = (eSta env c)
+                      in if c' then (eSta env t) else (eSta env e)
 
 
-typeof :: FBAE -> Cont -> TFBAE
-typeof (Num x) cont = TNum
-typeof (Plus l r) cont = let l' = (typeof l cont)
-                             r' = (typeof r cont)
+typeof :: Cont -> FBAE -> TFBAE
+typeof cont (Num x) = TNum
+typeof cont (Plus l r) = let l' = (typeof cont l)
+                             r' = (typeof cont r)
                          in if l'==TNum && r'==TNum
                             then TNum
                             else error "Type Mismatch in +"
-typeof (Minus l r) cont = let l' = (typeof l cont)
-                              r' = (typeof r cont)
+typeof cont (Minus l r) = let l' = (typeof cont l)
+                              r' = (typeof cont r)
                           in if l'==TNum && r'==TNum then TNum else error "Type Mismatch in -"
-typeof (Mult l r) cont = let l' = (typeof l cont)
-                             r' = (typeof r cont)
+typeof cont (Mult l r) = let l' = (typeof cont l)
+                             r' = (typeof cont r)
                          in if l'==TNum && r'==TNum
                             then TNum
                             else error "Type Mismatch in *"
-typeof (Div l r) cont = let l' = (typeof l cont)
-                            r' = (typeof r cont)
+typeof cont (Div l r) = let l' = (typeof cont l)
+                            r' = (typeof cont r)
                         in if l'==TNum && r'==TNum
                            then TNum
                            else error "Type Mismatch in /"
-typeof (Bind i v b) cont = let v' = typeof v cont in
-                             typeof b ((i,v'):cont)
-typeof (Id id) cont = case (lookup id cont) of
+typeof cont (Bind i v b) = let v' = typeof cont v in
+                             typeof ((i,v'):cont) b
+typeof cont (Id id) = case (lookup id cont) of
                         Just x -> x
                         Nothing -> error "Varible not found"
-typeof (Lambda x t b) cont = let tyB = typeof b ((x,t):cont)
+typeof cont (Lambda x t b) = let tyB = typeof ((x,t):cont) b
                              in t :->: tyB
-typeof (App x y) cont = let tyXd :->: tyXr = typeof x cont
-                            tyY = typeof y cont
+typeof cont (App x y) = let tyXd :->: tyXr = typeof cont x
+                            tyY = typeof cont y
                         in if tyXd==tyY
                            then tyXr
                            else error "Type mismatch in app"
-typeof (Boolean b) cont = TBool
-typeof (And l r) cont = if (typeof l cont) == TBool && (typeof r cont) == TBool
+typeof cont (Boolean b) = TBool
+typeof cont (And l r) = if (typeof cont l) == TBool && (typeof cont r) == TBool
                         then TBool
                         else error "Type mismatch in &&"
-typeof (Or l r) cont = if (typeof l cont) == TBool && (typeof r cont) == TBool
+typeof cont (Or l r) = if (typeof cont l) == TBool && (typeof cont r) == TBool
                        then TBool
                        else error "Type mismatch in ||"
-typeof (Leq l r) cont = if (typeof l cont) == TNum && (typeof r cont) == TNum
+typeof cont (Leq l r) = if (typeof cont l) == TNum && (typeof cont r) == TNum
                         then TBool
                         else error "Type mismatch in <="
-typeof (IsZero v) cont = if (typeof v cont) == TNum
+typeof cont (IsZero v) = if (typeof cont v) == TNum
                          then TBool
                          else error "Type mismatch in IsZero"
-typeof (If c t e) cont = if (typeof c cont) == TBool
-                            && (typeof t cont)==(typeof e cont)
-                         then (typeof t cont)
+typeof cont (If c t e) = if (typeof cont c) == TBool
+                            && (typeof cont t)==(typeof cont e)
+                         then (typeof cont t)
                          else error "Type mismatch in if"
 
 
-interp :: String -> FBAE
-interp e = let p=(parseFBAE e) in
-           let t=typeof p [] in
-             if (t==TNum)
-             then (eval p [])
+intDyn :: String -> FBAE
+intDyn e = let p=(parseFBAE e) in
+           let t=(typeof [] p) in
+             if (t==TNum) || (t==TBool)
+             then (eDyn [] p)
+             else error "This should never happen"
+
+intSta :: String -> FBAEVal
+intSta e = let p=(parseFBAE e) in
+           let t=(typeof [] p) in
+             if (t==TNum) || (t==TBool)
+             then (eSta [] p)
              else error "This should never happen"

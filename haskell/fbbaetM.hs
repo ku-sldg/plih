@@ -1,47 +1,19 @@
----
-layout: frontpage
-title: Adding Booleans (Redux)
-use_math: true
-categories: chapter ch3
----
+{-# LANGUAGE GADTs #-}
 
-$$
-\newcommand\calc{\mathsf{calc}\;}
-\newcommand\parse{\mathsf{parse}\;}
-\newcommand\typeof{\mathsf{typeof}\;}
-\newcommand\interp{\mathsf{interp}\;}
-\newcommand\eval{\mathsf{eval}\;}
-\newcommand\NUM{\mathsf{NUM}\;}
-\newcommand\ID{\mathsf{ID}\;}
-\newcommand\iif{\mathsf{if}\;}
-\newcommand\tthen{\;\mathsf{then}\;}
-\newcommand\eelse{\;\mathsf{else}\;}
-\newcommand\iisZero{\mathsf{isZero}\;}
-\newcommand\bbind{\mathsf{bind}\;}
-\newcommand\iin{\mathsf{in}\;}
-\newcommand\aand{\;\mathsf{\&\&}\;}
-\newcommand\lleq{\;\mathtt{<=}\;}
-\newcommand\ttrue{\;\mathsf{true}}
-\newcommand\ffalse{\;\mathsf{false}}
-\newcommand\tnum{\;\mathsf{TNum}}
-\newcommand\tbool{\;\mathsf{TBool}}
-\newcommand\llambda{\mathsf{lambda}\;}
-\newcommand\aapp{\mathsf{app}\;}
-\newcommand\tnum{\;\mathsf{TNum}}
-\newcommand\tbool{\;\mathsf{TBool}}
-$$
+import Text.ParserCombinators.Parsec
+import Control.Monad
+import Text.ParserCombinators.Parsec.Language
+import Text.ParserCombinators.Parsec.Expr
+import qualified Text.ParserCombinators.Parsec.Token as Token
 
-# Adding Booleans
+-- Calculator language extended with an environment to hold defined variables
 
-Having added function types, let's revisit adding Boolean types back into the mix.  Very little changes, thus we will review this implementation as an exercise rather than work through it in great detail.  What we will see is a more complete language developed by combining type inference and interpretation.
+data TFBAE where
+  TNum :: TFBAE
+  TBool :: TFBAE
+  (:->:) :: TFBAE -> TFBAE -> TFBAE
+  deriving (Show,Eq)
 
-{% comment %}
-
-## AST
-
-The abstract data type for our new language AST is as follows:
-
-{% highlight haskell %}
 data FBAE where
   Num :: Int -> FBAE
   Plus :: FBAE -> FBAE -> FBAE
@@ -59,36 +31,151 @@ data FBAE where
   IsZero :: FBAE -> FBAE
   If :: FBAE -> FBAE -> FBAE -> FBAE
   deriving (Show,Eq)
-{% endhighlight %}
 
-Note that functions now include a type for the input parameter necessary for type inference.
+tokenDef =
+  javaStyle { Token.identStart = letter
+            , Token.identLetter = alphaNum
+            , Token.reservedNames = [ "lambda"
+                                    , "bind"
+                                    , "in"
+                                    , "if"
+                                    , "then"
+                                    , "else"
+                                    , "isZero"
+                                    , "app"
+                                    , "Num"
+                                    , "Bool"
+                                    , "true"
+                                    , "false" ]
+            , Token.reservedOpNames = [ "+","-","*","/","&&","||","<=","=",":","->"]
+            }
 
-## Types
+lexer = Token.makeTokenParser tokenDef
 
-The abstract data type for the type elements of our new language is as follows:
+identifier = Token.identifier lexer
+reserved = Token.reserved lexer
+reservedOp = Token.reservedOp lexer
+parens = Token.parens lexer
+integer = Token.integer lexer
+whiteSpace = Token.whiteSpace lexer
 
-{% highlight haskell %}
-data TFBAE where
-  TNum :: TFBAE
-  TBool :: TFBAE
-  (:->:) :: TFBAE -> TFBAE -> TFBAE
-  deriving (Show,Eq)
-{% endhighlight %}
+-- Term parser
 
-Nothing particularly new here other than adding the new constructor representing function types from the previous chapter.
+expr :: Parser FBAE
+expr = buildExpressionParser operators term
 
-## Evaluation
+operators = [ [Infix (reservedOp "*" >> return (Mult )) AssocLeft,
+               Infix (reservedOp "/" >> return (Div )) AssocLeft ]
+            , [Infix (reservedOp "+" >> return (Plus )) AssocLeft,
+               Infix (reservedOp "-" >> return (Minus )) AssocLeft ]
+            , [Infix (reservedOp "&&" >> return (And )) AssocLeft,
+               Infix (reservedOp "||" >> return (Or )) AssocLeft]
+            , [Infix (reservedOp "<=" >> return (Leq )) AssocLeft ]
+            , [Prefix (reserved "isZero" >> return (IsZero )) ]
+            ]
 
-### Dynamic Scoping
+numExpr :: Parser FBAE
+numExpr = do i <- integer
+             return (Num (fromInteger i))
 
-{% highlight haskell %}
+trueExpr :: Parser FBAE
+trueExpr = do i <- reserved "true"
+              return (Boolean True)
+
+falseExpr :: Parser FBAE
+falseExpr = do i <- reserved "false"
+               return (Boolean False)
+
+ifExpr :: Parser FBAE
+ifExpr = do reserved "if"
+            c <- expr
+            reserved "then"
+            t <- expr
+            reserved "else"
+            e <- expr
+            return (If c t e)
+
+identExpr :: Parser FBAE
+identExpr = do i <- identifier
+               return (Id i)
+
+bindExpr :: Parser FBAE
+bindExpr = do reserved "bind"
+              i <- identifier
+              reservedOp "="
+              v <- expr
+              reserved "in"
+              e <- expr
+              return (Bind i v e)
+
+lambdaExpr :: Parser FBAE
+lambdaExpr = do reserved "lambda"
+                (i,t) <- parens argExpr
+                reserved "in"
+                b <- expr
+                return (Lambda i t b)
+
+argExpr :: Parser (String,TFBAE)
+argExpr = do i <- identifier
+             reservedOp ":"
+             t <- ty
+             return (i,t)
+
+appExpr :: Parser FBAE
+appExpr = do reserved "app"
+             f <- expr
+             a <- expr
+             return (App f a)
+
+term = parens expr
+       <|> numExpr
+       <|> trueExpr
+       <|> falseExpr
+       <|> ifExpr
+       <|> identExpr
+       <|> bindExpr
+       <|> lambdaExpr
+       <|> appExpr
+
+
+-- Type parser
+
+ty = buildExpressionParser tyoperators tyTerm
+
+tyoperators = [ [Infix (reservedOp "->" >> return (:->: )) AssocLeft ] ]
+
+tyTerm :: Parser TFBAE
+tyTerm = parens ty <|> tyNat <|> tyBool
+
+tyNat :: Parser TFBAE
+tyNat = do reserved "Nat"
+           return TNum
+
+tyBool :: Parser TFBAE
+tyBool = do reserved "Bool"
+            return TBool
+
+-- Parser invocation
+
+parseString p str =
+  case parse p "" str of
+    Left e -> error $ show e
+    Right r -> r
+
+parseFBAE = parseString expr
+
+parseFile p file =
+  do program <- readFile file
+     case parse p "" program of
+       Left e -> print e >> fail "parse error"
+       Right r -> return r
+
+parseFBAEFile = parseFile expr
+
+
 type Env = [(String,FBAE)]
 type Cont = [(String,TFBAE)]
-{% endhighlight %}
-
-First a dynamically scoped interpreter for this new language FBBAE:
-
-{% highlight haskell %}         
+         
 eDyn :: Env -> FBAE -> (Either String FBAE)
 eDyn env (Num x) = (Right (Num x))
 eDyn env (Plus l r) = do { (Num l') <- (eDyn env l) ;
@@ -127,24 +214,16 @@ eDyn env (IsZero v) = do { (Num v') <- (eDyn env v) ;
                            return (Boolean (v' == 0)) }
 eDyn env (If c t e) = do { (Boolean c') <- (eDyn env c) ; 
                             if c' then (eDyn env t) else (eDyn env e) }
-{% endhighlight %}
 
-### Static Scoping
-
-{% highlight haskell %}
 type EnvS = [(String,FBAEVal)]
 type ContS = [(String,TFBAE)]
-{% endhighlight %}
 
-{% highlight haskell %}
 data FBAEVal where
   NumV :: Int -> FBAEVal
   BooleanV :: Bool -> FBAEVal
   ClosureV :: String -> TFBAE -> FBAE -> EnvS -> FBAEVal
   deriving (Show,Eq)
-{% endhighlight %}
 
-{% highlight haskell %}
 eSta :: EnvS -> FBAE -> (Either String FBAEVal)
 eSta env (Num x) = (Right (NumV x))
 eSta env (Plus l r) = do { (NumV l') <- (eSta env l) ;
@@ -182,11 +261,8 @@ eSta env (IsZero v) = do { (NumV v') <- (eSta env v) ;
                            return (BooleanV (v' == 0)) }
 eSta env (If c t e) = do { (BooleanV c') <- (eSta env c) ;
                            (if c' then (eSta env t) else (eSta env e)) }
-{% endhighlight %}
 
-## Type Checking
 
-{% highlight haskell %}
 typeof :: Cont -> FBAE -> (Either String TFBAE)
 typeof cont (Num x) = return TNum
 typeof cont (Plus l r) = do { l' <- (typeof cont l) ;
@@ -246,6 +322,15 @@ typeof cont (If c t e) = do { c' <- (typeof cont c) ;
                               if c' == TBool && t'==e'
                               then return t'
                               else (Left "Type mismatch in if") }
-{% endhighlight %}
 
-{% endcomment %}
+intDyn :: String -> (Either String FBAE)
+intDyn e = let p=(parseFBAE e) in
+           case (typeof [] p) of
+             (Right _) -> (eDyn [] p)
+             (Left x) -> (Left x)
+
+intSta :: String -> (Either String FBAEVal)
+intSta e = let p=(parseFBAE e) in
+           case (typeof [] p) of
+             (Right _) -> (eSta [] p)
+             (Left x) -> (Left x)

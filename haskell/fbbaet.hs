@@ -307,6 +307,40 @@ typeof cont (If c t e) = if (typeof cont c) == TBool
                          then (typeof cont t)
                          else error "Type mismatch in if"
 
+elab :: FBAE -> FBAE
+elab (Num x) = (Num x)
+elab (Plus l r) = let l' = (elab l)
+                      r' = (elab r)
+                  in (Plus l' r')
+elab (Minus l r) = let l' = (elab l)
+                       r' = (elab r)
+                   in (Minus l' r')
+elab (Mult l r) = let l' = (elab l)
+                      r' = (elab r)
+                  in (Mult l' r')
+elab (Div l r) = let l' = (elab l)
+                     r' = (elab r)
+                 in (Div l' r')
+elab (Bind i v b) = let v' = elab v
+                        b' = elab b
+                    in (App (Lambda i TNum b') v')
+elab (Lambda i t b) = (Lambda i t b)
+elab (App f a) = (App (elab f) (elab a))
+elab (Id id) = (Id id)
+elab (Boolean b) = (Boolean b)
+elab (And l r) = let l' = (elab l)
+                     r' = (elab r)
+                 in (And l' r')
+elab (Or l r) = let l' = (elab l)
+                    r' = (elab r)
+                in (Or l' r')
+elab (Leq l r) = let l' = (elab l)
+                     r' = (elab r)
+                 in (Leq l' r')
+elab (IsZero v) = let v' = (elab v)
+                  in (IsZero v')
+elab (If c t e) = If (elab c) (elab t) (elab e)
+
 
 intDyn :: String -> FBAE
 intDyn e = let p=(parseFBAE e) in

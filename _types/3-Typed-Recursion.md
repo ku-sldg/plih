@@ -35,7 +35,7 @@ What can we do to solve this?  No matter how many turtles we add, there is alway
 
 The rule for the general recursive structure is:
 
-$$\frac{}{[\eval e \fix \llambda i t = eval e i\maplet (fix (\llambda i b))] b}$$
+$$\frac{}{\eval e \fix \llambda i t = eval e [i\maplet (fix (\llambda i b))] b}$$
 
 Evaluating `fix` uses substitution to replace the called function with `fix` over the called function.  Note that `eval` appears on both sides of the definition.
 

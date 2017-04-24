@@ -10,22 +10,24 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 
 data TFBAE = TNum | TBool | TFBAE :->: TFBAE deriving (Show,Eq)
 
-data FBAE = Num Int
-          | Plus FBAE FBAE
-          | Minus FBAE FBAE
-          | Mult FBAE FBAE
-          | Div FBAE FBAE
-          | Bind String FBAE FBAE
-          | Lambda String TFBAE FBAE
-          | App FBAE FBAE
-          | Id String
-          | Boolean Bool
-          | And FBAE FBAE
-          | Or FBAE FBAE
-          | Leq FBAE FBAE
-          | IsZero FBAE
-          | If FBAE FBAE FBAE
-          deriving (Show,Eq)
+data FBAE where
+  Num :: Int -> FBAE
+  Plus :: FBAE -> FBAE -> FBAE
+  Minus :: FBAE -> FBAE -> FBAE
+  Mult :: FBAE -> FBAE -> FBAE
+  Div :: FBAE -> FBAE -> FBAE
+  Bind :: String -> FBAE -> FBAE -> FBAE
+  Lambda :: String -> TFBAE -> FBAE -> FBAE
+  App :: FBAE -> FBAE -> FBAE
+  Id :: String -> FBAE
+  Boolean :: Bool -> FBAE
+  And :: FBAE -> FBAE -> FBAE
+  Or :: FBAE -> FBAE -> FBAE
+  Leq :: FBAE -> FBAE -> FBAE
+  IsZero :: FBAE -> FBAE
+  If :: FBAE -> FBAE -> FBAE -> FBAE
+  Fix :: FBAE -> FBAE
+  deriving (Show,Eq)
 
 tokenDef =
   javaStyle { Token.identStart = letter
@@ -41,7 +43,8 @@ tokenDef =
                                     , "Num"
                                     , "Bool"
                                     , "true"
-                                    , "false" ]
+                                    , "false"
+                                    , "fix" ]
             , Token.reservedOpNames = [ "+","-","*","/","&&","||","<=","=",":","->"]
             }
 
@@ -122,6 +125,11 @@ appExpr = do reserved "app"
              a <- expr
              return (App f a)
 
+fixExpr :: Parser FBAE
+fixExpr = do reserved "fix"
+             t <- expr
+             return (Fix t)
+
 term = parens expr
        <|> numExpr
        <|> trueExpr
@@ -131,6 +139,7 @@ term = parens expr
        <|> bindExpr
        <|> lambdaExpr
        <|> appExpr
+       <|> fixExpr
 
 
 -- Type parser
@@ -167,9 +176,46 @@ parseFile p file =
 
 parseFBAEFile = parseFile expr
 
+-- Substitution
+
+subst :: String -> FBAE -> FBAE -> FBAE
+subst _ _ (Num x) = (Num x)
+subst i v (Plus l r) = (Plus (subst i v l) (subst i v r))
+subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
+subst i v (Bind i' v' b') = if i==i'
+                            then (Bind i' (subst i v v') b')
+                            else (Bind i' (subst i v v') (subst i v b'))
+subst i v (Lambda i' t' b') = if i==i'
+                           then (Lambda i' t' b')
+                           else (Lambda i' t' (subst i v b'))
+subst i v (App l r) = (App (subst i v l) (subst i v r))
+subst i v (Id i') = if i==i'
+                    then v
+                    else (Id i')
+
+subst i v (Boolean b) = (Boolean b)
+subst i v (And l r) = let l' = (subst i v l)
+                          r' = (subst i v r)
+                      in (And l' r')
+subst i v (Or l r) = let l' = (subst i v l)
+                         r' = (subst i v r)
+                     in (Or l' r')
+subst i v (Leq l r) = let l' = (subst i v l)
+                          r' = (subst i v r)
+                      in (Leq l' r')
+subst i v (IsZero t) = let t' = (subst i v t)
+                       in (IsZero t')
+
+subst i v (If c t e) = (If (subst i v c) (subst i v t) (subst i v e))
+subst i v (Fix t) = (Fix (subst i v t))
+
+-- Evaluation and Type Derivation
+
+-- Enviornment for dynamically scoped eval
 
 type Env = [(String,FBAE)]
-type Cont = [(String,TFBAE)]
+
+-- Dynamically scoped eval
          
 eDyn :: Env -> FBAE -> FBAE
 eDyn env (Num x) = (Num x)
@@ -208,15 +254,22 @@ eDyn env (IsZero v) = let (Num v') = (eDyn env v)
                       in (Boolean (v' == 0))
 eDyn env (If c t e) = let (Boolean c') = (eDyn env c)
                       in if c' then (eDyn env t) else (eDyn env e)
+eDyn env (Fix t) = let (Lambda i ty b) = (eDyn env t) in
+                     eDyn env (subst i (Fix (Lambda i ty b)) b)
+
+-- Enviornment for statically scoped eval
 
 type EnvS = [(String,FBAEVal)]
-type ContS = [(String,TFBAE)]
+
+-- Value defintion for statically scoped eval
 
 data FBAEVal where
   NumV :: Int -> FBAEVal
   BooleanV :: Bool -> FBAEVal
   ClosureV :: String -> TFBAE -> FBAE -> EnvS -> FBAEVal
   deriving (Show,Eq)
+
+-- Statically scoped eval
 
 eSta :: EnvS -> FBAE -> FBAEVal
 eSta env (Num x) = (NumV x)
@@ -255,7 +308,13 @@ eSta env (IsZero v) = let (NumV v') = (eSta env v)
                       in (BooleanV (v' == 0))
 eSta env (If c t e) = let (BooleanV c') = (eSta env c)
                       in if c' then (eSta env t) else (eSta env e)
+eSta env (Fix t) = let (ClosureV i ty b e) = (eSta env t) in
+                     eSta e (subst i (Fix (Lambda i ty b)) b)
 
+
+-- Type inference function
+
+type Cont = [(String,TFBAE)]
 
 typeof :: Cont -> FBAE -> TFBAE
 typeof cont (Num x) = TNum
@@ -306,6 +365,9 @@ typeof cont (If c t e) = if (typeof cont c) == TBool
                             && (typeof cont t)==(typeof cont e)
                          then (typeof cont t)
                          else error "Type mismatch in if"
+typeof cont (Fix t) = typeof cont t
+
+-- Elaborator written for testing
 
 elab :: FBAE -> FBAE
 elab (Num x) = (Num x)
@@ -340,18 +402,18 @@ elab (Leq l r) = let l' = (elab l)
 elab (IsZero v) = let v' = (elab v)
                   in (IsZero v')
 elab (If c t e) = If (elab c) (elab t) (elab e)
+elab (Fix t) = (Fix (elab t))
 
+-- Example recursive function for summation.  Run it using intDyn or intSta
+
+ffs = "app (fix (lambda (ie:Nat) in (lambda (x:Nat) in if (isZero x) then x else x + app ie x - 1))) 5"
 
 intDyn :: String -> FBAE
 intDyn e = let p=(parseFBAE e) in
            let t=(typeof [] p) in
-             if (t==TNum) || (t==TBool)
-             then (eDyn [] p)
-             else error "This should never happen"
+             (eDyn [] p)
 
 intSta :: String -> FBAEVal
 intSta e = let p=(parseFBAE e) in
            let t=(typeof [] p) in
-             if (t==TNum) || (t==TBool)
-             then (eSta [] p)
-             else error "This should never happen"
+             (eSta [] p)

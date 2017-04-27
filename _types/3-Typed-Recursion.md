@@ -183,7 +183,7 @@ eval env (Fix f) = let (ClosureV i b e) = (eval env f) in
 To better understand how the `fix` operation works, let's evaluate factorial of `3` using our new operation.  First, let's define `f`, the function we will use to implement factorial:
 
 {% highlight text %}
-bind fact = (lambda g in (lambda x in (if x=0 then 1 else x * (app g x-1)))) in
+bind fact = (lambda g in (lambda x in (if x=0 then 1 else x * (app g x-1)))) in ...
 {% endhighlight %}
 
 `fact` is not recursive.  It takes a function that it will call in the recursive case and return something that looks a great deal like factorial.  Let's do a quick thought experiment to see what `fact` would look like if it were called on itself:
@@ -254,5 +254,49 @@ This time the `if` condition is true, so the function returns `1` rather than ev
 {% highlight text %}
 == 3 * 2 * 1 * 1
 == 6
+{% endhighlight %}
+
+Finally evaluating the resulting product gives us `6` as anticipated.  Our newly added `fix` operation takes a properly formed function and creates a recursive function.  Let's look back at the `fact` function given to `fix`:
+
+{% highlight text %}
+bind fact = (lambda g in (lambda x in (if x=0 then 1 else x * (app g x-1)))) in
+   (app (fix fact) 3)
+{% endhighlight %}
+
+This looks exactly like our original `fact` definition with a "hole" for the recursive call.  Where `fact` appears in the initial definition, the function `g` from the outer `lambda` appears.  This is the general form for any recursive construction we would like to create.  Specifically, create the recursive function and replace the recursive instance with a variable created by an outer `lambda`.
+
+## Typing fix
+
+This entire discussion started with an attempt to create a statically scoped, well-typed recursive construction.  We could not find a type for $\Omega$ or Y, we couldn't hack closures, and finally resorted to extending the core language to include a `fix` operator.  We now have a statically scoped `fix` expression that will create recursive constructs for us.
+
+One task remains.  What is the type of `fix`?  Looking at how we created factorial from `fact` gives is a great clue:
+
+{% highlight text %}
+bind fact = (lambda g in (lambda x in (if x=0 then 1 else x * (app g x-1)))) in
+   (app (fix fact) 3)
+{% endhighlight %}
+
+`fix fact` gives us the factorial fucntion.  The previous definition could be rewritten as:
+
+{% highlight text %}
+bind fact = (lambda g in (lambda x in (if x=0 then 1 else x * (app g x-1)))) in
+   bind factorial = (fix fact) in
+     (app factorial 3)
+{% endhighlight %}
+
+Looking at factorial this way, it should be clear the type of `factorial` must be `TNat->TNat`.  Given a number, factorial will return another number.  What then is the type of `fact`?  It takes a value `g` and returns a function that calls `g`.  So, the argument to `fact` must be a function.  The result must also be a function because it is applied to a value.  `fact` takes a function and returns a function.  If we call `typeof` on just `fact` we learn:
+
+{% highlight text %}
+typeof [] (lambda (ie:Nat->Nat) in
+             (lambda (x:Nat) in
+                (if (isZero x) then x else x + app ie x - 1)))
+ == (Nat->Nat) -> (Nat->Nat)
+ {% endhighlight %}
+
+`fix` takes `fact` and creates `factorial`.  Instead of applying `fix` to an argument like `app`, `fix` skips the argument and environment going straight to the substitution.  Given a function like `fact`, `fix` creates a recursive function from the body of `fact` using the function itself.  Just like an `app`, the type of `fix` is the domain of the input function:
+
+{% highlight haskell %}
+typeof cont (Fix t) = let r:->:d = typeof cont t
+                      in d
 {% endhighlight %}
 

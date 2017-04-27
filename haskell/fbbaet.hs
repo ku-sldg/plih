@@ -365,7 +365,8 @@ typeof cont (If c t e) = if (typeof cont c) == TBool
                             && (typeof cont t)==(typeof cont e)
                          then (typeof cont t)
                          else error "Type mismatch in if"
-typeof cont (Fix t) = typeof cont t
+typeof cont (Fix t) = let r:->:d = typeof cont t
+                      in d
 
 -- Elaborator written for testing
 

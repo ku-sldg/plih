@@ -8,7 +8,11 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 
 -- Calculator language extended with an environment to hold defined variables
 
-data TFBAE = TNum | TBool | TFBAE :->: TFBAE deriving (Show,Eq)
+data TFBAE where
+  TNum :: TFBAE
+  TBool :: TFBAE
+  (:->:) :: TFBAE -> TFBAE -> TFBAE
+  deriving (Show,Eq)
 
 data FBAE where
   Num :: Int -> FBAE

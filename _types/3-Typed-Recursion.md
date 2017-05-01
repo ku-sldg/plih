@@ -2,8 +2,9 @@
 layout: frontpage
 title: Typed Recursion
 use_math: true
-categories: chapter ch2
+categories: chapter
 ---
+
 $$
 \newcommand\calc{\mathsf{calc}\;}
 \newcommand\parse{\mathsf{parse}\;}
@@ -35,7 +36,8 @@ $$
 
 ## Typing Omega
 
-Having established that the type of a `lambda` is of the form `D:->:R`, typing an increment function is quite simple:
+Having established that the type of a `lambda` is of the form
+`D:->:R`, typing an increment function is quite simple: 
 
 {% highlight text %}
 typeof cont (lambda (x:TNum) in x + 1)

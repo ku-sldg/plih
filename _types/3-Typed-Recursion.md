@@ -451,7 +451,7 @@ function itself.  Just like an `app`, the type of `fix` is the domain
 of the input function: 
 
 {% highlight haskell %}
-typeof cont (Fix t) = let r:->:d = typeof cont t
-                      in d
+typeof cont (Fix t) = let d:->:r = typeof cont t
+                      in r
 {% endhighlight %}
 

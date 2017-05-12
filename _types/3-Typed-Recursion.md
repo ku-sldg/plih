@@ -447,7 +447,7 @@ typeof [] (lambda (ie:Nat->Nat) in
 to an argument like `app`, `fix` skips the argument and environment
 going straight to the substitution.  Given a function like `fact`,
 `fix` creates a recursive function from the body of `fact` using the
-function itself.  Just like an `app`, the type of `fix` is the domain
+function itself.  Just like an `app`, the type of `fix` is the range
 of the input function: 
 
 {% highlight haskell %}

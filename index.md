@@ -5,9 +5,9 @@ title: Programming Languages in Haskell
 
 # Programming Languages in Haskell
 
-An introduction to programming languages using Haskell.
+An introduction to programming languages using Haskell.  Written for EECS 662 at The University of Kansas.
 
----	
+---
 
 # Acknowledgements
 
@@ -62,4 +62,3 @@ An introduction to programming languages using Haskell.
 {% for post in site.state %}
 ## <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
 {% endfor %}
-

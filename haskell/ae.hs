@@ -36,15 +36,20 @@ data AE where
   Div :: AE -> AE -> AE
   deriving (Show,Eq)
 
+-- Lift a function over integers into Num
+
+liftNum :: (Int -> Int -> Int) -> AE -> AE -> AE
+liftNum f (Num l) (Num r) = (Num (f l r))
+
 -- AST Pretty Printer
 
-pprint :: AE -> String
-pprint (Num n) = show n
-pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
-pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
+pprintAE :: AE -> String
+pprintAE (Num n) = show n
+pprintAE (Plus n m) = "(" ++ pprintAE n ++ "+" ++ pprintAE m ++ ")"
+pprintAE (Minus n m) = "(" ++ pprintAE n ++ "-" ++ pprintAE m ++ ")"
 
 --instance Show AE where
---  show = pprint
+--  show = pprintAE
 
 -- Parser (Requires ParserUtils and Parsec)
 
@@ -70,20 +75,20 @@ parseAEFile = parseFile expr
 
 -- Evaluation Function
 
-eval :: AE -> AE
-eval (Num x) = (Num x)
-eval (Plus t1 t2) = let (Num v1) = (eval t1)
-                        (Num v2) = (eval t2)
-                    in (Num (v1+v2))
-eval (Minus t1 t2) = let (Num v1) = (eval t1)
-                         (Num v2) = (eval t2)
-                     in (Num (v1-v2))
-eval (Mult t1 t2) = let (Num v1) = (eval t1)
-                        (Num v2) = (eval t2)
-                    in (Num (v1*v2))
-eval (Div t1 t2) = let (Num v1) = (eval t1)
-                       (Num v2) = (eval t2)
-                   in (Num (div v1 v2))
+eval :: AE -> Maybe AE
+eval (Num x) = return (Num x)
+eval (Plus t1 t2) = do v1 <- (eval t1)
+                       v2 <- (eval t2)
+                       return (liftNum (+) v1 v2)
+eval (Minus t1 t2) = do v1 <- (eval t1)
+                        v2 <- (eval t2)
+                        return (liftNum (-) v1 v2)
+eval (Mult t1 t2) = do v1 <- (eval t1)
+                       v2 <- (eval t2)
+                       return (liftNum (*) v1 v2)
+eval (Div t1 t2) = do v1 <- (eval t1)
+                      v2 <- (eval t2)
+                      return (liftNum div v1 v2)
 
 -- Interpreter = parse + eval
 
@@ -121,10 +126,11 @@ genAE n =
 
 -- QuickCheck 
 
-testParser :: Int -> IO ()
-testParser n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> parseAE (pprint t) == t)
+testParseAE :: Int -> IO ()
+testParseAE n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> parseAE (pprintAE t) == t)
 
-testEval' :: Int -> IO ()
-testEval' n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> (interp $ pprint t) == (eval t))
+testInterp :: Int -> IO ()
+testInterp n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> (interp $ pprintAE t) == (eval t))
+

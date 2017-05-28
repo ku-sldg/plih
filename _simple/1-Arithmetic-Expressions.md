@@ -161,76 +161,95 @@ An *interpreter* converts an abstract syntax term into a value.  As noted earlie
 
 How should the interpreter be constructed?  The data type defined for the abstract syntax gives us a big clue.  If the constructors from the data type define every possible AST element, then defining an interpreter for each element of the data type should do the trick.  We need to define how the interpreter behaves on each constructor from the `AE` datatype.
 
-First, lets get the signature down.  Our interpreter will take an element of `AE` and produce an element of `AE` that is a value.  Unfortunately, we can't capture value-ness in our signature just yet, so we'll just say that the interpreter returns an `AE`:
+First, lets get the `eval` signature down.  Our evaluator will take an element of `AE` and produce a value, where a value is defined as a number.  In the AST, numbers are of the form `(Num n)` where `n` is a Haskell `Int`.  Unfortunately, we can't capture value-ness in our signaturep, so we'll just say that `eval` returns  `Maybe AE`.  We'll use `Maybe` to allow `eval` to return a value or an error.  The signature for `eval` is:
 
 {% highlight haskell %}
-eval :: AE -> AE
+eval :: AE -> Maybe AE
 {% endhighlight %}
 
-Next, lets look at the `Num` constructor.  `(Num 3)` represents a constant `3` in our `AE` abstract syntax.  Without much thought it should be clear that `(Num 3)` evaluates to `(Num 3)`.  Numbers are values in `AE`, thus they should not be evaluated further.  Thankfully, this is exactly what our inference rule for evaluating numbers says if we remember that $v$ represents $\NUM$:
+We now define `eval`'s cases, one for each `AE` constructor starting with the `Num` constructor.  `(Num 3)`, for example, represents a constant `3` in the `AE` abstract syntax.  Without much thought it should be clear that as a constant, `(Num 3)` evaluates to `(Num 3)`.  Numbers are values in `AE`, thus they should not be evaluated further making this consistent with our formal definition.  Thankfully, this is exactly what our inference rule for evaluating numbers says if we remember that $v$ represents $\NUM$:
 
 $$\frac{}{\eval v = v}\; [NumE]$$
 
 Thus, `eval` case for `(Num n)` just returns its argument:
 
 {% highlight haskell %}
-eval :: AE -> AE
-(Num n) = (Num n)
+(Num n) = return (Num n)
 {% endhighlight %}
+
+Because `return = Just`, `eval (Num 3)` returns `(Just (Num 3))`
 
 We now have an interpreter for literal numbers, but nothing more.
 
-The `Plus` constructor represents a more interesting case.  We have a rule named $PlusE$ that defines interpretation of `t1+t2`:
+The next constructor, `Plus` represents a more interesting case.  We have a rule named $PlusE$ that defines interpretation of `t1+t2`:
 
 $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1+v_2}\; [PlusE]$$
 
-The inference rule is defined in terms of concrete rather than
-abstract syntax, so we have to do a bit of translation work.
-$t_1+t_2$ translates quickly into `(Plus t1 t2)` and the rest of the
-computation follows from there. Given `(Plus t1 t2)` if `t1` evaluates
-to `(Num v1)` and `t2` evaluates to `(Num v2)` then `(Plus t1 t2)`
-evalautes to `(Num (v_1+v_2))`.  This is easily represented in Haskell
-using `let` to evaluate antecedents, pattern matching to bind `v1` and
-`v2`, add uses the bindings in its body:
+The inference rule is defined in terms of concrete rather than abstract syntax, so we have to do a bit of translation work. $t_1+t_2$ translates quickly into `(Plus t1 t2)`. If `t1` evaluates to `(Num v1)` and `t2` evaluates to `(Num v2)` then `(Plus t1 t2)` evalautes to `(Num v1)+(Num v2)`.  There is no `+` operation in Haskell for `(Num n)` constructions, this we need to write one to define addition in `AE`.  We can define addition in `AE` in terms of addition in Haskell.  Specifically:
 
-{% highlight haskell %}
-(Plus t1 t2) = let (Num v1) = eval t1
-                   (Num v2) = eval t2
-               in (Num (v1 + v2))
+{% highlight text %}
+(Num n) + (Num m) == (Num n+m)
 {% endhighlight %}
 
-Note the Haskell trick in the `let` clause.  If `eval t1` behaves as it should, then its result will be a number.  Using pattern matching the value of that number is bound to a variable and used directly in the sum.  This simplifies the evaluation just a bit.
+There are many ways to construct this operation in Haskell, but we will use a lifting function that will allow us to define any operation in `AE` using an operation from Haskell:
 
-The translation from inference rule to Haskell follows standard rule of thumb.  The `let` construct bindings manage the rule antecedents, performing evaluation and binding variables.  The let body is the consequent and evaluates the term.  This will not always be true, but will be in most circumstances.
+{% highlight haskell %}
+liftNum :: (Int -> Int -> Int) -> AE -> AE -> AE
+liftNum f (Num l) (Num r) = (Num (f l r))
+{% endhighlight %}
+
+`liftNum` takes a binary function over integers and two `Num` constructions.  It lifts the binary operation into `Num` by extracting the `Int` values, applying the operation, and putting the result back in `Num`.  While we could not use `+` on `Num` constructions directly, we can use `liftNum` to define addition in `AE`:
+
+{% highlight haskell %}
+(Num n) + (Num m) == (liftNum (+) n m
+{% endhighlight %}
+
+Furthermore, we can define other `AE` operations similarly.
+
+Now we have everything needed to define `Plus`.  This inference rule can be almost directly translated into Haskell using `do` to evaluate antecedents, calculate the and return the value defined by the consequent:
+
+{% highlight haskell %}
+(Plus t1 t2) = do v1 <- eval t1
+                  v2 <- eval t2
+                 return (liftNum (+) v1 v2)
+{% endhighlight %}
+
+The translation from inference rule to Haskell follows standard rule of thumb.  The `dp` construct bindings manage the rule antecedents, performing evaluation and binding variables.  The `return` is the consequent and evaluates the term.  While only a rule-of-thumb, it will prove highly useful.
 
 Finally, The `Minus` constructor case is identical to the `Plus` constructor case except values are subtracted rather than added together.  For completeness, here is the subtraction case:
 
 {% highlight haskell %}
-(Minus t1 t2) = let (Num v1) = eval t1
-                    (Num v2) = eval t2
-                in (Num (v1 - v2))
+(Minus t1 t2) = do v1 <- eval t1
+                   v2 <- eval t2
+                   return (liftNum (-) v1 v2)
 {% endhighlight %}
 
-Putting the cases together the following is an interpreter for `AE` that reduces every abstract syntax term to an abstract number:
+Putting the cases together in the following evaluator for `AE` that reduces every abstract syntax term to a value:
 
 {% highlight haskell %}
-eval :: AE -> AE
-eval (Num n) = (Num n)
-eval (Plus t1 t2) = let (Num v1) = eval t1
-                        (Num v2) = eval t2
-                     in (Num (v1 + v2))
-eval (Minus t1 t2) = let (Num v1) = eval t1
-		                 (Num v2) = eval t2
-                     in (Num (v1 - v2))
+eval :: AE -> Maybe AE
+eval (Num x) = return (Num x)
+eval (Plus t1 t2) = do v1 <- (eval t1)
+                       v2 <- (eval t2)
+                       return (liftNum (+) v1 v2)
+eval (Minus t1 t2) = do v1 <- (eval t1)
+                        v2 <- (eval t2)
+                        return (liftNum (-) v1 v2)
+eval (Mult t1 t2) = do v1 <- (eval t1)
+                       v2 <- (eval t2)
+                       return (liftNum (*) v1 v2)
+eval (Div t1 t2) = do v1 <- (eval t1)
+                      v2 <- (eval t2)
+                      return (liftNum div v1 v2)
 {% endhighlight %}
 
-The interpreter follows a pattern that every interpreter we write will follow.  Each constructor from the AST definition has a case in the `eval` function that interprets that constructor.  This pattern and the accompanying `data` construct gives us three nice properties - completeness, deterministic, and normalizing - that are quite useful.
+The evaluator follows a pattern that every evaluator we write will follow.  Each constructor from the AST definition has a case in the `eval` function that evaluates that constructor.  This pattern and the accompanying `data` construct gives us three nice language properties - completeness, determinicity, and normalization
 
-Completeness says that every term constructed in `AE` will be interpreted by `eval`.  Can we prove that? As it turns out, the Haskell `data` construct gives us some exceptionally nice properties for free, without direct proof. Bt definition, every value in the abstract syntax for `AE` is constructed with `Num`, `Plus`, and `Minus`.  There are no other constructions of type `AE`.   This is true of any type defined using `data` in Haskell.  All values of the defined type are constructed with its constructors.  A function that has a case for every constructor, is necessarily complete.
+Completeness says that every term constructed in `AE` will be interpreted by `eval`.  Can we prove that? As it turns out, the Haskell `data` construct gives us some exceptionally nice properties for free, without direct proof. By definition, every value in the abstract syntax for `AE` is constructed with `Num`, `Plus`, and `Minus `.  There are no other `AE` values.   This is generally true of any type defined using `data` in Haskell.  All values of the type are constructed with its constructors.
 
-The Haskell `data` type definition mechanism is an example of *algebraic types* or *constructed types* that are a staple in functional languages and becoming increasingly common in traditional programming languages.  We call them *algebraic* because the individual constructors are *products* of values and the type itself is the *sum* of those products.  Don't worry too much about this now, we'll revisit it later when we define our own types.
+We know `AE` is coplete because there is one inference rule for every syntax construct and one case in `eval` for each inference rule.  Specifically, the `eval` function has one case for each constructor from `AE`.  Because all `AE` values are built with those constructors, there is a case for every `AE` value in the `eval` function.  While not quite a proof, this gives strong evidence that our language definition is complete.
 
-Deterministic says that if we call `eval` on any term, we will get the same result.  This is an exceptionally important property as we don't want the same call to `eval` resulting in different values.  We know `AE` is deterministic because there is precisely one inference rule for interpreting each element of the concrete syntax.  In turn we know that `eval` is deterministic because there is precisely one case in the definition for each `AE` constructor.  Given `(Num n)` there is one rule and one `eval` case.  Given `Plus` there is one rule and one `eval` case.
+Determinicity says that if we call `eval` on any term, we will get the same result.  This is an exceptionally important property as we do bit want the same call to `eval` resulting in different values.  We know `AE` is deterministic because there is precisely one inference rule for interpreting each element of the concrete syntax.  In turn we know that `eval` is deterministic because there is precisely one case in the definition for each `AE` constructor.  Given `(Num n)` there is one rule and one `eval` case.  Given `Plus` there is one rule and one `eval` case.
 
 Normalization says that a call to `eval` on any term constructed in `AE` will terminate.  Again, a pretty bold statement.  Can we prove it?  The elements of a Haskell `data` type specifically and algebraic types generally have are `well-ordered`.  In mathematics, well-ordered means that every subset of a set has a least element.  Getting from well-ordered to guaranteed termination takes a bit of work, but the gist is that components of a constructor are smaller than the constructor itself.  Each recursive call on the parts of a term is made on a smaller term.  Consider `eval (Plus t1 t2)` where `t1` and `t2` can be viewed as smaller than `(Plus t1 t2)`.  Because every set of `AE` terms has a least element, pulling a term apart into its pieces will eventually get to that least element.
 
@@ -264,37 +283,51 @@ $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1+v_2}\; [PlusE]
 
 $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1-v_2}\; [MinusE]$$
 
-We implemented a parser from the grammar and an interpreter from the inference rules:
+We implemented a parser from the grammar and an evaluator from the inference rules:
 
 {% highlight haskell %}
-eval :: AE -> AE
-eval (Num n) = (Num n)
-eval (Plus t1 t2) = let (Num v1) = eval t1
-                        (Num v2) = eval t2
-                     in (Num (v1 + v2))
-eval (Minus t1 t2) = let (Num v1) = eval t1
-		                 (Num v2) = eval t2
-                     in (Num (v1 - v2))
+eval :: AE -> Maybe AE
+eval (Num x) = return (Num x)
+eval (Plus t1 t2) = do v1 <- (eval t1)
+                       v2 <- (eval t2)
+                       return (liftNum (+) v1 v2)
+eval (Minus t1 t2) = do v1 <- (eval t1)
+                        v2 <- (eval t2)
+                        return (liftNum (-) v1 v2)
+eval (Mult t1 t2) = do v1 <- (eval t1)
+                       v2 <- (eval t2)
+                       return (liftNum (*) v1 v2)
+eval (Div t1 t2) = do v1 <- (eval t1)
+                      v2 <- (eval t2)
+                      return (liftNum div v1 v2)
 {% endhighlight %}
 
 Given the parser and interpreter for `AE`, we can now define a language interpreter, `interp`, that puts everything together:
 
 {% highlight haskell %}
-interp :: String -> AE
+interp :: String -> Maybe AE
 interp = eval . parseAE
 {% endhighlight %}
 
-In words, `interp` is the composition of `parseAE` and `eval`.  This notation says that `parse` will be called first and the output passed to `eval`.  If `parseAE` throws an error, `interp` will terminate without passing a value to `eval`.
+In words, `interp` is the composition of `parseAE` and `eval`.  This notation uses Haskell's function composition to define that `parse` will be called first and the output passed to `eval`.  If `parseAE` throws an error, `interp` will terminate without passing a value to `eval`.
+
+If you are unfamiliar with the point-free style and the use of function composition, `interp` can be defined in a more traditional manner as:
+
+{% highlight haskell %}
+interp x = eval (parseAE x)
+{% endhighlight %}
+
+Use the notation you are most comfortable with.
 
 ## Discussion
 
 `AE` is a rather silly language that is less powerful than one of those bank calculators you get when you open a checking account.  It adds and subtracts numbers.  However, we need to start somewhere and `AE` is good for that.
 
-### Complete, Deterministic, and Normalizing
+### Complete, Determinicity, and Normalizing
 
 We said earlier that `eval` is complete, deterministic and normalizing.  Complete in that any element of `AE` can be interpreted, deterministic in that there is only one way to interpret any element of `AE`, and normalizing in that every interpretation of and `AE` element terminates.
 
-Unfortunately, these nice properties result from `AE` being such a trivial language.  Completeness and deterministic are properties something we will seek to preserve as we add features.  However,  normalizing will prove problematic when we add recursion and looping.  Some programs such as operating systems shouldn't terminate anyway.  Certainly we would like to ensure that no programs written in our languages crash, but that one will unfortunately go away in the next chapter.
+Unfortunately, these nice properties result from `AE` being such a trivial language.  Completeness and deterministic are properties we will seek to preserve as we add features.  However, normalizing will prove problematic when we add recursion and looping.
 
 ### Induction and Extensionality
 

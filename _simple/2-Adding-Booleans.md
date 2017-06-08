@@ -121,88 +121,6 @@ data ABE where
   deriving (Show,Eq)
 ```
 
-## Parsing
-
-Updating the `AE` parser to operate on `ABE` demonstrates a pattern we will use extensively.  The definition of `expr` does not change - it will still be our parser and is built from opTable and terms.
-
-```haskell
-expr :: Parser ABE
-expr = buildExpressionParser opTable term
-```
-
-The addition of new operators allows us to look at more functionality in the operator specification.  You see first the definitions for plus and minus from `AE` together in a list indicating they have the same precedent.  Then you see definitions for `isZero` and `<=` in a list immediately below.  These operators have precent immediately lower than `+` and `-`.  For example, `isZero x - y` will be parsed as `(isZero (x-y))` because `-` has higher precedence than `isZero`.  Finally, `&&` is in its own list following the numeric operations indicating that it has yet lower precedence.  So, `true && isZero (x-y)` parses as `(true && (isZero (x-y))).
-
-```haskell
-opTable = [ [ inFix "+" Plus AssocLeft
-              , inFix "-" Minus AssocLeft ]
-            , [ inFix "<=" Leq AssocLeft
-	          , preFix "isZero" IsZero ]
-            , [ inFix "&&" And AssocLeft ]
-            ]
-```
-
-One final addition is the first appearance of the `preFix` operator function.  As you might guess, this creates a prefix operation in a similar manner as `inFix`.  There is also a `postFix` function should you find a need for it.
-
-If you haven't bought in to the Parsec approach, hopefully the next extension will start to convert you.  Here we define parsers for each individual term that operators can operate over.  In `AE` this was only integers, but in `ABE` we add Boolean values and `if`.  The first three parsers operate over number and boolean constants.  We're using the `integer` parser that is built in Parsec for numbers.  For `true` and `false` we use the `reserved` parser that operates over reserved words that are enumerated in `PaserUtils`.  `trueExpr` parses the reserved word `true` and returns the abstract syntax `(Boolean True)` representing the appropriate constant.  Similarly for `falseExpr`.  Anytime you need to parse a reserved work or constant, these built-in parsers can be modified.  Remember however that `lexer` is defined in `ParserUtils` and must be modified if you want to include keywords that are not already included.
-
-```haskell
-numExpr :: Parser ABE
-numExpr = do i <- integer lexer
-             return (Num (fromInteger i))
-
-trueExpr :: Parser ABE
-trueExpr = do i <- reserved lexer "true"
-              return (Boolean True)
-
-falseExpr :: Parser ABE
-falseExpr = do i <- reserved lexer "false"
-               return (Boolean False)
-```
-
-The parser for `if` is a hint of Parsec's power.  It uses the Haskell `do` notation to compose a collection of smaller parsers.  Within the `do` notation, expressions are evaluated sequentially and results bound to variables using `<-`.  The `ifExpr` parser executes the following parsers in sequence:
-
-1. Parse an "if" using `reserved`
-2. Parse an expression and store the result in `c`
-3. Parse a "then" using `reserved`
-4. Parse an expression and store the result in `t`
-5. Parse an "else" using reserved
-6. Parse an expression and store the result in `e`
-7. Return the AST result `(if c t e)`
-
-Here's the actual code:
-
-```haskell
-ifExpr :: Parser ABE
-ifExpr = do reserved lexer "if"
-            c <- expr
-            reserved lexer "then"
-            t <- expr
-            reserved lexer "else"
-            e <- expr
-            return (If c t e)
-```
-
-Now we put the whole thing together to define `term`.  The `<|>`
-notation should be interpreted as or.  The `term` parser looks for an expression in parenthesis, a number, a true or false, or an  if expression.  The `parens` parser is another built-in parser that puts things in parenthesis.  So `parens lexer expr` looks for `(expr)`.  The other parsers are what we built above.
-
-```haskell
-term = parens lexer expr
-       <|> numExpr
-       <|> trueExpr
-       <|> falseExpr
-       <|> ifExpr
-```
-
-Looking back at the definition of `expr` it defines a complete parser using `term` and `opTable`.  Expressions can be used in operations and operations in expressions.  Plus, we've now got a parsing infrastructure that can be easily extended without much discussion moving forward.
-
-We'll invoke our new parser the same as always:
-
-```haskell
-parseABE = parseString expr
-
-parseABEFile = parseFile expr
-```
-
 ## Interpreter
 
 Finally.  We have abstract syntax generated from concrete syntax and can now write our interpreter.  This involves extending the `AE` `eval` function to include new cases for the new Boolean operations.  The initial definition is:
@@ -244,104 +162,30 @@ Finally, we'll combine the `eval` and `parseABE` functions into a single `interp
 interp = eval . parseABE
 ```
 
-## Testing ABE
-Let's fire up QuickCheck and see what we have.  Remember that all `AE` programs famously ran to termination and produced a value.  Will the same thing hold true for `ABE` programs?  I suspect you can easily figure the answer, but let's follow a rigorous process to see why.  The process will be useful to us when our languages become more complex.
+## Testing
 
-### Term Generator
-
-We need to extend the generator from the `Testing` chapter to generate `ABE` elements.  Like our parser we simply need to define generators for the new `AST` elements and add them to the original generator.
-
-Generating `Boolean` values is identical to generating `Num` values except we use `choose` to select among `True` and `False`:
+Testing the `ABE` `interp` function reveals a big change in our new interpreter.  Examples such as:
 
 ```haskell
-genBool =
-  do t <- choose (True,False)
-     return (Boolean t)
+interp 3+5
+== (Just (Num 8))
+interp if true then 5 else 10
+== (Just (Num 6))
+interp 5<=3
+== (Just (Boolean false))
 ```
 
-Generators for the remaining operators are identical to what we did for `Plus` and `Minus`.  Specifically, generate the arguments and put them together:
+all work as anticiapted, calculating the correct value and returning it as abstract syntax embedded in a `Maybe` monad.
+
+The big change is this interpreter crashes.  Our `AE` interpreter did not crash.  No well-formed term would cause the interpreter to belly up.  For `ABE` there are many cases that crash.  For example:
 
 ```haskell
-genAnd n =
-  do s <- genABE n
-     t <- genABE n
-     return (And s t)
-
-genLeq n =
-  do s <- genABE n
-     t <- genABE n
-     return (Leq s t)
-
-genIsZero n =
-  do s <- genABE n
-     return (IsZero s)
-
-genIf n =
-  do s <- genABE n
-     t <- genABE n
-     u <- genABE n
-     return (If s t u)
+interp false + 5
+interp if 3 then true else 7
+interp true <= 7
 ```
 
-Remember that the argument `n` is our size counter that will force the generator to terminate when the new `ABE` structure reaches a specified size.
-
-Now `genABE` for generating complete terms:
-
-```haskell
-genABE :: Int -> Gen ABE
-genABE 0 =
-  do term <- oneof [genNum,genBool]
-     return term
-genABE n =
-  do term <- oneof [genNum,(genPlus (n-1))
-                   ,(genMinus (n-1))
-                   ,(genAnd (n-1))
-                   ,(genLeq (n-1))
-                   ,(genIsZero (n-1))
-                   ,(genIf (n-1))]
-     return term
-```
-
-Note what's going on here.  For the base case, we use `oneof` to generate either a number or a boolean.  For the recursive case, we simply add generators for new terms to the argment to `oneof` adding them to the `ABE` generator.  That's it.  We're done.
-
-### QuickCheck
-
-Our testing functions are identical to those for `AE` with `AE` changed to `ABE`.  Literally, that's all there is to it:
-
-```haskell
-testParser :: Int -> IO ()
-testParser n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> parseABE (pprint t) == t)
-
-testEval :: Int -> IO ()
-testEval n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> (interp $ pprint t) == (eval t))
-```
-
-Now we're ready to go.
-
-### Initial Tests
-
-Using the `testParser` function we'll first test 1000 random `ABE` terms:
-
-```haskell
-testParser 1000
-+++ OK, passed 1000 tests.
-```
-
-So far, so good. The `ABE` parser passes 1000 tests of arbitrary structures.
-
-Using the `testEval` function we'll now test 1000 random `ABE` terms:
-
-```haskell
- testEval 1000
-*** Failed! (after 2 tests):
-Exception:
-  /Users/alex/Documents/Research/books/plih/sources/haskell/abe.hs:123:23-40: Irrefutable pattern failed for pattern (Main.Num v)
-IsZero (Boolean False)
-```
-
-This result tells us that the `eval` function fails after 2 tests.  Specifically, the term `IsZero (Boolean False)` cases `eval` to fail without generating a value. It should be clear why. `IsZero` expects a number yet it is called on a Boolean value.  `IsZero (Boolean False)` is a *counterexample* for the test and gives us a direction to follow.[^1]
+all cause the interpreter to crash into Haskell.  It should be quite clear why the crashes occur.  Specifically, plus is not defined over `false`, `if`'s first argument must be Boolean and `true` cannot be compared with `7`.  If we allow these expressions to be interpreted, there is no proper result.  However, if we can *predict* failure before interpretation we can gracefully fail rather than drop out of our interpreter to Haskell.
 
 ## Discussion
 

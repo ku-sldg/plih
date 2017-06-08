@@ -46,9 +46,9 @@ We will update our `ABE` evaluator to catch errors and run time rather than fall
 
 Let's change the type signature of the `ABE` `eval` function just a bit and define a new function called `evalErr` that returns either an `ABE` term or a string representing an error:
 
-{% highlight haskell %}
+```haskell
 evalErr :: ABE -> Either String ABE
-{% endhighlight %}
+```
 
 If you're not familiar with the `Either` type constructor, there is ample documentation of its use.[^3]  In this example it provides two constructors, `Right` and `Left` that contain an `ABE` value and a `String` respectively.  We'll use the `Either` type to return either an `ABE` value, `v` (`Right v`) or a string error message, `s` (`Left s`).  We can then use a `case` expression to discriminate between values.  Any time we call `evalError` we can do something like this:
 
@@ -292,22 +292,22 @@ In each case, an error is return if arguments are not of the correct type.
 
 `if` is the most interesting of the `ABE` expressions.  Unlike other expressions, `if` expressions do not always have the same time.  Consider two examples:
 
-{% highlight text %}
+```
 if x then 5 else 7+1
 if x then true else 7<=1
-{% endhighlight %}
+```
 
 where the first expression has type number and the second has type Boolean.  Is this expression okay:
 
-{% highlight text %}
+```
 if x then 5 else true
-{% endhighlight %}
+```
 
 If `x` is true, then the type of the `if` is clearly number.  But if `x` is false, then the type of the `if` is clearly Boolean.  What gives?  Can the `if` expression have two types?  For an answer, think about the expression:
 
-{% highlight text %}
+```
 1 + if x then 5 else true
-{% endhighlight %}
+```
 
 The addition operation requires both arguments to be numbers.  In this case, we can't say whether the `if` is or is not a number until we know the value of `x`.  This is key.  It's one thing to predict the type of `x`, but the value requires evaluating `x`.  Running the evaluator during type checking makes the two mutually recursive and is not wise.  At least for the time being.
 
@@ -449,9 +449,9 @@ An error is not what we expected!  We know already that `eval` and `evalErr` pro
 
 The concrete syntax for the counterexample is:
 
-{% highlight text %}
+```
 if false then true else 59
-{% endhighlight %}
+```
 
 This term does not have a static type because its two outcomes have different types. The first term is Boolean as required, but the second two terms do not have the same type.  Thus, `typeof` throws an error.
 
@@ -461,9 +461,9 @@ What gives?  Which is correct?
 
 In a very real sense, both are.  Error checking at runtime as implemented in our `interpErr` is what languages like Scheme do.  It's quite common to have constructs like:
 
-{% highlight racket %}
+```racket
 (if x 3 "oops")
-{% endhighlight %}
+```
 
 in Scheme.  The calling code must deal with all possible outcomes of evaluating `if`.  What `interpType` does is what languages like Haskell do.
 

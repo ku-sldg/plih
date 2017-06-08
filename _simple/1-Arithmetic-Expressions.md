@@ -102,13 +102,13 @@ Concrete syntax is nice on the user side, but painful to work with directly when
 
 *Abstract Syntax* is a data structure representing parsed terms.  This data structure is far more useful than concrete syntax when writing interpreters and compilers. Programs are data and abstract syntax is the data structure that represents them.  An abstract syntax for `AE` written using a Haskell data type is:
 
-{% highlight haskell %}
+```haskell
 data AE where
   Num :: Int -> AE
   Plus :: AE -> AE -> AE
   Minus :: AE -> AE -> AE
   deriving (Show,Eq)
-{% endhighlight %}
+```
 
 where `Num`, `Plus` and `Minus` are the *constructors* of the data type `AE` that correspond with numbers, sums and differences in the `AE` concrete syntax.  We use the term constructor because all values of type `AE` are constructed with one of these operations.  By definition, the `AE` type contains all constructions using `Plus`, `Minus` and `Num`, and no more.
 
@@ -131,25 +131,25 @@ From this point forward I will use TLA[^1] *AST* when referring to abstract synt
 
 A *parser* is a program that translates concrete syntax into an AST.  It checks the syntax of its input, generates error messages if the syntax is bad, and generates an AST if the syntax is good. The signature of a parser for the _AE_ language is:
 
-{% highlight haskell %}
+```haskell
 parseAE :: String -> AE
-{% endhighlight %}
+```
 
 Give `parseAE` a string and it will return an `AE` if it does not crash.  More generally, the parser's signature for any language will be a string to the datatype for that language's abstract syntax.
 
 A *pretty printer* is the inverse of a parser.  It translates an `AE` data structure into a string representing the concrete syntax.  The signature of a pretty printer for the _AE_ language is:
 
-{% highlight haskell %}
+```haskell
 pprintAE :: AE -> String
-{% endhighlight %}
+```
 
 Give `pprintAE` an `AE` data structure and it will return a string.  More generally, the pretty printer's signature for any language will be the datatype for that langauge's abstract syntax to a string.
 
 If `parseAE` and `pprintAE` are correct, then the following equivalence should hold for any string representing legal concrete syntax:
 
-{% highlight haskell %}
+```haskell
   pprintAE (parseAE s) == s
-{% endhighlight %}
+```
 
 If we parse a string and pretty print the result, we back the string.  A useful relationship for testing these tools.
 
@@ -163,9 +163,9 @@ How should the interpreter be constructed?  The data type defined for the abstra
 
 First, lets get the `eval` signature down.  Our evaluator will take an element of `AE` and produce a value, where a value is defined as a number.  In the AST, numbers are of the form `(Num n)` where `n` is a Haskell `Int`.  Unfortunately, we can't capture value-ness in our signaturep, so we'll just say that `eval` returns  `Maybe AE`.  We'll use `Maybe` to allow `eval` to return a value or an error.  The signature for `eval` is:
 
-{% highlight haskell %}
+```haskell
 eval :: AE -> Maybe AE
-{% endhighlight %}
+```
 
 We now define `eval`'s cases, one for each `AE` constructor starting with the `Num` constructor.  `(Num 3)`, for example, represents a constant `3` in the `AE` abstract syntax.  Without much thought it should be clear that as a constant, `(Num 3)` evaluates to `(Num 3)`.  Numbers are values in `AE`, thus they should not be evaluated further making this consistent with our formal definition.  Thankfully, this is exactly what our inference rule for evaluating numbers says if we remember that $v$ represents $\NUM$:
 
@@ -173,9 +173,9 @@ $$\frac{}{\eval v = v}\; [NumE]$$
 
 Thus, `eval` case for `(Num n)` just returns its argument:
 
-{% highlight haskell %}
+```haskell
 (Num n) = return (Num n)
-{% endhighlight %}
+```
 
 Because `return = Just`, `eval (Num 3)` returns `(Just (Num 3))`
 
@@ -193,40 +193,40 @@ The inference rule is defined in terms of concrete rather than abstract syntax, 
 
 There are many ways to construct this operation in Haskell, but we will use a lifting function that will allow us to define any operation in `AE` using an operation from Haskell:
 
-{% highlight haskell %}
+```haskell
 liftNum :: (Int -> Int -> Int) -> AE -> AE -> AE
 liftNum f (Num l) (Num r) = (Num (f l r))
-{% endhighlight %}
+```
 
 `liftNum` takes a binary function over integers and two `Num` constructions.  It lifts the binary operation into `Num` by extracting the `Int` values, applying the operation, and putting the result back in `Num`.  While we could not use `+` on `Num` constructions directly, we can use `liftNum` to define addition in `AE`:
 
-{% highlight haskell %}
+```haskell
 (Num n) + (Num m) == (liftNum (+) n m
-{% endhighlight %}
+```
 
 Furthermore, we can define other `AE` operations similarly.
 
 Now we have everything needed to define `Plus`.  This inference rule can be almost directly translated into Haskell using `do` to evaluate antecedents, calculate the and return the value defined by the consequent:
 
-{% highlight haskell %}
+```haskell
 (Plus t1 t2) = do v1 <- eval t1
                   v2 <- eval t2
                  return (liftNum (+) v1 v2)
-{% endhighlight %}
+```
 
 The translation from inference rule to Haskell follows standard rule of thumb.  The `dp` construct bindings manage the rule antecedents, performing evaluation and binding variables.  The `return` is the consequent and evaluates the term.  While only a rule-of-thumb, it will prove highly useful.
 
 Finally, The `Minus` constructor case is identical to the `Plus` constructor case except values are subtracted rather than added together.  For completeness, here is the subtraction case:
 
-{% highlight haskell %}
+```haskell
 (Minus t1 t2) = do v1 <- eval t1
                    v2 <- eval t2
                    return (liftNum (-) v1 v2)
-{% endhighlight %}
+```
 
 Putting the cases together in the following evaluator for `AE` that reduces every abstract syntax term to a value:
 
-{% highlight haskell %}
+```haskell
 eval :: AE -> Maybe AE
 eval (Num x) = return (Num x)
 eval (Plus t1 t2) = do v1 <- (eval t1)
@@ -241,7 +241,7 @@ eval (Mult t1 t2) = do v1 <- (eval t1)
 eval (Div t1 t2) = do v1 <- (eval t1)
                       v2 <- (eval t2)
                       return (liftNum div v1 v2)
-{% endhighlight %}
+```
 
 The evaluator follows a pattern that every evaluator we write will follow.  Each constructor from the AST definition has a case in the `eval` function that evaluates that constructor.  This pattern and the accompanying `data` construct gives us three nice language properties - completeness, determinicity, and normalization
 
@@ -285,7 +285,7 @@ $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1-v_2}\; [MinusE
 
 We implemented a parser from the grammar and an evaluator from the inference rules:
 
-{% highlight haskell %}
+```haskell
 eval :: AE -> Maybe AE
 eval (Num x) = return (Num x)
 eval (Plus t1 t2) = do v1 <- (eval t1)
@@ -300,22 +300,22 @@ eval (Mult t1 t2) = do v1 <- (eval t1)
 eval (Div t1 t2) = do v1 <- (eval t1)
                       v2 <- (eval t2)
                       return (liftNum div v1 v2)
-{% endhighlight %}
+```
 
 Given the parser and interpreter for `AE`, we can now define a language interpreter, `interp`, that puts everything together:
 
-{% highlight haskell %}
+```haskell
 interp :: String -> Maybe AE
 interp = eval . parseAE
-{% endhighlight %}
+```
 
 In words, `interp` is the composition of `parseAE` and `eval`.  This notation uses Haskell's function composition to define that `parse` will be called first and the output passed to `eval`.  If `parseAE` throws an error, `interp` will terminate without passing a value to `eval`.
 
 If you are unfamiliar with the point-free style and the use of function composition, `interp` can be defined in a more traditional manner as:
 
-{% highlight haskell %}
+```haskell
 interp x = eval (parseAE x)
-{% endhighlight %}
+```
 
 Use the notation you are most comfortable with.
 

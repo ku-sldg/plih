@@ -36,7 +36,7 @@ First, we have no control over errors.  They happen and our control of execution
 
 Second, our only choice is to fail.  What if our interpreters can avoid failures?  What if we can predict failures during or before execution?  This results in systems that are more robust and code that we can better control.
 
-Let's look at two approaches to handling errors.  The first will handle them *dynamically* or at run-time.  Our interpreter will generate error messages as data structures that we can process how we choose.  The second will handle them *statically* by predicting runtime failure before execution.
+Let's look at two approaches to handling errors.  The first will handle them *dynamically* or at run-time.  Our interpreter will generate error messages as data structures that we can process how we choose.  The second will handle them *statically* by predicting runtime failure before execution.  We will still have run-time errors, but substantially fewer.
 
 ## Runtime Error Prediction
 
@@ -47,10 +47,10 @@ We will update our `ABE` evaluator to catch errors and run time rather than fall
 Let's change the type signature of the `ABE` `eval` function just a bit and define a new function called `evalErr` that returns either an `ABE` term or a string representing an error:
 
 ```haskell
-evalErr :: ABE -> Either String ABE
+evalErr :: ABE -> Maybe ABE
 ```
 
-If you're not familiar with the `Either` type constructor, there is ample documentation of its use.[^3]  In this example it provides two constructors, `Right` and `Left` that contain an `ABE` value and a `String` respectively.  We'll use the `Either` type to return either an `ABE` value, `v` (`Right v`) or a string error message, `s` (`Left s`).  We can then use a `case` expression to discriminate between values.  Any time we call `evalError` we can do something like this:
+
 
 ```haskell
 case (evalErr t) of
@@ -509,12 +509,11 @@ An interesting question is whether the `ABE` interpreters can be made equivalent
 
 ## Exercises
 
-1. Modify `interpErr` to make error messages values in `ABE` rather than use the `Either` type.  You should update the `ABE` AST to include a new constructor, `Error` that is a constant like `Num` and `Boolean`.
-2. Add operations for multiplication and addition to `ABE` and implement them in `interp` and `interpErr`.  Make sure that `interpErr` continues to avoid crashing.  Use QuickCheck to ensure the interpreters agree on their behavior.
+1. Modify `interpErr` to use the `Either` monad rather than `Maybe`.  If you're not familiar with the `Either` type constructor, there is ample documentation of its use.[^3]  `Either` provides two constructors, `Right` and `Left` that encapsulate two different types.  Use the `Either` type to return either an `ABE` value, `v` (`Right v`) or a string error message, `s` (`Left s`).  Now we get an actual error message when failing rather than `Nothing`.  When making this change, remember that `Either` is a monad and that `return == Right`.
+1. Modify `interpErr` to make error messages values in `ABE` rather than use the `Maybe` type.  You should update the `ABE` AST to include a new constructor, `Error` that is a constant like `Num` and `Boolean`.
 3. Using `typeof` implement a function `typecheck` that accepts an expression and a type and returns true if the expression has that type.
 4. Add multiplication and division to the `ABE` interpreter with run-time error handling.  Update definitions for concrete syntax, abstract syntax, inference rules for `eval`, and implementations.  If you can implement divide by zero error catching, do so.
 5. Add multiplication and division to the `ABE` interpreter with type checking.  Update definitions for concrete syntax, abstract syntax, inference rules for `eval` and `typeof`, and implementations.  If you can implement divide by zero error catching in `typeof`, do so.
-6. Rewrite `evalErr` to use `Maybe` instead of `Either`.  Recall that `Maybe` is a built-in Haskell construct with constructors `Just` and `Nothing` that allow returning just a value or nothing at all.  Are there advantages or disadvantages to using `Maybe`?
 
 ## Source
 

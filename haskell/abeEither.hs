@@ -146,7 +146,7 @@ interp = eval . parseABE
 
 -- Evaluator with Dynamic Error Checking
 
-evalErr :: ABE -> Maybe ABE
+evalErr :: ABE -> Either String ABE
 evalErr (Num x) = (return (Num x))
 evalErr (Plus t1 t2) =
   do r1 <- (evalErr t1)
@@ -154,16 +154,16 @@ evalErr (Plus t1 t2) =
      case r1 of
        (Num v1) -> case r2 of
                      (Num v2) -> (return (Num (v1+v2)))
-                     _ -> Nothing
-       _ -> Nothing
+                     _ -> (Left "Type Error in +")
+       _ -> (Left "Type Error in +")
 evalErr (Minus t1 t2) = 
   do r1 <- (evalErr t1)
      r2 <- (evalErr t2)
      case r1 of
        (Num v1) -> case r2 of
                      (Num v2) -> (return (Num (v1-v2)))
-                     _ -> Nothing
-       _ -> Nothing
+                     _ -> (Left "Type Error in -")
+       _ -> (Left "Type Error in +")
 evalErr (Boolean b) = (return (Boolean b))
 evalErr (And t1 t2) =
   do r1 <- (evalErr t1)
@@ -171,26 +171,26 @@ evalErr (And t1 t2) =
      case r1 of
        (Boolean v1) -> case r2 of
                          (Boolean v2) -> (return (Boolean (v1 && v2)))
-                         _ -> Nothing
-       _ -> Nothing
+                         _ -> (Left "Type Error in &&")
+       _ -> (Left "Type Error in &&")
 evalErr (Leq t1 t2) = 
   do r1 <- (evalErr t1)
      r2 <- (evalErr t2)
      case r1 of
        (Num v1) -> case r2 of
                      (Num v2) -> (return (Boolean (v1 <= v2)))
-                     _ -> Nothing
-       _ -> Nothing
+                     _ -> (Left "Type Error in <=")
+       _ -> (Left "Type Error in <=")
 evalErr (IsZero t) =
   do r <- (evalErr t)
      case r of
        (Num v) -> (return (Boolean (v == 0)))
-       _ -> Nothing
+       _ -> (Left "Type error in isZero")
 evalErr (If t1 t2 t3) =
   do r <- (evalErr t1)
      case r of
        (Boolean v) -> if v then (evalErr t2) else (evalErr t3)
-       _ -> Nothing
+       _ -> (Left "Type error in if")
 
 -- Interpreter
 
@@ -209,39 +209,39 @@ testEvalErr n = quickCheckWith stdArgs {maxSuccess=n}
 
 -- Type Derivation Function
 
-typeof :: ABE -> Maybe TABE
+typeof :: ABE -> Either String TABE
 typeof (Num x) = (return TNum)
 typeof (Plus l r) = do l' <- (typeof l)
                        r' <- (typeof r)
                        if l'==TNum && r'==TNum
                          then return TNum
-                         else Nothing
+                         else Left "Type Mismatch in +"
 typeof (Minus l r) = do l' <- (typeof l)
                         r' <- (typeof r)
                         if l'==TNum && r'==TNum
                           then return TNum
-                          else Nothing
+                          else Left "Type Mismatch in -"
 typeof (Boolean b) = (return TBool)
 typeof (And l r) = do l' <- (typeof l)
                       r' <- (typeof r)
                       if l'==TBool && r'==TBool
                         then (return TBool)
-                        else Nothing
+                        else Left "Type mismatch in &&"
 typeof (Leq l r) = do l' <- (typeof l)
                       r' <- (typeof r)
                       if l'==TNum && r'==TNum
                         then (return TBool)
-                        else Nothing
+                        else Left "Type mismatch in <="
 typeof (IsZero t) = do t' <- (typeof t)
                        if t'==TNum
-                         then (return TBool)
-                         else Nothing
+                         then (Right TBool)
+                         else Left "Type mismatch in IsZero"
 typeof (If c t e) = do c' <- (typeof c)
                        t' <- (typeof t)
                        e' <- (typeof e)
                        if c' == TBool && t'==e'
                          then (return t')
-                         else Nothing
+                         else Left "Type mismatch in if"
 
 -- Alternative Interpreter Function
 
@@ -323,23 +323,25 @@ testEval n = quickCheckWith stdArgs {maxSuccess=n}
 testTypeof :: Int -> IO ()
 testTypeof n = quickCheckWith stdArgs {maxSuccess=n}
   (\t-> case typeof t of
-      (Just _) -> True
-      Nothing -> True)
+      (Right _) -> True
+      (Left _) -> True)
 
 testTypedEval :: Int -> IO ()
 testTypedEval n =
   quickCheckWith stdArgs {maxSuccess=n}
   (\t -> case typeof t of
-           (Just _) -> eval (parseABE (pprint t)) == (eval t)
-           Nothing -> True)
+           (Right _) -> eval (parseABE (pprint t)) == (eval t)
+           (Left _) -> True)
 
-eqInterp :: Maybe ABE -> Maybe ABE -> Bool
+eqInterp :: Either String ABE -> Either String ABE -> Bool
 eqInterp s t =
   case s of
-    (Just x) -> case t of 
-                  Just y -> x == y
-                  Nothing -> False
-    Nothing -> False
+    (Right x) -> case t of
+                  (Right y) -> x == y
+                  (Left _) -> False
+    (Left x) -> case t of
+                   (Right y) -> False
+                   (Left _) -> True
 
 --testTypedErrEval :: Int -> IO ()
 --testTypedErrEval n =

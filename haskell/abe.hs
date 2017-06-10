@@ -361,4 +361,8 @@ testTypedThenErr n =
              (Just v) -> (Just v) == interpErr t'
              Nothing -> True)
 
+interpTypedM :: String -> Maybe ABE
+interpTypedM s = do ast <- return (parseABE s)
+                    typeof ast 
+                    (eval ast)
                 

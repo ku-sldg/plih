@@ -232,7 +232,7 @@ $$\frac{\typeof t = \tnum}{\typeof \iisZero t = \tbool}\; [isZeroT]$$
 
 These operations are almost identical to the addition and subtraction operations.  Requirements are placed on the argument types and if those requirements are met, the specified term is given a type.  Once again there is only one rule for each expression assuring that each expression will have only one type.
 
-The $\iif$ expression is a bit more interesting:
+The `if` expression is a bit more interesting:
 
 $$\frac{\typeof t_0 = \tbool,\;\typeof t_1 = T,\;\typeof t_2 = T
 }{\typeof \iif t_0 \tthen t_1 \eelse t_2 = T}\;[IfT]$$
@@ -241,17 +241,16 @@ The condition is required to be `TBool` as expected.  However, the then and else
 
 The $IfT$ rule ensures that any specific `if` expression has only one type.  If the two cases were allowed to have different types, then  the `if`'s type cannot be predicted without knowing the value of the conditional.  This will only be known *dynamically* and we are trying to predict errors *statically*.  By requiring true and false cases to have the same type, we know that the $\iif$ expression will have that single type.
 
-The $\typeof$ fucntion implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function `typecheck` would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if `typeof` $t$ is defined or `typecheck` $e$ $t$ is true for some type $t$
-As an exercise you will implement `typecheck` with `typeof`.
+As noted, the $\typeof$ fucntion implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function `typecheck` would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if `typeof t` is defined or `typecheck e t` is true for some type `t` and `e`.
 
 Back to comparison with `eval` rules.  Do you see the parallel between $\eval$ rules and $\typeof$ rules?  There is a one-to-one correspondence between the rules.  They are structured the same way and as we'll see soon, they will be implemented in roughly the same way.  This is not always true, but the similarity is something we'll revisit in later discussions.
 
 ### Typeof
 
-We'll build a functioned called `typeof` by defining a function that predicts the type of an expression.  The `typeof` function will take an `ABE` structure and return either its type or an error message:
+We'll build a functioned called `typeof` by defining a function that predicts the type of an expression.  The `typeof` function will take an `ABE` structure and return either a type or an error indicator.  The `Maybe` monad will prove useful as it has before.  The signature of `typeof` is:
 
 ```haskell
-typeof :: ABE -> Either TABE String
+typeof :: ABE -> Maybe TABE
 ```
 
 where `TABE` is the type of an `ABE` expression.  We're structuring `typeof` like `eval` so we can catch errors rather than use Haskell for reporting.
@@ -267,52 +266,62 @@ data TABE where
 
 `TNum` is the type of numbers and `TBool` is the type of Booleans.
 
-Given an `ABE` expression, `typeof` will return its type if it is well-typed and generate an error message if it is not.  Like `eval`, if we define one case for each `ABE` expression, we will completely define `typeof` for ABE.
+Given an `ABE` expression, `typeof` will return its type using `Just` if it is well-typed and return `Nothing` if it is not.  Like `eval`, if we define one case for each `ABE` expression, we will completely define `typeof` for ABE.
 
 The cases for the `Num` and `Boolean` constructors are trivial.  All `Num` constructions are of type `TNum` and `Boolean` constructions are of type `TBool`.  The `typeof` cases for `Num` and `Boolean` simply return their associated types, `TNum` and `TBool` respectively:
 
 ```haskell
-typeof (Num x) = (Right TNum)
-typeof (Boolean b) = (Right TBool)
+typeof (Num _) = return TNum
+typeof (Boolean _) = return TBool
 ```
 
-Note that each value has precisely one type.  It is important than every expression in `ABE` have a single type starting with values.
+Note that each value has precisely one type as specified by the first three type rules.
 
-Next we'll consider the `Plus` and `Minus` operations.  Both require their arguments to be of type `TNum`.  If they are, then the operation is also of type `TNum`.  In the following code snippet, arguments to `Plus` and `Minus` are checked to determine if they are type `TNum`.  If so, both are also of type `(Right TNum)` is returned to indicate a type was found and it is `TNum`:
+Next we'll consider the `Plus` and `Minus` operations.  Both require their arguments to be of type `TNum`.  If they are, then the operation is also of type `TNum`.  In the following code snippet, arguments to `Plus` and `Minus` are checked to determine if they are type `TNum`.  If so, `(Just TNum)` is returned to indicate a type was found and it is `TNum`:
 
 ```haskell
-typeof (Plus l r) = let l' = (typeof l)
-                        r' = (typeof r)
-                     in if l'==(Right TNum) && r'==(Right TNum)
-                        then (Right TNum)
-                        else Left "Type Mismatch in +"
-typeof (Minus l r) = let l' = (typeof l)
-                         r' = (typeof r)
-                     in if l'==(Right TNum) && r'==(Right TNum)
-                        then (Right TNum)
-                        else Left "Type Mismatch in -"
+typeof (Plus l r) = do l' <- (typeof l)
+                       r' <- (typeof r)
+                       if l'==TNum && r'==TNum
+                         then return TNum
+                         else Nothing
+typeof (Minus l r) = do l' <- (typeof l)
+                        r' <- (typeof r)
+                        if l'==TNum && r'==TNum
+                          then return TNum
+                          else Nothing
 ```
 
-If either argument type is not `TNum`, then an error message is returned using `Left`.
+If either argument type is not `TNum`, then  `Nothing` is returned indicating an error.  It still holds that if either `l` or `r` are not well-typed, `Nothing` is returned and falls through the `do` indicating an error.
+
+Before moving on, take note of the similarity between the code for `Plus` and its associated inference rule:
+
+$$\frac{\typeof t_1 = \tnum,\; \typeof t_2 = \tnum}{\typeof t_1 + t_2 = TNum}\; [PlusT]$$
+
+The antedent types are found and compared with `TNum` just as specified in the rule.  One could easily imagine an automatic transformation from rules like this to Haskell code.
 
 It's more of the same for `And`, `Leq` and `IsZero` except they require different argument types and produce different types.  `And` requires Boolean arguments and produces a Boolean type.  `Leq` requires numerical arguments and produces a Boolean type.  Finally, `isZero` requires a numerical argument and produces a Boolean type:
 
 ```haskell
-typeof (And l r) = if (typeof l) == (Right TBool)
-                      && (typeof r) == (Right TBool)
-                   then (Right TBool)
-                   else Left "Type mismatch in &&"
-typeof (Leq l r) = if (typeof l) == (Right TNum) && (typeof r) == (Right TNum)
-                   then (Right TBool)
-                   else Left "Type mismatch in <="
-typeof (IsZero v) = if (typeof v) == (Right TNum)
-                    then (Right TBool)
-                    else Left "Type mismatch in IsZero"
+typeof (And l r) = do l' <- (typeof l)
+                      r' <- (typeof r)
+                      if l'==TBool && r'==TBool
+                        then (return TBool)
+                        else Nothing
+typeof (Leq l r) = do l' <- (typeof l)
+                      r' <- (typeof r)
+                      if l'==TNum && r'==TNum
+                        then (return TBool)
+                        else Nothing
+typeof (IsZero t) = do t' <- (typeof t)
+                       if t'==TNum
+                         then (return TBool)
+                         else Nothing
 ```
 
-In each case, an error is return if arguments are not of the correct type.
+In each case, an error is return if arguments are not of the correct type.  In each case the structure of the Haskell code matches the structure of the inference rule.
 
-`if` is the most interesting of the `ABE` expressions.  Unlike other expressions, `if` expressions do not always have the same time.  Consider two examples:
+`if` is the most interesting of the `ABE` expressions.  Unlike other expressions, different `if` expressions do not always have the same type.  Consider two examples:
 
 ```
 if x then 5 else 7+1
@@ -336,10 +345,12 @@ The addition operation requires both arguments to be numbers.  In this case, we 
 What we need is for the type to be independent of the Boolean condition.  If both `if` outcomes have the same type, then no matter then value of the conditional the expression has the same type.  Thus, `typeof` checks the type of its conditional to determine if it is Boolean and then checks to determine if the types of the true and false conditions are the same.  If so, the type is returned.  If not, an error is returned.  Putting all this together, the `If` expression's type is checked as follows:
 
 ```haskell
-typeof (If c t e) = if (typeof c) == (Right TBool)
-                       && (typeof t)==(typeof e)
-                     then (typeof t)
-                     else Left "Type mismatch in if"
+typeof (If c t e) = do c' <- (typeof c)
+                       t' <- (typeof t)
+                       e' <- (typeof e)
+                       if c' == TBool && t'==e'
+                         then (return t')
+                         else Nothing
 ```
 
 If the condition is not Boolean or the result types are not the same, then `typeof` returns an error message using `Left`.
@@ -347,32 +358,39 @@ If the condition is not Boolean or the result types are not the same, then `type
 Putting everything together for all expressions, the result is the following `typeof` definition:
 
 ```haskell
-typeof :: ABE -> TABE
-typeof (Num x) = TNum
-typeof (Plus l r) = let l' = (typeof l)
-                        r' = (typeof r)
-                    in if l'==TNum && r'==TNum
-                       then TNum
-                       else error "Type Mismatch in +"
-typeof (Minus l r) = let l' = (typeof l)
-                         r' = (typeof r)
-                     in if l'==TNum && r'==TNum
-                        then TNum
-                        else error "Type Mismatch in -"
-typeof (Boolean b) = TBool
-typeof (And l r) = if (typeof l) == TBool && (typeof r) == TBool
-                   then TBool
-                   else error "Type mismatch in &&"
-typeof (Leq l r) = if (typeof l) == TNum && (typeof r) == TNum
-                   then TBool
-                   else error "Type mismatch in <="
-typeof (IsZero v) = if (typeof v) == TNum
-                    then TBool
-                    else error "Type mismatch in IsZero"
-typeof (If c t e) = if (typeof c) == TBool
-                       && (typeof t)==(typeof e)
-                    then (typeof t)
-                    else error "Type mismatch in if"
+typeof :: ABE -> Maybe TABE
+typeof (Num x) = (return TNum)
+typeof (Plus l r) = do l' <- (typeof l)
+                       r' <- (typeof r)
+                       if l'==TNum && r'==TNum
+                         then return TNum
+                         else Nothing
+typeof (Minus l r) = do l' <- (typeof l)
+                        r' <- (typeof r)
+                        if l'==TNum && r'==TNum
+                          then return TNum
+                          else Nothing
+typeof (Boolean b) = (return TBool)
+typeof (And l r) = do l' <- (typeof l)
+                      r' <- (typeof r)
+                      if l'==TBool && r'==TBool
+                        then (return TBool)
+                        else Nothing
+typeof (Leq l r) = do l' <- (typeof l)
+                      r' <- (typeof r)
+                      if l'==TNum && r'==TNum
+                        then (return TBool)
+                        else Nothing
+typeof (IsZero t) = do t' <- (typeof t)
+                       if t'==TNum
+                         then (return TBool)
+                         else Nothing
+typeof (If c t e) = do c' <- (typeof c)
+                       t' <- (typeof t)
+                       e' <- (typeof e)
+                       if c' == TBool && t'==e'
+                         then (return t')
+                         else Nothing
 ```
 
 ### Interpreting with typeof
@@ -380,27 +398,26 @@ typeof (If c t e) = if (typeof c) == TBool
 The `typeof` function gives the type of an `ABE` expression if it is well-typed and generates an error message if it is not.  We can now predict type errors before we evaluate an `ABE` expression.  We call `typeof` before `eval` and only call `eval` if `typeof` results in a type.  Here is one way to do that:
 
 ```haskell
-interpTyped :: String -> Either String ABE
+
+interpTyped :: String -> Maybe ABE
 interpTyped e = let p=(parseABE e) in
                   case (typeof p) of
-                    (Right _) -> (Right eval p)
-                    (Left m) -> (Left m)
+                    (Just _) -> (eval p)
+                    Nothing -> Nothing
 ```
 
-`interpTyped` is does exactly what we need.  It parses and calls `typeof` on its input argument.  The `case` chooses between `Right` that contains a type and `Left` that contains an error message.  `eval` is called on the parsed input if a type is returned while an error message is simply returned in the error case.  Note that we're using `Either` the same way we did with the runtime error interpreter.  This is simply for consistency and will help us when  we start testing.
+`interpTyped` is does exactly what we need.  It parses its input and calls `typeof` on the result.  The `case` chooses between `Just` that contains a type and `Nothing` that indicates an error.  `eval` is called on the parsed input if a type is returned while an error message is simply returned in the error case.  Note that we're using `Maybe` the same way we did with the runtime error interpreter.  This is simply for consistency and will help us when  we start testing.
 
 We can also define `interpTyped` monadically:
 
 ```haskell
-interpTypedM :: String -> Either String ABE
-interpTypedM s = do {
-                 ast <- return (parseABE s) ;
-                 typeof ast ;
-                 return (eval ast)
-               }
+interpTypedM :: String -> Maybe ABE
+interpTypedM s = do ast <- return (parseABE s)
+                    typeof ast
+                    (eval ast)
 ```
 
-It is not necessary to understand `interpTypedM` right now, but I thought I would throw it in for those with some knowledge of monads.
+Using the `do` notation in this case doesn't have a great deal of benefit, but the function is certainly useful as an alternative to the traditional `interpTyped`.
 
 ### QuickCheck
 
@@ -410,23 +427,24 @@ The first property we would like to check is whether `typeof` statically predict
 
 ```haskell
 testTypedEval :: Int -> IO ()
-testTypedEval n = quickCheckWith stdArgs {maxSuccess=n}
-                  (\t -> case typeof t of
-                           (Right _) -> eval (parseABE (pprint t)) == (eval t)
-                           (Left _) -> True)
+testTypedEval n =
+  quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> case typeof t of
+           (Just _) -> eval (parseABE (pprint t)) == (eval t)
+           Nothing -> True)
 ```
 
 Note that we're calling `eval` as before by parsing the printed arbitrary term.  This is not entirely necessary, but allows us to do some sanity checking in this set of tests.
 
-Note that `typeof` may still not be correct even though it prevents crashs.  If our `typeof` function were defined as:
+Interestingly, `typeof` may not be correct even though it prevents crashs and otherwise seems to work.  If our `typeof` function were defined as:
 
+```haskell
+typeof e = Nothing
 ```
-typeof e = (Left "Ha!")
-```
 
-it would pass the above test!  Thus, it is not sufficient to run just this test.  Correctness testing is also necessary.
+it would pass the above QuickCheck test!  Thus, it is not sufficient to run just this test.  Correctness testing is also necessary.
 
-When we wrote `evalErr` we tested it against our original evaluation function.  Let's test our `interpErr` function against `interpTyped` to see if the type checker catches the same errors that are caught at run time.  Let's try the simple solution first and compare the results of the two interpreters on the same input.  Recall that we defined both to return `Either String ABE` so we can simply compare their results directly:
+When we wrote `evalErr` we tested it against our original evaluation function.  Let's test our `interpErr` function against `interpTyped` to see if the type checker catches the same errors that are caught at run time.  Let's try the simple solution first and compare the results of the two interpreters on the same input.  Recall that we defined both to return `Monad ABE` so we can simply compare their results directly:
 
 ```haskell
 (\t -> (interpTyped t) == (interpErr t))
@@ -437,20 +455,22 @@ Even a small number of test cases reveals a problem.  If both interpreters produ
 Instead of using strict equality, we can use a weaker comparison:
 
 ```haskell
-eqInterp :: Either String ABE -> Either String ABE -> Bool
+eqInterp :: Maybe ABE -> Maybe ABE -> Bool
 eqInterp s t =
   case s of
-    (Right x) -> case t of
-                  (Right y) -> x == y
-                  (Left _) -> False
-    (Left x) -> case t of
-                   (Right y) -> False
-                   (Left _) -> True
+    (Just x) -> case t of
+                  Just y -> x == y
+                  Nothing -> False
+    Nothing -> False
 ```
 
 In `eqInterp` interpretation results are compared directly for values and specific messages ignored for errors.  We can now use this in a proposition for checking:
 
-This proposition calls `typeof` and `evalErr` on the same arbitrary term and determines if they both generate an error or `eval` and `evalErr` both generate the same value:
+```haskell
+(\t -> let t' = pprint t in (eqInterp (interpTyped t') (interpErr t')))
+```
+
+This proposition calls `interpTyped` and `interpErr` on the same arbitrary term and determines if they both generate an error or `eval` and `evalErr` both generate the same value:
 
 ```haskell
 testTypedErrEval :: Int -> IO ()
@@ -475,9 +495,7 @@ The concrete syntax for the counterexample is:
 if false then true else 59
 ```
 
-This term does not have a static type because its two outcomes have different types. The first term is Boolean as required, but the second two terms do not have the same type.  Thus, `typeof` throws an error.
-
-According to the implementation of `interpErr`, this term evaluates to 59.  The condition is `false`, thus the `else` expressin is evaluated.
+This term does not have a static type because its two outcomes have different types. The first term is Boolean as required, but the second two terms do not have the same type.  Thus, `typeof` throws an error.  However, according to the implementation of `interpErr`, this term evaluates to 59.  The condition is `false`, thus the `else` expressin is evaluated.
 
 What gives?  Which is correct?
 
@@ -487,9 +505,9 @@ In a very real sense, both are.  Error checking at runtime as implemented in our
 (if x 3 "oops")
 ```
 
-in Scheme.  The calling code must deal with all possible outcomes of evaluating `if`.  What `interpType` does is what languages like Haskell do.
+in Scheme.  The calling code must deal with all possible outcomes of evaluating `if`.
 
-Both interpreters implement the same language.  What should we check?  Let's break the equality in half.  Specifically: (i) if `interpErr` returns a value see if `interpTyped` returns the same value; and (ii) if `interpTyped` returns a value see if `interpErr` returns the same value.  Here are the QuickCheck properties:
+What `interpType` does is what languages like Haskell do. Both interpreters implement the same language.  What should we check?  Let's break the equality in half.  Specifically: (i) if `interpErr` returns a value see if `interpTyped` returns the same value; and (ii) if `interpTyped` returns a value see if `interpErr` returns the same value.  Here are the QuickCheck properties:
 
 ```haskell
 testErrThenTyped :: Int -> IO ()
@@ -497,16 +515,16 @@ testErrThenTyped n =
   quickCheckWith stdArgs {maxSuccess=n}
   (\t -> let t' = pprint t in
            case (interpErr t') of
-             (Right v) -> (Right v) == interpTyped t'
-             (Left _) -> True)
+             (Just v) -> (Just v) == interpTyped t'
+             Nothing -> True)
 
 testTypedThenErr :: Int -> IO ()
 testTypedThenErr n =
   quickCheckWith stdArgs {maxSuccess=n}
   (\t -> let t' = pprint t in
            case (interpTyped t') of
-             (Right v) -> (Right v) == interpErr t'
-             (Left _) -> True)
+             (Just v) -> (Just v) == interpErr t'
+             Nothing -> True)
 ```
 
 Running each on 1000 cases reveals the first property does not hold, while the second does.  Static type checking is *more conservative* that run-type type checking.  An interesting result that we will revisit later.
@@ -528,6 +546,7 @@ An interesting question is whether the `ABE` interpreters can be made equivalent
 - Static - Before execution
 - Dynamic - During execution
 - Well-typed - An expression is well-typed if its type can be calculated
+- Type inference - Predicting the type of an expression without running it
 
 ## Exercises
 

@@ -22,6 +22,8 @@ $$
 \newcommand\ffalse{\;\mathsf{false}}
 \newcommand\tnum{\;\mathsf{TNum}}
 \newcommand\tbool{\;\mathsf{TBool}}
+\newcommand\bbool{\mathsf{Boolean}\;}
+\newcommand\nnum{\mathsf{Num}\;}
 $$
 
 # Failure Is an Option
@@ -69,37 +71,36 @@ evalErr (IsZero t) =
        _ -> Nothing
 ```
 
-First the argument to `IsZero` is evaluated and bound to `v` using the `do` notation.  If `eval t` returns `Just x` then `v` is bound to `x`.  We're trying to determine if `eval t` returns zero, so we compare `v` with `(Num 0)` and lift the result into the AST using `Boolean`.  If `eval t` returns a value as `Just x` then this case returns `(Just (Boolean True))` if `x==(Num 0)` and `(Just (Boolean False))` otherwise.
+First the argument to `IsZero` is evaluated and bound to `v` using the `do` notation.  If `eval t` returns `Just x` then `r` is bound to `x`.  When building `eval`, we were pretty much done.  Compare the result to zero and return result using `return` and `Right` and crash if somehow the comparison fails.  Here we catch that failure using the `case` operation over `r`.  If `r` is a `Num`, then we return exactly what we returned before.  The construction is a bit different as we use pattern maching to project `v` from `Num v` to perform the comparison with `0`
 
-If `eval t` returns `Nothing`, then `Nothing` is returned by the `do`.  The error falls through and we don't need to worry abou tit.
+If `r` is anythnig but a number, we immediately return `Nothing`.  `Nothing` represents an error in this implementation.  Remember that `return = Just`, so `return Nothin` is not well typed and not what we want.  Simply returning `Nothing` directly indicates an error.  Note that any operation consuming the error result will simply pass it through due to the use of the `Maybe` monad.  So, we don't need to implement all kinds of error checking.
 
-The remaining binary operations are virtually the same except we have two arguments to evaluate and need to nest handling argument results.  You'll see our pattern occurring twice in the code for `Plus`:
+The remaining binary operations are virtually the same except we have two arguments to evaluate and need to nest handling argument results.  Look first at `Plus`:
 
 ```haskell
 evalErr (Plus t1 t2) =
-  let r1 = (evalErr t1)
-      r2 = (evalErr t2)
-  in case r1 of
-       (Left m) -> r1
-       (Right (Num v1)) -> case r2 of
-                            (Left m) -> r2
-                            (Right (Num v2)) -> (Right (Num (v1+v2)))
-                            (Right _) -> (Left "Type Error in +")
-       (Right _) -> (Left "Type Error in +")
+  do r1 <- (evalErr t1)
+     r2 <- (evalErr t2)
+     case r1 of
+       (Num v1) -> case r2 of
+                     (Num v2) -> (return (Num (v1+v2)))
+                     _ -> Nothing
+       _ -> Nothing
 ```
 
-There is no magic here!  We calculate the values of both arguments and store the results in `r1` and `r2` respectively.  Then we apply the same pattern as `IsZero` and determine if the first argument is an error, number, or something else.  In the error and something else cases, we do exactly what we did previously.  In the number case, we repeat the same process for `r2` and do the same thing.  In the error and something else cases, we do exactly what we did previously.  In the number case, we calculate the result of `Plus` and return it as `(Right (Num (v1+v2)))`.  The other binary operations follow similarly.
+There is no magic here!  We calculate the values of both arguments and bind the results to `r1` and `r2` respectively.  Then we apply the same pattern as `IsZero` and determine if the first argument is a number or something else. In the number case, we repeat the same process for `r2` and do the same thing.  In the something else cases, we do exactly what we did previously and return `Nothing`.  In the number case, we calculate the result of `Plus` and return it as `(return (Num (v1+v2)))`.  The other binary operations follow similarly.
 
-The remaining operation is `if` that is treated like a one parameter expression.  The condition is evaluated and the outcome handled using the same pattern as other expressions.  If the condition evaluates to a Boolean, them we choose the expression to evaluate based on the Boolean value.  The final code has the following form:
+The remaining operation is `if`.  The condition is evaluated and the outcome handled using the same pattern as other expressions.  If the condition evaluates to a Boolean, them we choose the expression to evaluate based on the Boolean value.  The final code has the following form:
 
 ```haskell
 evalErr (If t1 t2 t3) =
-  let r = (evalErr t1)
-  in case r of
-       (Left _) -> r
-       (Right (Boolean v)) -> if v then (evalErr t2) else (evalErr t3)
-       (Right _) -> (Left "Type error in if")
+           do r <- (evalErr t1)
+              case r of
+                (Boolean v) -> if v then (evalErr t2) else (evalErr t3)
+                _ -> Nothing
 ```
+
+`If` follows the same pattern as `isZero`.  The condition is evaluated first and bound to `r` if no error is generarted.  If `Nothin` results from evaluating the condition, then `Nothing` falls through.  (See the monadic patter at work?)  `r` is then used to determine which arm of the `If` to evaluate and `evalErr` called as appropriate.  Note that we do not use `return` here as the `evalErr` result will be of the right type without lifting with `Just`.
 
 Once the interpreter is completed, we can define an interpreter function in a manner similar to the original interpreter function for `eval`:
 
@@ -155,12 +156,55 @@ Where QuickCheck was helpful in earlier tests, it shines here.  We updated `eval
 
 If you get anything out of this missive, it should be that programs are simply data structures.  We can write programs that evaluate them, look at them, transform them, and synthesize them.  They are data structures and can be treated like any other data structure.
 
-In that spirit, let's look at our first example of an application that predicts failure before evaluating a program.  The specific failure we will look for is the same failure we caught dynamically in the previous example.  Specifically, we will predict when arguments to an operator do not match what the operator expects before execution.  This is an example of *static analysis* where we want to say something about a program without actually running it.
+In that spirit, let's look at our first example of such an application that predicts failure before evaluating a program.  The specific failure we will look for is the same failure we caught dynamically in the previous example.  Specifically, we will predict when arguments to an operator do not match what the operator expects before execution.  Instead of running code and watching for errors, we will predict errors before running the code.  This is an example of *static analysis* where we want to say something about a program without actually running it.
 
-{% comment %}
+To understand where we're headed think about the oeprations `2+3` and `false+3`.  If we interpret `2+3` we will get a value where interpreting `false+3` throws an error.  The problem is that `+` is not defined for `false`. We saw this earlier when our interpreter crashed and when we caught the error at run-time.
+
+We caught the error by looking at the argument evaluation result's constructors.  Evaluating `2` and `3` before adding gives two results that are instances of `Num`.  The interpreter sees the `Num` constructor and can infer both arguments have evaluated to numbers.  Evaluated `false` does not give a number, but instead gives a Boolean constructed with `Boolean`.
+
+What we've discovered is that `+` will only operate on number values and that number values are always constructed with `Num`.  Similarly, `&&` only operates on Boolean values and all Boolean values are constructed with `Boolean`.  Again similarly, `<=` only operates on number values and number values are always constructed with `Num`.  It should be clear we are looking at sets of values constructed with a specific constructor.
+
+If we want to predict failure, we need to predict constructors.  `t1 + t1` will execute corectly if evaluating `t1` and `t2` results in something constructed with `Num`.  Said mathematically:
+
+$$\eval t_1 \in \{(\nnum x) \mid x\in Int\}$$
+$$\eval t_2 \in \{(\nnum x) \mid x\in Int\}$$
+
+where $Int$ is the Haskell `Int` type.  Note that both $t_1$ and $t_2$ must belong to the same set of nuymber values created with $\nnum$.  Let's give this set a name, $\tnum$:
+
+$$\tnum == \{(\nnum x) \mid x\in Int\}$$
+
+Now the question becomes whether we can predict $\tnum$ from $t_1$ and $t_2$ without executing either.  `eval` is defined by including one case for each language constructor in itts definition.  Can we do the same here?  Let's try by defining a function we'll never implement called `predict`.  First, let's take care of our values:
+
+```haskell
+predict (Num _) = TNum
+predict (Boolean _) = TBool
+```
+
+Because `TNum` is defined as everything created using the `Num` constructor, the first definition should be obvious.  Certainly anything created with `Num` can be identified as belonging to `TNum`.  The same holds for `Boolean` except the set is defined just like `TNum` as:
+
+$$\tbool == \{(\bbool x) \mid x \in Bool\}$$
+
+Next let's look at one of our binary operations, `+`.  We decided earlier than `+` operats on `TNum` values, so we need to check that its arguments are in `TNum`.  If they are, then `+` produces a number value in `TNum`.  Again writing a definition for `predict` over the abstract syntax for `+` gives:
+
+```haskell
+predict Plus t1 t2 = if predict t1==TNum && predict t2==TNum then TNum else error
+```
+
+Forget about the error and focus on the `then` clause.  When both `t1` and `t2` are predicted to be numbers, `t1+t2` is predicted to be a number.  How about `<=`:
+
+```haskell
+predict Lte t1 t2 = if predict t1==TBool && predict t2==TBool then TNum else error
+```
+
+One can imagine doing the same thing for other constructions in `ABE`.  Which constructions can this not be done for?  As it turns out, none.  We can predict the set associated with any expression in `ABE`.
+
+What is going on here is a simple form of *type inference*.  If we treat `TNum` and `TBool` is the names of types, then `predict` is a function that returns the type of an expressin that we will call `typeof`.  It predicts what set - or *type* - an expression's associated value is in.  The `typeof`
+
 ### Type Rules
 
-Like $\eval$ earlier, let's define a set of rules for the $\typeof$ function.  First the values:
+Like `eval` earlier, let's define a set of rules for our new `typeof` function before implementing it.  The same notation defining antecedents and consequents can be used to define each rule.
+
+First the constant values:
 
 $$\frac{}{\typeof \NUM = \tnum}\; [NumT]$$
 
@@ -168,17 +212,17 @@ $$\frac{}{\typeof \ttrue = \tbool}\; [TrueT]$$
 
 $$\frac{}{\typeof \ffalse = \tbool}\; [FalseT]$$
 
-Here we simply define axioms that give numbers, $\ttrue$ and $\ffalse$ their appropriate types.  It is important that each `ABE` expression have exactly one type.  Given there is only one rule for each value, this condition is satisfied for values.
+Here we simply define axioms that give numbers, `true` and `false` their appropriate types.  It is important that each `ABE` expression have exactly one type, thus there is preceisely one axiom for each value.
 
-Next we'll start with numerical operations from `AE`:
+Next we'll define types for numerical operations from `AE`:
 
 $$\frac{\typeof t_1 = \tnum,\; \typeof t_2 = \tnum}{\typeof t_1 + t_2 = TNum}\; [PlusT]$$
 
 $$\frac{\typeof t_1 = \tnum,\; \typeof t_2 = \tnum}{\typeof t_1 + t_2 = \tnum}\; [MinusT]$$
 
-In both rules the antecedents place requirements on the types of the operation's arguments.  Addition is a number if its arguments are numbers.  Similarly for subtraction.
+In both rules the antecedents place requirements on the types of the operation's arguments.  Addition is a number if its arguments are numbers.  Similarly for subtraction.  Both addition and subtraction have no defined type if their arguments are not numbers.
 
-Compare these rules with the rules for $\eval$.  Notice anything interesting? Let's keep going with the next three `ABE` operations:
+Compare these rules with the rules for `eval`.  Notice anything interesting? Let's keep going with the next three `ABE` operations for `&&`, `<=`, and `isZero`:
 
 $$\frac{\typeof t_1 = \tbool,\; \typeof t_2 = \tbool}{\typeof t_1 \aand t_2 = \tbool}\; [AndT]$$
 
@@ -193,15 +237,14 @@ The $\iif$ expression is a bit more interesting:
 $$\frac{\typeof t_0 = \tbool,\;\typeof t_1 = T,\;\typeof t_2 = T
 }{\typeof \iif t_0 \tthen t_1 \eelse t_2 = T}\;[IfT]$$
 
-The condition is required to be $\tbool$ as expected, but the true and false cases are required to be of type $T$.  $T$ in this context is a *type variable* that can take any type value.  What the second two antecedents say is that both the true and false cases must have the same type, but that type can be either $\tbool$ or $\tnum$.
+The condition is required to be `TBool` as expected.  However, the then and else cases are both required to be of unknown type $T$.  $T$ in this context is a *type variable* that can take any type value.  Thus, the arms of an `if` expression can be either Boolean or numbers as long as they are the same.  Unlike all other terms, all instances of `if` do not have the same type.  Is this a problem?
 
-The $IfT$ rule ensures that any $\iif$ expression has only one type.  If the two cases were allowed to have different types, then  the $\iif$'s type cannot be predicted without knowing the value of the conditional.  This will only be known *dynamically* and we are trying to predict errors *statically*.  By requiring true and false cases to have the same type, we know that the $\iif$ expression will have that single type.
-{% endcomment %}
+The $IfT$ rule ensures that any specific `if` expression has only one type.  If the two cases were allowed to have different types, then  the `if`'s type cannot be predicted without knowing the value of the conditional.  This will only be known *dynamically* and we are trying to predict errors *statically*.  By requiring true and false cases to have the same type, we know that the $\iif$ expression will have that single type.
 
-The $\typeof$ relation implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function $\mathsf{typecheck}$ would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if $(\typeof t)$ is defined or $(\mathsf{typecheck} e t)$
-(TODO:  spacing of previous) is true.  As an exercise you will implement $\mathsf{typecheck}$ with $\typeof$.
+The $\typeof$ fucntion implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function `typecheck` would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if `typeof` $t$ is defined or `typecheck` $e$ $t$ is true for some type $t$
+As an exercise you will implement `typecheck` with `typeof`.
 
-Back to comparison with $\eval$ rules.  Do you see the parallel between $\eval$ rules and $\typeof$ rules?  There is a one-to-one correspondence between the rules.  They are structured the same way and as we'll see soon, they will be implemented in roughly the same way.  This is not always true, but the similarity is something we'll revisit in later discussions.
+Back to comparison with `eval` rules.  Do you see the parallel between $\eval$ rules and $\typeof$ rules?  There is a one-to-one correspondence between the rules.  They are structured the same way and as we'll see soon, they will be implemented in roughly the same way.  This is not always true, but the similarity is something we'll revisit in later discussions.
 
 ### Typeof
 

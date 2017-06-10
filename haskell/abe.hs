@@ -200,12 +200,11 @@ testEvalErr :: Int -> IO ()
 testEvalErr n = quickCheckWith stdArgs {maxSuccess=n}
   (\t -> (interpErr $ pprint t) == (evalErr t))
 
---testEvals :: Int -> IO ()
---testEvals n = quickCheckWith stdArgs {maxSuccess=n}
---  (\t -> (do r <- (evalErr t)
---             case r of
---               (Just v) -> v == (eval t)
---               Nothing -> True))
+testEvals :: Int -> IO ()
+testEvals n = quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> case (evalErr t) of
+           (Just v) -> (Just v == (eval t))
+           Nothing -> True)
 
 -- Type Derivation Function
 
@@ -245,11 +244,11 @@ typeof (If c t e) = do c' <- (typeof c)
 
 -- Alternative Interpreter Function
 
---interpTyped :: String -> Maybe ABE
---interpTyped e = let p=(parseABE e) in
---                  case (typeof p) of
---                    (Right _) -> (eval p)
---                    (Left m) -> (Left m)
+interpTyped :: String -> Maybe ABE
+interpTyped e = let p=(parseABE e) in
+                  case (typeof p) of
+                    (Just _) -> (eval p)
+                    Nothing -> Nothing
 
 -- Testing (Requires QuickCheck 2)
 
@@ -341,33 +340,25 @@ eqInterp s t =
                   Nothing -> False
     Nothing -> False
 
---testTypedErrEval :: Int -> IO ()
---testTypedErrEval n =
---  quickCheckWith stdArgs {maxSuccess=n}
---  (\t -> let t' = pprint t in (eqInterp (interpTyped t') (interpErr t')))
+testTypedErrEval :: Int -> IO ()
+testTypedErrEval n =
+  quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> let t' = pprint t in (eqInterp (interpTyped t') (interpErr t')))
 
---testErrThenTyped :: Int -> IO ()
---testErrThenTyped n =
---  quickCheckWith stdArgs {maxSuccess=n}
---  (\t -> let t' = pprint t in
---           case (interpErr t') of
---             (Right v) -> (Right v) == interpTyped t'
---             (Left _) -> True)
+testErrThenTyped :: Int -> IO ()
+testErrThenTyped n =
+  quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> let t' = pprint t in
+           case (interpErr t') of
+             (Just v) -> (Just v) == interpTyped t'
+             Nothing -> True)
                
---testTypedThenErr :: Int -> IO ()
---testTypedThenErr n =
---  quickCheckWith stdArgs {maxSuccess=n}
---  (\t -> let t' = pprint t in
---           case (interpTyped t') of
---             (Right v) -> (Right v) == interpErr t'
---             (Left _) -> True)
+testTypedThenErr :: Int -> IO ()
+testTypedThenErr n =
+  quickCheckWith stdArgs {maxSuccess=n}
+  (\t -> let t' = pprint t in
+           case (interpTyped t') of
+             (Just v) -> (Just v) == interpErr t'
+             Nothing -> True)
 
--- The monadic interp is not quite eady to go yet.  I don't like the [return]
--- used to kick the parse result into a monad when.
---interpM :: String -> Either String ABE
---interpM s = do {
---                 ast <- return (parseABE s) ;
---                 typeof ast ;
---                 return (eval ast)
---               }
                 

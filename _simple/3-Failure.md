@@ -50,49 +50,28 @@ Let's change the type signature of the `ABE` `eval` function just a bit and defi
 evalErr :: ABE -> Maybe ABE
 ```
 
-
-
-```haskell
-case (evalErr t) of
-  (Right v) -> actions taken for a value v
-  (Left m) -> actions taken for an error message m
-```
-
-We're going to use this pattern extensively in our new definition of `evalErr`.
-
-Start with the two easy cases for number and Boolean constants.
+Let's start with the two easy cases for number and Boolean constants.
 
 ```haskell
-evalErr (Num t) = (Right (Num t))
-evalErr (Boolean b) = (Right (Boolean b))
+evalErr (Num t) = (return (Num t))
+evalErr (Boolean b) = (return (Boolean b))
 ```
 
-In `eval`, both numbers and Booleans evaluate to themselves and cannot crash.  Thus, in `evalErr` we don't need to deal with errors.  The return value is `(Right (Num t))`, with `Right` indicating a value and `(Num t)` being the value.
+In both cases there is no need to evaluate tne term because `Num` and `Boolean` are in fact values.  The statements `(return (Num t))` and `(return (Boolean t))` do just what we need.  Remember that for the `Maybe` monad `return = Just`, so both statements simply create an instance of `Just` and return it.
 
-Constant cases are not particularly interesting, so let's look at `isZero`.  Unlike the constant cases, `isZero` can fail when evaluating its argument or when its arguments is not a number:
+Constant cases are not particularly interesting, so let's look at `isZero`.  Unlike the constant cases, `isZero` can fail when evaluating its argument or when the argument is not the right type.:
 
 ```haskell
 evalErr (IsZero t) =
-  let r = (evalErr t)
-  in case r of
-       (Left m) -> r
-       (Right (Num v)) -> (Right (Boolean (v == 0)))
-       (Right _) -> (Left "Type error in isZero")
+  do r <- (evalErr t)
+     case r of
+       (Num v) -> (return (Boolean (v == 0)))
+       _ -> Nothing
 ```
 
-What's happening here?  First the argument to `IsZero` is evaluated and assigned to `r`.  By definition we know that `r` is now either a value or some error message.  We'll use our pattern from above to decide what we're looking at.
+First the argument to `IsZero` is evaluated and bound to `v` using the `do` notation.  If `eval t` returns `Just x` then `v` is bound to `x`.  We're trying to determine if `eval t` returns zero, so we compare `v` with `(Num 0)` and lift the result into the AST using `Boolean`.  If `eval t` returns a value as `Just x` then this case returns `(Just (Boolean True))` if `x==(Num 0)` and `(Just (Boolean False))` otherwise.
 
-The first option is `(Left m)`.  This occurs when evaluating `t` results in an error.  If this is the case, we have no work to do and we simply return the error message for the calling function to deal with.
-
-The second option is `(Right (Num v))`.  If this pattern matches we know two things.  First, that `evalErr t` returned a value and that value is a `Num`.  This is the success case and we return `(Right (Boolean (v==0)))`.  `Right` because we have a value, `Boolean` to construct a Boolean value, and `v==0` to calculate the Boolean value.
-
-The final option is `(Right _)`.  If this pattern matches we know the previous pattern did not.  Thus, we have a value and that value is not a number.  In this case we create an error message and return it as `(Left "Type error in isZero")`.  `Left` because we have an error and `"Type error in isZero"` as the error value.
-
-To summarize, evaluating `IsZero` requires evaluating its argument and taking one of three actions:
-
-1. Return the result if it is an error
-2. Return the comparison of the result with 0 if it is a number
-3. Return an error message if it is a value, but not a number
+If `eval t` returns `Nothing`, then `Nothing` is returned by the `do`.  The error falls through and we don't need to worry abou tit.
 
 The remaining binary operations are virtually the same except we have two arguments to evaluate and need to nest handling argument results.  You'll see our pattern occurring twice in the code for `Plus`:
 

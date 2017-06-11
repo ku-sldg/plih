@@ -2,9 +2,9 @@
 
 A *parser* is a program that translates concrete syntax into an AST.  It checks the syntax of its input, generates error messages if the syntax is bad, and generates an AST if the syntax is good. The signature of a parser for the _AE_ language is:
 
-{% highlight haskell %}
+```haskell
 parseAE :: String -> AE
-{% endhighlight %}
+```
 
 Give `parseAE` a string and it will return an `AE` if it does not crash.  More generally, the parser for any language will be from a string to the datatype for that language's abstract syntax.
 
@@ -12,14 +12,14 @@ This course is not about building parsers.  Thankfully, Haskell provides a colle
 
 First, the boilerplate that includes standard Haskell libraries for the kinds of parsers we want to write.  Include this at the top of every Haskell implementation where you will use a parser:
 
-{% highlight haskell %}
+```haskell
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Token
 import ParserUtils
-{% endhighlight %}
+```
 
 `ParserUtils` has a few definitions that make defining parsers a bit simpler for this text.  You need to have `ParserUtils` in the same directory as your Haskell source or installed in a place where GHC can find it.
 
@@ -27,16 +27,16 @@ The biggest thing `ParserUtils` provides is a standard lexer that we can use for
 
 The parser we will create, called `expr` is of type `Parser AE` - a parser that generates `AE` structures.  Our parser for `AE` will be constructed using `buildExpressionParser` on operators defined by `operators` and terms defined by `terms` that we're about to create:
 
-{% highlight haskell %}
+```haskell
 expr :: Parser AE
 expr = buildExpressionParser operators term
-{% endhighlight %}
+```
 
 First let's define the operators table that will be used to generate expressions.  The operators table is a list of lists that define individual operations.  Looking at the first operator definition tells us quite a bit about the operation:
 
-{% highlight haskell %}
+```haskell
 inFix "+" Plus AssocLeft
-{% endhighlight %}
+```
 
 The `inFix` function is defined in `ParserUtils` to simplify defining
 inFix operations.  This
@@ -44,50 +44,50 @@ command tells us that `t1 + t2` is an infix operation that is translated into `P
 
 {% highlight text %}
 x + 3 - y + 7 == ((x+3) - y) + 7
-{% endhighlight %}
+```
 
 There are two operations in _AE_, so there are two `inFix` applications in a list.  The list itself tells the parser generator that `+` and `-` have the same precedent.  We'll see examples with different precedent as our languages grow more complex.  `operators` is a list of lists where each internal list contains operators of the same precedence.  `+` and `-` are in a list together indicating they are at the same precedence level.
 
-{% highlight haskell %}
+```haskell
 operators = [ [ inFix "+" Plus AssocLeft
                 , inFix "-" Minus AssocLeft ]
               ]
-{% endhighlight %}
+```
 
 Now we have operators, but we don't have base terms for them to operate over.  In other words, we know how to parse `+` in `1+(3-2)`, but not the numbers or parens.  First, let's define a simple parser for numbers:
 
-{% highlight haskell %}
+```haskell
 numExpr :: Parser AE
 numExpr = do i <- integer lexer
              return (Num (fromInteger i))
-{% endhighlight %}
+```
 
 This Haskell expression uses the monadic `do` syntax to sequence operations.  In this case, the `integer` parser is called and its value stored in `i`.  Then an `Int` is extracted from `i` and returned in a `Num` constructor.  As the name `numExpr` implies, this is a parser for numbers.
 
 A `term` in our language is either a parenthesized expression or a number.  This is exactly what the definition for `term` says.  The `<|>` operation is an or operation for parsers.  A `term` is either a parenthesized expression or an integer.  This capability for building parsers from smaller parsers is my reason for selecting Parsec.  Now that we have a basic parser in place, you should find it relatively easy to extend it in this manner to include new terms.
 
-{% highlight haskell %}
+```haskell
 term = parens lexer expr <|> numExpr
-{% endhighlight %}
+```
 
 Looking back at the definition of `expr` puts the entire thing together.  `expr` is a parser that returns `AE` and is built from `operators` defining operations over `terms`.
 
-{% highlight haskell %}
+```haskell
 expr :: Parser AE
 expr = buildExpressionParser operators term
-{% endhighlight %}
+```
 
 Following are several utility functions for calling your parser on strings and files.  `parseAE` takes a single argument, parses it, and either returns the resulting AST or displays the resulting error message.  `parseAEFile` does the same, except its input is taken from a file.
 
-{% highlight haskell %}
+```haskell
 parseAE = parseString expr
 
 parseAEFile = parseFile expr
-{% endhighlight %}
+```
 
 You can stop there if you want, but it is interesting to see what `parseString` and `parseFile` do.  Look at the `case` expression and its argument:
 
-{% highlight haskell %}
+```haskell
 parseString p str =
   case parse p "" str of
     Left e -> error $ show e
@@ -98,7 +98,7 @@ parseFile p file =
      case parse p "" program of
        Left e -> print e >> fail "parse error"
        Right r -> return r
-{% endhighlight %}
+```
 
 The built in function `parse` is called with an argument representing the parser.  In our case, this is `expr`.  So `parse expr` is parsing using the definition we created earlier.  This is classic monadic programming.  We'll come back to this later, but keep in mind that parsers are structures that are run by the `parse` function to perform their work.
 
@@ -110,21 +110,21 @@ A _pretty printer_ is the opposite of a parser.  It takes an AST and prints the 
 
 The pretty printer for `AE` looks very much like an evaluator.  For every AST constructor we return a string representing that construct:
 
-{% highlight haskell %}
+```haskell
 pprint :: AE -> String
 pprint (Num n) = show n
 pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
 pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
-{% endhighlight %}
+```
 
 Numbers generate strings using `show` because `Int`'s are instances of class `Show`.  Composite terms are printed by pretty printing their parts and putting the results together.  Both `Plus` and `Minus` generate strings from their arguments and assemble the strings into text terms.
 
 One could easily make the data type `AE` an instance of `Show` using the new `pprint` function:
 
-{% highlight haskell %}
+```haskell
 instance Show AE where
   show = pprint
-{% endhighlight %}
+```
 
 Think carefully before doing this.  If you have defined `show` in this way, anytime an AST is printed you will get the pretty printed version.  Debugging is usually far simpler if the Haskell representation is printed rather than the string representation.
 

@@ -14,7 +14,7 @@ $$
 \newcommand\NUM{\mathsf{NUM}\;}
 $$
 
-# Testing
+# Testing AE
 
 Haskell provides [QuickCheck](https://hackage.haskell.org/package/QuickCheck-2.8.2/docs/Test-QuickCheck.html) a domain-specific language widely used for testing and adapted to many other languages.  Like Parsec, QuickCheck takes a bit of time to learn, but is a worthwhile tool to have available.
 
@@ -129,13 +129,13 @@ This generator gets us part way there, but only generates terms of the form `(Pl
 
 `Minus` is identical to `Plus` modulo the constructor name, so we'll defer that generator as well and assume we have `genMinusFirst` available.
 
-Now let's put our generators together to generate a more complete set of terms using `genABE`.  The simplest way to compose generators for our individual terms is to use the `oneof` operator that chooses one generator arbitrarily from a list of generators:
+Now let's put our generators together to generate a more complete set of terms using `genAE`.  The simplest way to compose generators for our individual terms is to use the `oneof` operator that chooses one generator arbitrarily from a list of generators:
 
 ```haskell
-genABEFirst = oneof [genNum,genPlus,genMinus]
+genAEFirst = oneof [genNum,genPlus,genMinus]
 ```
 
-If we use `genABEFirst` we arbitrarily generate a `Num`, `Plus` or `Minus`.  Getting closer, but not quite there.  Remember that `genPlusFirst` and `genMinusFirst` only build terms from `Num`.  With a generator for `ABE` we can fix that now by using `genABEFirst` where we used `genNum`:
+If we use `genAEFirst` we arbitrarily generate a `Num`, `Plus` or `Minus`.  Getting closer, but not quite there.  Remember that `genPlusFirst` and `genMinusFirst` only build terms from `Num`.  With a generator for `AE` we can fix that now by using `genAEFirst` where we used `genNum`:
 
 ```haskell
 genPlusSecond =
@@ -144,9 +144,7 @@ genPlusSecond =
      return (Plus s t)
 ```
 
-If we do the same thing with `genMinusSecond` we will now generate arbitrary `ABE` terms.  Unfortunately, those arbitrary `ABE` terms are of *arbitrary size*.  Mathematically this is perfectly fine as really big things don't bother us in the symbolic world.  Pragmatically this is not perfectly fine as `genABEFirst` can now generate arbitrarily huge test cases.  If you want to see what this does, use `sample` to generate a few test cases and be prepared to terminate your Haskell process!
-
-(TODO:  should all 'ABE' above be 'AE'?)
+If we do the same thing with `genMinusSecond` we will now generate arbitrary `AE` terms.  Unfortunately, those arbitrary `AE` terms are of *arbitrary size*.  Mathematically this is perfectly fine as really big things don't bother us in the symbolic world.  Pragmatically this is not perfectly fine as `genAEFirst` can now generate arbitrarily huge test cases.  If you want to see what this does, use `sample` to generate a few test cases and be prepared to terminate your Haskell process!
 
 How do we make our generator for `AE` not go into the weeds generating huge test cases?  The easiest way is to add a size limit to the `AE` generator function by adding a size parameter to `genAE` that is decremented on each call to `genAE`.
 
@@ -281,6 +279,7 @@ testEval n = quickCheckWith stdArgs {maxSuccess=n}
 Not much of a test, but if any of our components crashed QuickCheck will help find those cases.
 
 ## Testing ABE
+
 Let's fire up QuickCheck and see what we have.  Remember that all `AE` programs famously ran to termination and produced a value.  Will the same thing hold true for `ABE` programs?  I suspect you can easily figure the answer, but let's follow a rigorous process to see why.  The process will be useful to us when our languages become more complex.
 
 ### Term Generator

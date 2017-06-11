@@ -40,20 +40,20 @@ The `Maybe` type class used in both the interpreter and type inference routine f
 
 To understand how the `Maybe` monad is used, let's take a quick look at the monad instance for `Maybe`:
 
-{% highlight haskell %}
+```haskell
 instance Monad (Maybe e) where
         return = Just
         Nothing  >>= _ = Nothing
-{% endhighlight %}
+```
 
 Recall that all monads define `return` and `>>=`, the infix representation for `bind`.  `return` is defined as the `Just` constructor, so `return x` is the same as `Just x`.  In our implementation using `Maybe`, remember that we used `Just` to construct good values and `Nothing` to indicate errors.  `Just (Num 1)` returns `1` while `Nothing` returns a nothing at all.  Hold that thought.  The choice is not at all arbitrary given that we used the built-in `Maybe` implementation.
 
 Two cases define the behavior of `>>=` for `Maybe`'s two constructors.  The first says that given `(Just m)` and a function `k` over the type of `m`, call `k` on `m`.  Pretty simple, but lets say it again.  `(Just m) >>= k`  simply takes the `m` and calls `k` on it.
 
-The second case says that given `Nothing`, just return `Nothing`.  Again pretty simple, but lets say it again.  `Nothing >>= k` will simply return `Nothing` and return it regardless of what `k` is.  `Nothing` simply passes through the bind operation as if `k` were an identity function.
+The second case says that given `Nothing` return `Nothing`.  Again pretty simple, but lets say it again.  `Nothing >>= k` will simply return `Nothing` and return it regardless of what `k` is.  `Nothing` simply passes through the bind operation as if `k` were an identity function.
 
 Remember the choice of `Just` for values and `Nothing` for errors?
-Thinking about `>>=` in those terms it would seem `>>=` applies a function to a value and passes an error through.  This is exactly the behavior we want if we're executing operations in sequence.
+Thinking about `>>=` in those terms it would seem `>>=` applies a function to a value and passes an error through.  This is exactly the behavior we want if we're executing operations in sequence.  It is exactly the monad behavior `eval` is structured around.
 
 Let's look at the concept abstractly and then get concrete with some examples. If `x` is a value and `a`, `b`, and `c` were a sequence of 3 operations that might throw errors, the `>>=` behavior is exactly what we want:
 
@@ -67,9 +67,9 @@ If applying `a` generates an error, it will be passed through as if `b` generate
 
 Now we're getting weird.  Let's get a bit more concrete and look at using the `Maybe` monad and some notations that make it more comfortable.
 
-First let's write an expression that starts with a value, subtracts 10 and squares the result and adds 5:
+First let's write an expression that starts with a value, subtracts 10 and squares the result and subtracts 5:
 
-$$(x-10)^2+5$$
+$$(x-10)^2-5$$
 
 If the original difference is negative or the result of the square is odd we want to throw an error.  First define the three operations as functions using `Maybe` to encode values and error messages:
 
@@ -79,7 +79,7 @@ b = \y -> if (y `mod` 2)==0 then (Just (y*y)) else Nothing
 c = \z -> (Just (z-5))
 ```
 
-Hopefully it's clear these expressions perform the three operations and check for local errors.  Names for the expressions aren't necessary, but will make things a bit simpler.  Without using either, we can compose these operations to do what we want on the value 10:
+Hopefully it's clear these expressions perform the three operations and check for local errors.  Names for the expressions aren't necessary, but will make things a bit simpler.  Without using `Maybe` as a monad, we can compose these operations to do what we want on the value 10:
 
 ```haskell
 case (a 10)

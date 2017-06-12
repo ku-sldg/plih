@@ -34,11 +34,11 @@ $$
 
 # Monadic Interpreters
 
-The `Maybe` type class used in both the interpreter and type inference routine for `ABE` is built in to Haskell.  We used `Maybe` as a construction for values using the convention that `Just` contains values and  `Nothing` indicates an error.  This made it trivial to use a monad and the `do` expression to determine what kind of thing is returned by `eval` or `typeof`.
+The `Maybe` type class is the core sequencing construct that will form the heart of our first evaluator and type inference routines. `Maybe` has two constructors, `Just x` and `Nothing`.  By convention `Just x` contains values resulting from good computations and `Nothing` indicates an error or exception.  This makes it trivial to use a monad and the `do` notation to determine what kind of thing is returned by `eval` or `typeof`.
 
-## Maybe and bind
+## Maybe, Bind, Return
 
-To understand how the `Maybe` monad is used, let's take a quick look at the monad instance for `Maybe`:
+To understand how the `Maybe` monad will be used, let's take a quick look at the monad instance for `Maybe`:
 
 ```haskell
 instance Monad (Maybe e) where

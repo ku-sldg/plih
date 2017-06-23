@@ -43,20 +43,61 @@ To understand how the `Maybe` monad will be used, let's take a quick look at a d
 ```haskell
 instance Monad (Maybe e) where
   return = Just
-  Nothing >>= _ = Nothing
   Just m >>= k = (k m)
+  Nothing >>= _ = Nothing
 ```
 
-All `Monad` instances must define `return` and `>>=`, the infix representation for `bind`.  For `Maybe`, `return` is defined as the `Just` constructor making `return x` the same as `Just x`.  We use `Just x` to construct good values and `Nothing` to indicate errors, so `return x` will be used at the end of `do` expressions when a good value should be returned.  One may use `return` wherever `Just` is used, so choose based on what you want your code to say.  As an example, `return (Num 1)` results in `Just (Num 1)`.  In contrast, `Nothing` returns a nothing at all.  Hold that thought.  The choice is not at all arbitrary given that we used the built-in `Maybe` implementation.
+All `Monad` instances must define `return` and `>>=`, the infix representation for `bind`.  For `Maybe`, `return` is defined as the `Just` constructor making `return x` the same as `Just x`:
 
-Two cases define the behavior of `>>=` for `Maybe`'s two constructors.  The first says that given `(Just m)` and a function `k` over the type of `m`, call `k` on `m`.  Pretty simple, but lets say it again.  `(Just m) >>= k` simply returns `(k m)`.
+```haskell
+  return = Just
+```
 
-The second case says that given `Nothing` return `Nothing`.  Again pretty simple, but lets say it again.  `Nothing >>= k` will simply return `Nothing` and return it regardless of what `k` is.  `Nothing` simply passes through the bind operation as if `k` were an identity function.
+We use `Just x` to indicate good values, so `return x` will be used at the end of `do` expressions when a good value should be returned.  As an example, `return (Num 1)` results in `Just (Num 1)`.  One may use `return` wherever `Just` is used, so choose based on what you want your code to say.
+
+In contrast, `Nothing` results in nothing at all.  Hold that thought.  The choice is not at all arbitrary given that we use the built-in `Maybe` implementation.  There is no monad instance method for error, but if there were it would evaluate to `Nothing`.
+
+Two cases define the behavior of `>>=` for `Maybe`'s two constructors and an arbitrary second argument.  `>>=` is an infix operation, thus its definition may look a bit odd:
+
+```haskell
+  Just m >>= k = (k m)
+  Nothing >>= _ = Nothing
+```
+
+The line first says that given `(Just m)` and a function `k` over the type of `m`, call `k` on `m`.  Pretty simple, but lets say it again.  `(Just m) >>= k` returns `(k m)`.  Binding `(Just m)` to `k` results in `(k m)`.  That's really all there is two it.  Bind takes an instance of `Just`, pulls out the argument, and applies `k` to it.
+
+But there's a bit more to it.  The type of `bind` say something about the type of `k`:
+
+```haskell
+(>>=) :: Monad m => m a -> (a -> m b) -> m b
+```
+
+Yikes.  Just read carefully and you'll be just fine.  Let's dump the notation and just talk about `Maybe`:
+
+```haskell
+(>>=) :: Maybe a -> (a -> Maybe b) -> Maybe b
+```
+
+Maybe this is a bit clearer.  Remember that `a` and `b` are type variables, not term variables.  Their values are types.  In this case, the definition says the function argument to `>>=` must take a type `a` and produce a `Maybe b`.  The output type need not be the same as the input type.  Let's forget that for now, but it is an important `Monad` feature.  So, `>>=` does what we said earlier.  It pulls the argument to `Just` out and applies a function *whose range must also be a `Maybe`*.  But why?  We'll talk through this in a minute, but think carafully about what this might do:
+
+```haskell
+(Just 3) >>= j >>= k >>= l >>= m
+```
+
+Maybe execute `j`, `k`, `l` and `m` in sequence?  Pretty cool actually, but let's move on.
+
+The second case says that given `Nothing` as the first argument to `>>=` return `Nothing` regardless of the second argument.  Again pretty simple, but lets say it again.  `Nothing >>= k` will simply return `Nothing` and return it regardless of what `k` is.  `Nothing` simply passes through the bind operation as if `k` were an identity function.  Look at this:
+
+```haskell
+Nothing >>= j >>= k >>= l >>= m
+== Nothing
+```
+regardless of what `j`, `k`, `l` and `m` are.
 
 Remember the choice of `Just` for values and `Nothing` for errors?
-Thinking about `>>=` in those terms it would seem `>>=` applies a function to a value and passes an error through.  This is exactly the behavior we want if we're executing operations in sequence.  It is exactly the monad behavior `eval` is structured around.
+Thinking about `>>=` in those terms it would seem `>>=` applies a function to a value in the `Just` case and passes an `Nothing` through  in the `Nothing` case.  This is exactly the behavior we want if we're executing operations in sequence.  It is exactly the monad behavior our language interpreters are structured around.
 
-Let's look at the concept abstractly and then get concrete with some examples. If `x` is a value and `a`, `b`, and `c` were a sequence of 3 operations that might throw errors, the `>>=` behavior is exactly what we want:
+Let's look at the concept abstractly and then get concrete with some examples. If `x` is a value and `a`, `b`, and `c` are a sequence of 3 operations that might throw errors, the `>>=` behavior is exactly what we want:
 
 1. Apply `a` to `x`.
 2. If successful apply `b` to `(a x)`.
@@ -68,13 +109,13 @@ If applying `a` generates an error, it will be passed through as if `b` generate
 
 Now we're getting weird.  Let's get a bit more concrete and look at using the `Maybe` monad and some notations that make it more comfortable.
 
-Let's write an expression that does the following:
+Write an expression that does the following:
 
 1. Subtract 10 from an initial value and throw an error if negative
 2. Square the result from 1. and throw an error if odd
 3. Subtract 5 from the result of 2.
 
-Now let's write a set of functions that perform these operations, including generating errors.  We'll use `Just` to return values and `Nothing` to return errors as is common with `Mabye`:
+Now let's write a set of functions that perform these operations, including generating errors.  We'll use `Just` to return values and `Nothing` to return errors as is common with `Maybe`:
 
 ```haskell
 a = \x -> if x<10 then Nothing else (Just (x-10))
@@ -138,7 +179,7 @@ Looking first at `(return 11) >>= a` works as it did before.  `11 <= 10` so we g
 (Just 1) >>= b
 ```
 
-`b` respondes to this input differently because the square will be odd.  This time it returns `Nothing` and we must evaluate:
+`b` responds to this input differently because the square will be odd.  This time it returns `Nothing` and we must evaluate:
 
 ```haskell
 Nothing >>= c
@@ -162,9 +203,9 @@ In this case `(a 9)` results in `Nothing` because `9<10`.  Now the magic happens
 == Nothing
 ```
 
-Eatch time `Nothing` is bound to a function, `Nothing` results because of the definitino of `>>=`.  Not because of the definition of any particular partipating function, but because of the `Maybe` monad itself.  Any function that consumes a value and produces a `Maybe` result can be dropped and the same behavior results.
+Each time `Nothing` is bound to a function, `Nothing` results because of the definition of `>>=`.  Not because of the definition of any particular participating function, but because of the `Maybe` monad itself.  Any function that consumes a value and produces a `Maybe` result can be dropped and the same behavior results.
 
-The only price to pay is putting `10` in the `Maybe` type using `return` before beginning.  `Just` would have worked equally well, but `return` is general to any monad.  We call this _lifting_ `10` into the `Maybe` type.  Small price to pay for not managing all of the error handling.  We can even get rid of that by embedding the expression in a function:
+The only usage issue is putting `10` in the `Maybe` type using `return` before beginning.  `Just` would have worked equally well, but `return` is general to any monad.  We call this _lifting_ `10` into the `Maybe` type.  Small price to pay for not managing all of the error handling.  We can even get rid of that by embedding the expression in a function:
 
 ```haskell
 f x = (return x) >>= a >>= b >>= c
@@ -172,7 +213,7 @@ f x = (return x) >>= a >>= b >>= c
 
 Pretty cool, but there's even more. The ever present `do` notation.
 
-The previous implementat uses names for the various operations composed using `bind` in the examples above.  To start to understand `do`, let's pull the names off and use the expressions directly in our composition:
+The previous implementation uses names for the various operations composed using `bind` in the examples above.  To start to understand `do`, let's pull the names off and use the expressions directly in our composition:
 
 ```haskell
 (Just 10)
@@ -241,6 +282,6 @@ do m <- n
    return z
 ```
 
-`n` is evaluated first. If `Just x` is returned `m` is bound to `x` and control moves to `p <- q`.  `q` is evalued and the process repeats.  If `Nothing` is ever returned, then all subsequent operations are skipped and `do` returns `Nothing`.  So, whenever `Nothing` results execution halts and we fall through.  This is exactly what we want.  A kind of exception handling where `Nothing` represents an exception.
+`n` is evaluated first. If `Just x` is returned `m` is bound to `x` and control moves to `p <- q`.  `q` is evaluated and the process repeats.  If `Nothing` is ever returned, then all subsequent operations are skipped and `do` returns `Nothing`.  So, whenever `Nothing` results execution halts and we fall through.  This is exactly what we want.  A kind of exception handling where `Nothing` represents an exception.
 
 Let's build some interpreters!

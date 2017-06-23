@@ -38,7 +38,7 @@ The `Maybe` type class is the core sequencing construct that will form the heart
 
 ## Maybe, Bind, Return
 
-To understand how the `Maybe` monad will be used, let's take a quick look at the monad instance for `Maybe`:
+To understand how the `Maybe` monad will be used, let's take a quick look at a definition of `Maybe` as an instance of `Monad`:
 
 ```haskell
 instance Monad (Maybe e) where
@@ -47,9 +47,9 @@ instance Monad (Maybe e) where
   Just m >>= k = (k m)
 ```
 
-All monads define `return` and `>>=`, the infix representation for `bind`.  `return` is defined as the `Just` constructor, so `return x` is the same as `Just x`.  In our implementation using `Maybe`, remember that we used `Just` to construct good values and `Nothing` to indicate errors.  `Just (Num 1)` returns `1` while `Nothing` returns a nothing at all.  Hold that thought.  The choice is not at all arbitrary given that we used the built-in `Maybe` implementation.
+All `Monad` instances must define `return` and `>>=`, the infix representation for `bind`.  For `Maybe`, `return` is defined as the `Just` constructor making `return x` the same as `Just x`.  We use `Just x` to construct good values and `Nothing` to indicate errors, so `return x` will be used at the end of `do` expressions when a good value should be returned.  One may use `return` wherever `Just` is used, so choose based on what you want your code to say.  As an example, `return (Num 1)` results in `Just (Num 1)`.  In contrast, `Nothing` returns a nothing at all.  Hold that thought.  The choice is not at all arbitrary given that we used the built-in `Maybe` implementation.
 
-Three cases define the behavior of `>>=` for `Maybe`'s two constructors.  The first says that given `(Just m)` and a function `k` over the type of `m`, call `k` on `m`.  Pretty simple, but lets say it again.  `(Just m) >>= k` simply evaluates `(m k)`.
+Two cases define the behavior of `>>=` for `Maybe`'s two constructors.  The first says that given `(Just m)` and a function `k` over the type of `m`, call `k` on `m`.  Pretty simple, but lets say it again.  `(Just m) >>= k` simply returns `(k m)`.
 
 The second case says that given `Nothing` return `Nothing`.  Again pretty simple, but lets say it again.  `Nothing >>= k` will simply return `Nothing` and return it regardless of what `k` is.  `Nothing` simply passes through the bind operation as if `k` were an identity function.
 

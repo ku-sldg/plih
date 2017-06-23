@@ -34,7 +34,7 @@ $$
 
 # Monadic Interpreters
 
-The `Maybe` type class is the core sequencing construct that will form the heart of our first evaluator and type inference routines. `Maybe` has two constructors, `Just x` and `Nothing`.  By convention `Just x` contains values resulting from good computations and `Nothing` indicates an error or exception.  This makes it trivial to use a monad and the `do` notation to determine what kind of thing is returned by `eval` or `typeof`.
+The `Maybe` type class is the core sequencing construct that will form the heart of our first evaluator and eventual type inference routines. The classic `Maybe` definition provides two constructors, `Just x` and `Nothing`.  By convention `Just x` contains a value resulting from a successful computation while `Nothing` indicates an error or exception.  Literally, the computation result is `Nothing`.  This makes it trivial to use `Maybe` as monad and the `do` notation to structure the kinds of computations necessary for evaluation.
 
 ## Maybe, Bind, Return
 
@@ -42,9 +42,9 @@ To understand how the `Maybe` monad will be used, let's take a quick look at the
 
 ```haskell
 instance Monad (Maybe e) where
-    return = Just
-    Nothing >>= _ = Nothing
-    Just m >>= k = (k m)
+  return = Just
+  Nothing >>= _ = Nothing
+  Just m >>= k = (k m)
 ```
 
 All monads define `return` and `>>=`, the infix representation for `bind`.  `return` is defined as the `Just` constructor, so `return x` is the same as `Just x`.  In our implementation using `Maybe`, remember that we used `Just` to construct good values and `Nothing` to indicate errors.  `Just (Num 1)` returns `1` while `Nothing` returns a nothing at all.  Hold that thought.  The choice is not at all arbitrary given that we used the built-in `Maybe` implementation.

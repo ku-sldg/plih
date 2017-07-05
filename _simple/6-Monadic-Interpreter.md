@@ -32,9 +32,15 @@ $$
 >
 > -- Douglas Crockford
 
+If
+you are familiar with `Maybe` and how it behaves as a monad, you can
+safely skip this chapter. If you have doubts about using the `do`
+notation or with `bind` and `return`, read on. Maybe the curse is broken.
+
 # Monadic Interpreters
 
-The `Maybe` type class is the core sequencing construct that will form the heart of our first evaluator and eventual type inference routines. The classic `Maybe` definition provides two constructors, `Just x` and `Nothing`.  By convention `Just x` contains a value resulting from a successful computation while `Nothing` indicates an error or exception.  Literally, the computation result is `Nothing`.  This makes it trivial to use `Maybe` as monad and the `do` notation to structure the kinds of computations necessary for evaluation.
+The `Maybe` type class is the core sequencing construct that will form
+the heart of our evaluators and eventual type inference routines.  The classic `Maybe` definition provides two constructors, `Just x` and `Nothing`.  By convention `Just x` contains a value resulting from a successful computation while `Nothing` indicates an error or exception.  Literally, the computation result is `Nothing`.  This makes it trivial to use `Maybe` as monad and the `do` notation to structure the kinds of computations necessary for evaluation.
 
 ## Maybe, Bind, Return
 

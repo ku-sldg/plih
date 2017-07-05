@@ -198,7 +198,9 @@ predict Lte t1 t2 = if predict t1==TBool && predict t2==TBool then TNum else err
 
 One can imagine doing the same thing for other constructions in `ABE`.  Which constructions can this not be done for?  As it turns out, none.  We can predict the set associated with any expression in `ABE`.
 
-What is going on here is a simple form of *type inference*.  If we treat `TNum` and `TBool` is the names of types, then `predict` is a function that returns the type of an expressin that we will call `typeof`.  It predicts what set - or *type* - an expression's associated value is in.  The `typeof`
+What is going on here is a simple form of *type inference*.  If we treat `TNum` and `TBool` is the names of types, then `predict` is a function that returns the type of an expression that we will call `typeof`.  It predicts what set - or *type* - an expression's associated value is in.
+
+The `typeof` function is simply another inteprpreter for the `ABE` language.  `typeof` takes an expression in `ABE` and evaluates it just like `eval`, except the values associated with `typeof` are `TNum` and `TBool`.  Programs are just data strucutres and can be interpreted in many ways.  `typeof` is one such alternate interpretation.
 
 ### Type Rules
 
@@ -243,7 +245,7 @@ The $IfT$ rule ensures that any specific `if` expression has only one type.  If 
 
 As noted, the $\typeof$ fucntion implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function `typecheck` would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if `typeof t` is defined or `typecheck e t` is true for some type `t` and `e`.
 
-Back to comparison with `eval` rules.  Do you see the parallel between $\eval$ rules and $\typeof$ rules?  There is a one-to-one correspondence between the rules.  They are structured the same way and as we'll see soon, they will be implemented in roughly the same way.  This is not always true, but the similarity is something we'll revisit in later discussions.
+Back to comparison with `eval`.  Do you see the parallel between $\eval$ rules and $\typeof$ rules?  There is a one-to-one correspondence between the rules.  They are structured the same way and as we'll see soon, they will be implemented in roughly the same way.  This is not always true, but the similarity is something we'll revisit in later discussions.
 
 ### Typeof
 
@@ -255,7 +257,7 @@ typeof :: ABE -> Maybe TABE
 
 where `TABE` is the type of an `ABE` expression.  We're structuring `typeof` like `eval` so we can catch errors rather than use Haskell for reporting.
 
-We need to define `TABE` to represent all term types in `ABE`.  There are only two, number and Boolean.  We will handle this by  defining the new type `TABE` for representing `ABE` types:
+We need to define `TABE` to represent all term types in `ABE`.  There are only two, number and Boolean and we've given them names already - `TNum` and `TBool`.  It's a simple matter to define the new type `TABE` for representing `ABE` types:
 
 ```haskell
 data TABE where
@@ -398,7 +400,6 @@ typeof (If c t e) = do c' <- (typeof c)
 The `typeof` function gives the type of an `ABE` expression if it is well-typed and generates an error message if it is not.  We can now predict type errors before we evaluate an `ABE` expression.  We call `typeof` before `eval` and only call `eval` if `typeof` results in a type.  Here is one way to do that:
 
 ```haskell
-
 interpTyped :: String -> Maybe ABE
 interpTyped e = let p=(parseABE e) in
                   case (typeof p) of

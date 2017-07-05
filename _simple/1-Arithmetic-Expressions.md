@@ -62,7 +62,7 @@ v ::= & \NUM \\
 
 The set of values is a subset of the set of terms.  It represents terms that result from interpretation.  The set of values define what we should get when we run an interpreter.  We will define this more formally later, but for now simply remember that $v$ is an interpretation result.
 
-If we define the predicate $ae(t)$ to be true whenever $t$ satisfies _AE_'s grammar rules, then the language can be defined as a set:
+If we define the predicate $ae(t)$ to be true whenever $t$ satisfies `AE`'s grammar rules, then the language can be defined as a set:
 
 $$AE = \{t:string\; \mid\; ae(t)\}$$
 
@@ -113,19 +113,10 @@ data AE where
 where `Num`, `Plus` and `Minus` are the *constructors* of the data type `AE` that correspond with numbers, sums and differences in the `AE` concrete syntax.  We use the term constructor because all values of type `AE` are constructed with one of these operations.  By definition, the `AE` type contains all constructions using `Plus`, `Minus` and `Num`, and no more.
 
 All terms in AE have associated data structures in the abstract
-syntax.  For example `(Num 1)` is the abstract syntax for 1. `(Plus
-(Num 1) (Num 3))` is the abstract syntax for `1+3`.  `(Minus (Plus
-(Num 3 (Num 5)) (Num 1))` is the abstract syntax for `3+5-1`.  For the
-abstract syntax to be effective, every term in the concrete syntax
-must have an associated term in the abstract syntax.  Remember the
-properties of relations you learned in your discrete math class?  They
-come in handy right now.  The relationship between concrete syntax and
-associated abstract syntax should be a total function. Specifically,
-concrete syntax terms should have exactly one abstract syntax value
-and all concrete syntax terms should be associated with some abstract
-syntax value. Remember that errors are outputs.
+syntax.  For example `(Num 1)` is the abstract syntax for 1. `(Plus (Num 1) (Num 3))` is the abstract syntax for `1+3`. `(Minus (Plus (Num 3 (Num 5)) (Num 1))` is the abstract syntax for `3+5-1`.  For the abstract syntax to be effective, every term in the concrete syntax must have an associated term in the abstract syntax.  Remember the properties of relations you learned in your discrete math class?  They come in handy right now.  The relationship between concrete syntax and associated abstract syntax should be a total function. Specifically,
+concrete syntax terms should have exactly one abstract syntax value and all concrete syntax terms should be associated with some abstract syntax value. Remember that errors are outputs.
 
-From this point forward I will use TLA[^1] *AST* when referring to abstract syntax data structures.  AST literally means abstract syntax *tree*.  It turns out that Haskell data types naturally form trees and trees are perfect representations for abstract syntax.  I'll come back to this later, but for now remember that AST, abstract syntax, and abstract syntax tree refer to the same Haskell data type.
+From this point forward I will use TLA[^1] *AST* when referring to abstract syntax data structures.  AST literally means *abstract syntax tree*.  It turns out that Haskell data types naturally form trees and trees are perfect representations for abstract syntax.  I'll come back to this later, but for now remember that AST, abstract syntax, and abstract syntax tree refer to the same Haskell data type.
 
 ## Parsers and Pretty Printers
 
@@ -153,13 +144,13 @@ If `parseAE` and `pprintAE` are correct, then the following equivalence should h
 
 If we parse a string and pretty print the result, we back the string.  A useful relationship for testing these tools.
 
-This course is not about building parsers and pretty printers.  This task is largely automated and Haskell provides several collections of tools for building parsers.  I will provide examples using [Parsec](https://wiki.haskell.org/Parsec), a monadic parser combinator tool for writing and composing parsers.  After a bit of setup, Parsec is not difficult to extend to the languages we would like to discuss.  For more details there are a number of online tutorials as well as chapters in major Haskell texts.  For now, let's assume we have the `parseAE` and `pprintAE` functions available.
+This course is not about building parsers and pretty printers.  This task is largely automated and Haskell provides several tools for building parsers.  I will provide examples using [Parsec](https://wiki.haskell.org/Parsec), a monadic parser combinator tool for writing and composing parsers.  After a bit of setup, Parsec is not difficult to extend to the languages we would like to discuss.  For more details there are a number of online tutorials as well as chapters in major Haskell texts.  For now, let's assume we have the `parseAE` and `pprintAE` functions available.
 
-## Interpreters
+## Evaluator
 
-An *interpreter* converts an abstract syntax term into a value.  As noted earlier, values represent valid interpretation results.  If an interpreter produces anything besides a value, something went wrong.  Either the input is invalid, the interpreter is written wrong, or the language definition is problematic.  We'll talk about these issues later.  For now, let's look at a interpreter where everything works as it should.
+An *evaluator* converts an abstract syntax term into a value.  As noted earlier, values represent valid interpretation results.  If an evaluator produces anything besides a value, something went wrong.  Either the input is invalid, the evaluator is written wrong, or the language definition is problematic.  We'll talk about these issues later.  For now, let's look at an evaluator where everything works as it should.
 
-How should the interpreter be constructed?  The data type defined for the abstract syntax gives us a big clue.  If the constructors from the data type define every possible AST element, then defining an interpreter for each element of the data type should do the trick.  We need to define how the interpreter behaves on each constructor from the `AE` datatype.
+How should the evaluator be constructed?  The data type defined for the abstract syntax gives us a big clue.  If the constructors from the data type define every possible AST element, then defining an evaluator for each element of the data type should do the trick.  We need to define how the interpreter behaves on each constructor from the `AE` datatype.
 
 First, lets get the `eval` signature down.  Our evaluator will take an element of `AE` and produce a value, where a value is defined as a number.  In the AST, numbers are of the form `(Num n)` where `n` is a Haskell `Int`.  Unfortunately, we can't capture value-ness in our signaturep, so we'll just say that `eval` returns  `Maybe AE`.  We'll use `Maybe` to allow `eval` to return a value or an error.  The signature for `eval` is:
 
@@ -179,9 +170,9 @@ Thus, `eval` case for `(Num n)` just returns its argument:
 
 Because `return = Just`, `eval (Num 3)` returns `(Just (Num 3))`
 
-We now have an interpreter for literal numbers, but nothing more.
+We now have an evaluator for literal numbers, but nothing more.
 
-The next constructor, `Plus` represents a more interesting case.  We have a rule named $PlusE$ that defines interpretation of `t1+t2`:
+The next constructor, `Plus` represents a more interesting case.  We have a rule named $PlusE$ that defines evaluation of `t1+t2`:
 
 $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1+v_2}\; [PlusE]$$
 
@@ -245,7 +236,7 @@ eval (Div t1 t2) = do v1 <- (eval t1)
 
 The evaluator follows a pattern that every evaluator we write will follow.  Each constructor from the AST definition has a case in the `eval` function that evaluates that constructor.  This pattern and the accompanying `data` construct gives us three nice language properties - completeness, determinicity, and normalization
 
-Completeness says that every term constructed in `AE` will be interpreted by `eval`.  Can we prove that? As it turns out, the Haskell `data` construct gives us some exceptionally nice properties for free, without direct proof. By definition, every value in the abstract syntax for `AE` is constructed with `Num`, `Plus`, and `Minus `.  There are no other `AE` values.   This is generally true of any type defined using `data` in Haskell.  All values of the type are constructed with its constructors.
+Completeness says that every term constructed in `AE` will be evaluated by `eval`.  Can we prove that? As it turns out, the Haskell `data` construct gives us some exceptionally nice properties for free, without direct proof. By definition, every value in the abstract syntax for `AE` is constructed with `Num`, `Plus`, and `Minus `.  There are no other `AE` values.   This is generally true of any type defined using `data` in Haskell.  All values of the type are constructed with its constructors.
 
 We know `AE` is coplete because there is one inference rule for every syntax construct and one case in `eval` for each inference rule.  Specifically, the `eval` function has one case for each constructor from `AE`.  Because all `AE` values are built with those constructors, there is a case for every `AE` value in the `eval` function.  While not quite a proof, this gives strong evidence that our language definition is complete.
 
@@ -253,7 +244,7 @@ Determinicity says that if we call `eval` on any term, we will get the same resu
 
 Normalization says that a call to `eval` on any term constructed in `AE` will terminate.  Again, a pretty bold statement.  Can we prove it?  The elements of a Haskell `data` type specifically and algebraic types generally have are `well-ordered`.  In mathematics, well-ordered means that every subset of a set has a least element.  Getting from well-ordered to guaranteed termination takes a bit of work, but the gist is that components of a constructor are smaller than the constructor itself.  Each recursive call on the parts of a term is made on a smaller term.  Consider `eval (Plus t1 t2)` where `t1` and `t2` can be viewed as smaller than `(Plus t1 t2)`.  Because every set of `AE` terms has a least element, pulling a term apart into its pieces will eventually get to that least element.
 
-The least elements of `AE` are those constructed by `(Num n)`.  When the interpreter reaches the least element, it cannot go further and terminates.  Every call to `eval` gets closer to the least element.  Note that those those least elements are what we defined as values.  This is not a coincidence.  Not only does `AE` terminate, it always terminates with a value.  Said in terms we all understand, the `AE` interpreter never crashes for any element of `AE`.
+The least elements of `AE` are those constructed by `(Num n)`.  When the evaluator reaches the least element, it cannot go further and terminates.  Every call to `eval` gets closer to the least element.  Note that those those least elements are what we defined as values.  This is not a coincidence.  Not only does `AE` terminate, it always terminates with a value.  Said in terms we all understand, the `AE` evaluator never crashes for any element of `AE`.
 
 ## All Together Now
 
@@ -302,7 +293,7 @@ eval (Div t1 t2) = do v1 <- (eval t1)
                       return (liftNum div v1 v2)
 ```
 
-Given the parser and interpreter for `AE`, we can now define a language interpreter, `interp`, that puts everything together:
+Given the parser and evaluator for `AE`, we can now define a language interpreter, `interp`, that puts everything together:
 
 ```haskell
 interp :: String -> Maybe AE
@@ -317,7 +308,7 @@ If you are unfamiliar with the point-free style and the use of function composit
 interp x = eval (parseAE x)
 ```
 
-Use the notation you are most comfortable with.
+Use the notation you are most comfortable with.  There is no advantage to either, but function composition more closely resembles the mathematics of interpreter construction.
 
 ## Discussion
 

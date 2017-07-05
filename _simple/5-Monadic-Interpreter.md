@@ -50,7 +50,7 @@ instance Monad (Maybe e) where
 All `Monad` instances must define `return` and `>>=`, the infix representation for `bind`.  For `Maybe`, `return` is defined as the `Just` constructor making `return x` the same as `Just x`:
 
 ```haskell
-  return = Just
+return = Just
 ```
 
 We use `Just x` to indicate good values, so `return x` will be used at the end of `do` expressions when a good value should be returned.  As an example, `return (Num 1)` results in `Just (Num 1)`.  One may use `return` wherever `Just` is used, so choose based on what you want your code to say.
@@ -94,8 +94,7 @@ Nothing >>= j >>= k >>= l >>= m
 ```
 regardless of what `j`, `k`, `l` and `m` are.
 
-Remember the choice of `Just` for values and `Nothing` for errors?
-Thinking about `>>=` in those terms it would seem `>>=` applies a function to a value in the `Just` case and passes an `Nothing` through  in the `Nothing` case.  This is exactly the behavior we want if we're executing operations in sequence.  It is exactly the monad behavior our language interpreters are structured around.
+Remember the choice of `Just` for values and `Nothing` for errors? Thinking about `>>=` in those terms it would seem `>>=` applies a function to a value in the `Just` case and passes an `Nothing` through  in the `Nothing` case.  This is exactly the behavior we want if we're executing operations in sequence.  It is exactly the monad behavior our language interpreters are structured around.
 
 Let's look at the concept abstractly and then get concrete with some examples. If `x` is a value and `a`, `b`, and `c` are a sequence of 3 operations that might throw errors, the `>>=` behavior is exactly what we want:
 

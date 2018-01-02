@@ -32,15 +32,13 @@ $$
 >
 > -- Douglas Crockford
 
-If
-you are familiar with `Maybe` and how it behaves as a monad, you can
+If you are familiar with `Maybe` and how it behaves as a monad, you can
 safely skip this chapter. If you have doubts about using the `do`
-notation or with `bind` and `return`, read on. Maybe the curse is broken.
+notation or with `bind` and `return`, read on. Maybe the curse is broken?
 
 # Monadic Interpreters
 
-The `Maybe` type class is the core sequencing construct that will form
-the heart of our evaluators and eventual type inference routines.  The classic `Maybe` definition provides two constructors, `Just x` and `Nothing`.  By convention `Just x` contains a value resulting from a successful computation while `Nothing` indicates an error or exception.  Literally, the computation result is `Nothing`.  This makes it trivial to use `Maybe` as monad and the `do` notation to structure the kinds of computations necessary for evaluation.
+The `Maybe` type class is the core sequencing construct that will form the heart of our evaluators and eventual type inference routines.  The Haskell `Maybe` type class definition provides two constructors, `Just x` and `Nothing`.  By convention `Just x` contains a value resulting from a successful computation while `Nothing` indicates an error or exception.  Literally, the computation result is `Nothing`.  Treating `Maybe` as monad and using the `do` notation to structure computations provides an ideal basis for writing language interpreters.
 
 ## Maybe, Bind, Return
 
@@ -53,64 +51,63 @@ instance Monad (Maybe e) where
   Nothing >>= _ = Nothing
 ```
 
-All `Monad` instances must define `return` and `>>=`, the infix representation for `bind`.  For `Maybe`, `return` is defined as the `Just` constructor making `return x` the same as `Just x`:
+All `Monad` instances must define `return` and `>>=`, the infix representation for `bind`.  To define `Maybe` as a monad, this definition provides definitions for both. `return` is defined as simply the `Just` constructor making `return x` the same as `Just x`:
 
 ```haskell
 return = Just
 ```
 
-We use `Just x` to indicate good values, so `return x` will be used at the end of `do` expressions when a good value should be returned.  As an example, `return (Num 1)` results in `Just (Num 1)`.  One may use `return` wherever `Just` is used, so choose based on what you want your code to say.
+As an example, `return 1` results in `Just 1`.  `Just x` indicates a good result.  Thus, `return x` will be used at the end of `do` expressions when a good value result should be returned by an interpreter.  One may use `return` and `Just` interchangeably, but it is best to use `return` when building a monadic construct.
 
-In contrast, `Nothing` results in nothing at all.  Hold that thought.  The choice is not at all arbitrary given that we use the built-in `Maybe` implementation.  There is no monad instance method for error, but if there were it would evaluate to `Nothing`.
-
-Two cases define the behavior of `>>=` for `Maybe`'s two constructors and an arbitrary second argument.  `>>=` is an infix operation, thus its definition may look a bit odd:
+Two cases define the behavior of `>>=` for `Maybe`'s two constructors.  `>>=` is an infix operation and its definition may look a bit odd, but we're simply defining one case each for `Just` and `Nothing`:
 
 ```haskell
-  Just m >>= k = (k m)
-  Nothing >>= _ = Nothing
+Just m >>= k = (k m)
+Nothing >>= _ = Nothing
 ```
 
-The line first says that given `(Just m)` and a function `k` over the type of `m`, call `k` on `m`.  Pretty simple, but lets say it again.  `(Just m) >>= k` returns `(k m)`.  Binding `(Just m)` to `k` results in `(k m)`.  That's really all there is two it.  Bind takes an instance of `Just`, pulls out the argument, and applies `k` to it.
+The first line says that given `(Just m)` and a function `k` over the type of `m`, call `k` on `m`.  Pretty simple, but lets say it again.  `(Just m) >>= k` returns `(k m)`.  `(Just m)` bind `k` results in `(k m)`.  That's really all there is two it.  Bind takes an instance of `Just`, pulls out the argument, and applies `k` to it.
 
-But there's a bit more to it.  The type of `bind` say something about the type of `k`:
+But there's a bit more to it.  The type of `bind` taken from the Haskell definitionsays something important about the type of `k`:
 
 ```haskell
 (>>=) :: Monad m => m a -> (a -> m b) -> m b
 ```
 
-Yikes.  Just read carefully and you'll be just fine.  Let's dump the notation and just talk about `Maybe`:
+Yikes.  Just read carefully and you'll be just fine, but let's dump the type parameter notation and just talk about `Maybe`:
 
 ```haskell
 (>>=) :: Maybe a -> (a -> Maybe b) -> Maybe b
 ```
 
-Maybe this is a bit clearer.  Remember that `a` and `b` are type variables, not term variables.  Their values are types.  In this case, the definition says the function argument to `>>=` must take a type `a` and produce a `Maybe b`.  The output type need not be the same as the input type.  Let's forget that for now, but it is an important `Monad` feature.  So, `>>=` does what we said earlier.  It pulls the argument to `Just` out and applies a function *whose range must also be a `Maybe`*.  But why?  We'll talk through this in a minute, but think carafully about what this might do:
+Maybe this is a bit clearer. Importantly, `a` and `b` are type variables, not term variables.  meaning their values are types.  In this case, the definition says the function argument to `>>=` must take a type `a` and produce a `Maybe b`. The result type need not be the same as the input type, but it must be either `Just x` or `Nothing`.  So, `>>=` does what we said earlier plus a little bit more.  It pulls the argument to `Just` out and applies a function *whose range must be a `Maybe`*.  Why?  We'll talk through this in a minute, but think carefully about what this might do:
 
 ```haskell
 (Just 3) >>= j >>= k >>= l >>= m
 ```
 
-Maybe execute `j`, `k`, `l` and `m` in sequence?  Pretty cool actually, but let's move on.
+Maybe execute `j`, `k`, `l` and `m` in sequence?  Pretty cool actually, but you may not see it just yet.  Let's move on.
 
-The second case says that given `Nothing` as the first argument to `>>=` return `Nothing` regardless of the second argument.  Again pretty simple, but lets say it again.  `Nothing >>= k` will simply return `Nothing` and return it regardless of what `k` is.  `Nothing` simply passes through the bind operation as if `k` were an identity function.  Look at this:
+The second case for the `>>=` definition says that given `Nothing` as the first argument to `>>=` return `Nothing` regardless of the second argument.  Again pretty simple, but lets say it again.  `Nothing >>= k` will simply return `Nothing` *regardless of what `k` is*.  `Nothing` simply passes through the bind operation as if its second argument were an identity function.  For example:
 
 ```haskell
 Nothing >>= j >>= k >>= l >>= m
 == Nothing
 ```
-regardless of what `j`, `k`, `l` and `m` are.
 
-Remember the choice of `Just` for values and `Nothing` for errors? Thinking about `>>=` in those terms it would seem `>>=` applies a function to a value in the `Just` case and passes an `Nothing` through  in the `Nothing` case.  This is exactly the behavior we want if we're executing operations in sequence.  It is exactly the monad behavior our language interpreters are structured around.
+results in `Nothing` regardless of what `j`, `k`, `l` and `m` are.  They are effectively skipped.
 
-Let's look at the concept abstractly and then get concrete with some examples. If `x` is a value and `a`, `b`, and `c` are a sequence of 3 operations that might throw errors, the `>>=` behavior is exactly what we want:
+Thinking about `>>=` putting the two definition cases together it would seem that `Just x >>= k` applies `k` to a value and `Nothing >>= k` always results in `Nothing`.  Remember the choice of `Just` for values and `Nothing` for errors we made earlier?  This is exactly the behavior we want if we're executing operations in sequence where failure of one operation propagates through the remaining execution sequence. This is exactly the monad behavior our language interpreters, elaborators and type checkers are all structured around.
+
+Let's look at the concept abstractly and then get concrete with some examples. If `x` is a value and `a`, `b`, and `c` are a sequence of 3 operations that might throw errors, the behavior of `(a x) >>= b >>= c` is exactly what we want:
 
 1. Apply `a` to `x`.
 2. If successful apply `b` to `(a x)`.
-3. If not successful, don't apply `b` and return the error from `(a x)`.
+3. If not successful, don't apply `b` and return `Nothing`.
 4. If applying `(b (a x))` is successful, apply `c` to the result.
-5. If not successful, don't apply `c` and return the error from `(b (a x))`.
+5. If not successful, don't apply `c` and return `Nothing`.
 
-If applying `a` generates an error, it will be passed through as if `b` generated it.  If `b` geneates an error, it will be passed through as if `c` generated it.  Keep going and what you'll end up with is either `Just c(b(a(x)))` or `Nothing`.  But *you don't write the code to manage errors*.  The `Maybe` monad takes care of it for you in the background.  In essence, this is what a monad always does.  A monad always takes care of something in the background that is inherent to the computation being performed.  A monad implements a model of computation.
+If applying `a` generates an error, it will be passed through as if `b` generated it.  If `b` generates an error, it will be passed through as if `c` generated it.  Keep going and what you'll end up with is either `Just c(b(a(x)))` or `Nothing`.  But *you don't write the code to manage errors*.  The `Maybe` monad takes care of it for you in the background.  In essence, this is what a monad always does.  A monad always takes care of something in the background that is inherent to the computation being performed.  A monad implements a model of computation.
 
 Now we're getting weird.  Let's get a bit more concrete and look at using the `Maybe` monad and some notations that make it more comfortable.
 

@@ -97,17 +97,9 @@ Nothing >>= j >>= k >>= l >>= m
 
 results in `Nothing` regardless of what `j`, `k`, `l` and `m` are.  They are effectively skipped.
 
-Thinking about `>>=` putting the two definition cases together it would seem that `Just x >>= k` applies `k` to a value and `Nothing >>= k` always results in `Nothing`.  Remember the choice of `Just` for values and `Nothing` for errors we made earlier?  This is exactly the behavior we want if we're executing operations in sequence where failure of one operation propagates through the remaining execution sequence. This is exactly the monad behavior our language interpreters, elaborators and type checkers are all structured around.
+Thinking about `>>=` by putting the two definition cases together it would seem that `Just x >>= k` applies `k` to the value `x` and `Nothing >>= k` always results in `Nothing`.  Remember the choice of `Just` for values and `Nothing` for errors we made earlier?  This is exactly the behavior we want if we're executing operations in sequence where failure of one operation propagates through the remaining execution sequence. This is exactly the monad behavior our language interpreters, elaborators and type checkers are all structured around.
 
-Let's look at the concept abstractly and then get concrete with some examples. If `x` is a value and `a`, `b`, and `c` are a sequence of 3 operations that might throw errors, the behavior of `(a x) >>= b >>= c` is exactly what we want:
-
-1. Apply `a` to `x`.
-2. If successful apply `b` to `(a x)`.
-3. If not successful, don't apply `b` and return `Nothing`.
-4. If applying `(b (a x))` is successful, apply `c` to the result.
-5. If not successful, don't apply `c` and return `Nothing`.
-
-If applying `a` generates an error, it will be passed through as if `b` generated it.  If `b` generates an error, it will be passed through as if `c` generated it.  Keep going and what you'll end up with is either `Just c(b(a(x)))` or `Nothing`.  But *you don't write the code to manage errors*.  The `Maybe` monad takes care of it for you in the background.  In essence, this is what a monad always does.  A monad always takes care of something in the background that is inherent to the computation being performed.  A monad implements a model of computation.
+This sequencing and handling of `Nothing` is not a part of `j`, `k`, and `l`, but a part of the bind operator.  As long as each function takes a value as input and produces a `Maybe` value as output, `>>=` takes care of managing the sequencing behavior.  In essence, this is what a monad always does.  A monad always takes care of something in the background that is inherent to the computation being performed.  A monad implements a model of computation.  Importantly, *you don't write the code for the computation model*, it will always be built into the monad.
 
 Now we're getting weird.  Let's get a bit more concrete and look at using the `Maybe` monad and some notations that make it more comfortable.
 
@@ -117,7 +109,7 @@ Write an expression that does the following:
 2. Square the result from 1. and throw an error if odd
 3. Subtract 5 from the result of 2.
 
-Now let's write a set of functions that perform these operations, including generating errors.  We'll use `Just` to return values and `Nothing` to return errors as is common with `Maybe`:
+Now let's write a set of functions that perform these operations, including generating errors.  We'll use `Just` to return values and `Nothing` to return errors in the canonical `Maybe` style:
 
 ```haskell
 a = \x -> if x<10 then Nothing else (Just (x-10))
@@ -128,68 +120,69 @@ c = \z -> (Just (z-5))
 Hopefully it's clear these expressions perform the three operations and check for local errors.  Names for the expressions aren't necessary, but will make things a bit simpler.  Without using `Maybe` as a monad, we can compose these operations to do what we want on the value 10:
 
 ```haskell
-case (a 10)
+case (a x)
   Nothing -> Nothing
   (Just y) -> case (b y)
                  Nothing -> Nothing
                  (Just z) -> (c z)
-== Just -5
 ```
 
-Not horrible, but when composing the operations this implementation must worry about pushing around the error messages.  The `case` expressions implement managing errors in this fashion.  Now let's use the `Maybe` as a monad and take advantage of bind:
+Not horrible, but when composing operations this implementation must worry about pushing around `Nothing` to handle error cases.  The  nested `case` expressions implement managing `Nothing` in this fashion, which is most likely what you are used to doing.  Now let's use the `Maybe` as a monad and take advantage of bind:
 
 ```haskell
-(return 10) >>= a >>= b >>= c
-== Just (-5)
+(return x) >>= a >>= b >>= c
 ```
 
-Remember what `>>=` does.  It takes a `Maybe` value does one of two things.  If the input is `Just x` it performs an operation and returns the result or an error.  If the intput is `Nothing` it just returns nothing.  Lets think this through.  `(return 10)` is equal to `(Just 10)`, so `a` will perform it's operation that will generate `Just` or `Nothing`.  In this case, `(a 10)` returns `(Just (10-10))` or `(Just 0)`.  So:
+Remember what `>>=` does.  It takes a `Maybe` value does one of two things.  If the input is `Just x` it performs an operation on `x` and returns the result or an error.  If the input is `Nothing` it just returns nothing.  Pretty cool, but how does it work?
+
+Lets think this through for two examples.  In the first, let's use `x=10` and walk through the code.  10 is initially lifted into the Maybe monad using `return`.  Remember the first argument to `>>=` must be a Monad making the `return` necessary.  `(return 10)` is equal to `(Just 10)`, so `a` will perform it's operation that will generate `Just` or `Nothing`.  In this case, `10<10` is false and `(a 10)` returns `(Just (10-10))` or `(Just 0)`.  So:
 
 ```haskell
 (return 10) >>= a
 == (Just 0)
 ```
 
-Now `((return 10) >>= a)` is bound to `b`:
+Next `((return 10) >>= a)` is bound to `b`:
 
 ```haskell
 ((return 10) >>= a) >>= b
 == (Just 0) >>= b
 ```
 
-`(b 0) = (Just 0)` because `0` is even.  The result is now bound to `c`:
+The value of `((return 10) >>= a` is `(Just 0)` so `b` is called on 0.  `(b 0) = (Just 0)` because `0` is even.  The result is now bound to `c`:
 
 ```haskell
 (((return 10) >>= a) >>= b) >>= c
 == (Just 0) >>= c
 ```
+
 `c 0 = (Just -5)` because `c` always subtracts 5 from its input and never generates an error. Thus our final result is:
 
 ```haskell
 (Just -5)
 ```
 
-What we get is exactly what we want `Just (c (b (a 10)))`.  To which you should say big deal.  If no errors occur its easy to write any fragment.  Let's try a case that does throw an error:
+What we get is exactly what we want `Just (c (b (a 10)))==(Just -5)`.  To which you should say big deal.  If no errors occur it is easy to write any fragment, including this one.  Let's try a case that does throw an error:
 
 ```haskell
 (return 11) >>= a >>= b >>= c
 ```
 
-Looking first at `(return 11) >>= a` works as it did before.  `11 <= 10` so we get `(Just 1)` and the result is once again bound to `b`:
+Looking first at `(return 11) >>= a` it works as it did before.  `11<10` is false so we get `(Just 1)` and the result is once again bound to `b`:
 
 ```haskell
 (Just 1) >>= b
 ```
 
-`b` responds to this input differently because the square will be odd.  This time it returns `Nothing` and we must evaluate:
+`b` responds to `(Just 1)` differently because `1` is odd and `1 mod 2` is not `0`.  This time `b` returns `Nothing` and we must now evaluate:
 
 ```haskell
 Nothing >>= c
 ```
 
-The case for `>>=` with an input of `Nothing` immediately returns `Nothing` without invoking `c`.  `c` needn't worry about implementing a pass-through for errors that come before it in sequence because it is never called if `Nothing` is input.  This behavior is what we always want if `Nothing` ever gets generated.
+The case for `>>=` with an input of `Nothing` immediately returns `Nothing` without invoking `c`.  `c` needn't worry about implementing a pass-through for errors that come before it in sequence because it is never called if `Nothing` is input to `>>=` as the first argument.
 
-One more, this time with emphasis:
+One more, this time with emphasis on `Nothing` pass-through:
 
 ```haskell
 (Just 9) >>= a >>= b >>= c
@@ -207,7 +200,7 @@ In this case `(a 9)` results in `Nothing` because `9<10`.  Now the magic happens
 
 Each time `Nothing` is bound to a function, `Nothing` results because of the definition of `>>=`.  Not because of the definition of any particular participating function, but because of the `Maybe` monad itself.  Any function that consumes a value and produces a `Maybe` result can be dropped and the same behavior results.
 
-The only usage issue is putting `10` in the `Maybe` type using `return` before beginning.  `Just` would have worked equally well, but `return` is general to any monad.  We call this _lifting_ `10` into the `Maybe` type.  Small price to pay for not managing all of the error handling.  We can even get rid of that by embedding the expression in a function:
+The only usage issue is transforming the initial value into a `Maybe` type using `return` before the first call to bind.  `Just` would have worked equally well, but `return` is general to any monad.  We call this _lifting_ `10` into the `Maybe` type.  Small price to pay for not managing all of the error handling.  We can even get rid of that by embedding the expression in a function:
 
 ```haskell
 f x = (return x) >>= a >>= b >>= c
@@ -242,7 +235,7 @@ The reason for the reformatting is to associate the input parameter for each fun
 m >>= \n == n <- m
 ```
 
-The `do` notation is largely just a syntax transformation in the compiler to do this and a couple of other nifty things.  Performing this transformation gives us this `do` expression:
+Performing this transformation gives us this `do` expression:
 
 ```haskell
 x <- (Just 10)
@@ -251,7 +244,7 @@ z <- if (y `mod` 2)==0 then (Just (y*y)) else Nothing
 (Just (z-5))
 ```
 
-Do you recognize that?  Maybe with a few more decorations and formatting:
+Do you recognize this?  Maybe with a few more decorations and formatting:
 
 ```haskell
 do x <- (Just 10)

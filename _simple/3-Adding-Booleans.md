@@ -130,10 +130,10 @@ eval :: ABE -> Maybe ABE
 eval (Num x) = return (Num x)
 eval (Plus t1 t2) = do v1 <- (eval t1)
                        v2 <- (eval t2)
-                       return (Num (v1+v2))
+                       return (Num (liftNum (+) v1 v2))
 eval (Minus t1 t2) = do v1 <- (eval t1)
                         v2 <- (eval t2)
-                        return (Num (v1-v2))
+                        return (Num (liftNum (-) v1 v2))
 ```
 
 The additional cases are largely as one would anticipate.  `And` `Leq` and `IsZero` each evaluate their arguments and return an appropriate result.  The only real change is operations can now return types that differ from their argument types.  This is not a big change, but operations are no longer closed.
@@ -143,17 +143,21 @@ before the `If`.  The condition is evaluated and the Haskell `if`
 expression is used to evaluate the appropriate `then` or `else` expression.  Note that in both `ABE` and Haskell `if` is an expression that returns a value when calculated.  This is in contrast to languages like C or Java where `if` is a command that sequences execution.  We'll revisit this concept later.
 
 ```haskell
-eval (Boolean b) = (Boolean b)
-eval (And t1 t2) = let (Boolean v1) = (eval t1)
-                       (Boolean v2) = (eval t2)
-                   in (Boolean (v1 && v2))
-eval (Leq t1 t2) = let (Num v1) = (eval t1)
-                       (Num v2) = (eval t2)
-                   in (Boolean (v1 <= v2))
-eval (IsZero t) = let (Num v) = (eval t)
-                  in (Boolean (v == 0))
-eval (If t1 t2 t3) = let (Boolean v) = (eval t1)
-                     in if v then (eval t2) else (eval t3)
+eval (Boolean b) = (Just (Boolean b))
+eval (And t1 t2) = do
+  r1 <- (eval t1) ;
+  r2 <- (eval t2) ;
+  return (liftBool (&&) r1 r2)
+eval (Leq t1 t2) =  do
+  r1 <- (eval t1) ;
+  r2 <- (eval t2) ;
+  return (liftNum2Bool (<=) r1 r2)
+eval (IsZero t) = do
+  r <- (eval t)
+  return (liftNum2Bool (==) r (Num 0))
+eva (If t1 t2 t3) = do
+  (Boolean v) <- (eval t1)
+  (if v then (eval t2) else (eval t3))
 ```
 
 Finally, we'll combine the `eval` and `parseABE` functions into a single `interp` function just like we did before:

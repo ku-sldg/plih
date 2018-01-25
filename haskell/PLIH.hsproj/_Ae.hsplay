@@ -1,0 +1,5 @@
+-- Haskell Playground 1.0
+testParser 5
+testEval' 5
+eval (Num 3)
+eval (Num 4

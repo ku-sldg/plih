@@ -128,12 +128,12 @@ Finally.  We have abstract syntax generated from concrete syntax and can now wri
 ```haskell
 eval :: ABE -> Maybe ABE
 eval (Num x) = return (Num x)
-eval (Plus t1 t2) = do v1 <- (eval t1)
-                       v2 <- (eval t2)
-                       return (Num (liftNum (+) v1 v2))
-eval (Minus t1 t2) = do v1 <- (eval t1)
-                        v2 <- (eval t2)
-                        return (Num (liftNum (-) v1 v2))
+eval (Plus t1 t2) = do { v1 <- (eval t1)
+                         v2 <- (eval t2)
+                         return (Num (liftNum (+) v1 v2)) }
+eval (Minus t1 t2) = do { v1 <- (eval t1)
+                          v2 <- (eval t2)
+                          return (Num (liftNum (-) v1 v2)) }
 ```
 
 The additional cases are largely as one would anticipate.  `And` `Leq` and `IsZero` each evaluate their arguments and return an appropriate result.  The only real change is operations can now return types that differ from their argument types.  This is not a big change, but operations are no longer closed.
@@ -144,16 +144,16 @@ expression is used to evaluate the appropriate `then` or `else` expression.  Not
 
 ```haskell
 eval (Boolean b) = (Just (Boolean b))
-eval (And t1 t2) = do r1 <- (eval t1) ;
-	                  r2 <- (eval t2) ;
-                      return (liftBool (&&) r1 r2)					  
-eval (Leq t1 t2) = do r1 <- (eval t1) ;
-					  r2 <- (eval t2) ;
-					  return (liftNum2Bool (<=) r1 r2)
-eval (IsZero t) = do r <- (eval t)
-                     return (liftNum2Bool (==) r (Num 0))
-eval (If t1 t2 t3) = do (Boolean v) <- (eval t1)
-                        (if v then (eval t2) else (eval t3))
+eval (And t1 t2) = do { r1 <- (eval t1) ;
+	                    r2 <- (eval t2) ;
+                        return (liftBool (&&) r1 r2) }
+eval (Leq t1 t2) = do { r1 <- (eval t1) ;
+					    r2 <- (eval t2) ;
+					    return (liftNum2Bool (<=) r1 r2) }
+eval (IsZero t) = do { r <- (eval t)
+                       return (liftNum2Bool (==) r (Num 0)) }
+eval (If t1 t2 t3) = do { (Boolean v) <- (eval t1)
+                          (if v then (eval t2) else (eval t3)) }
 ```
 
 Finally, we'll combine the `eval` and `parseABE` functions into a single `interp` function just like we did before:

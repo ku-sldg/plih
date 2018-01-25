@@ -144,20 +144,16 @@ expression is used to evaluate the appropriate `then` or `else` expression.  Not
 
 ```haskell
 eval (Boolean b) = (Just (Boolean b))
-eval (And t1 t2) = do
-  r1 <- (eval t1) ;
-  r2 <- (eval t2) ;
-  return (liftBool (&&) r1 r2)
-eval (Leq t1 t2) =  do
-  r1 <- (eval t1) ;
-  r2 <- (eval t2) ;
-  return (liftNum2Bool (<=) r1 r2)
-eval (IsZero t) = do
-  r <- (eval t)
-  return (liftNum2Bool (==) r (Num 0))
-eva (If t1 t2 t3) = do
-  (Boolean v) <- (eval t1)
-  (if v then (eval t2) else (eval t3))
+eval (And t1 t2) = do r1 <- (eval t1) ;
+	                  r2 <- (eval t2) ;
+                      return (liftBool (&&) r1 r2)					  
+eval (Leq t1 t2) = do r1 <- (eval t1) ;
+					  r2 <- (eval t2) ;
+					  return (liftNum2Bool (<=) r1 r2)
+eval (IsZero t) = do r <- (eval t)
+                     return (liftNum2Bool (==) r (Num 0))
+eval (If t1 t2 t3) = do (Boolean v) <- (eval t1)
+                        (if v then (eval t2) else (eval t3))
 ```
 
 Finally, we'll combine the `eval` and `parseABE` functions into a single `interp` function just like we did before:

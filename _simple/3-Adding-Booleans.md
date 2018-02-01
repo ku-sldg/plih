@@ -24,17 +24,39 @@ $$
 
 # Adding New Values
 
-Our initial interpreter for arithmetic expressions has several nice properties. All AE programs halt.  There is no mechanism for repeating execution, thus it should not be at all surprising that every AE program terminates and returns a value.  No AE programs crash.  If an AE program parses and can be constructed in the AE abstract syntax, it cannot crash during execution.  There is only one value type and the addition and subtraction operations are closed over that type.  Said differently, everything is an integer  and plus and minus are defined over any pair of integers.
+Our initial interpreter for arithmetic expressions has several nice
+properties. All AE programs halt.  There is no mechanism for repeating
+execution, thus it should not be at all surprising that every AE
+program terminates and returns a value.  No AE programs crash.  If an
+AE program parses and can be constructed in the AE abstract syntax, it
+cannot crash during execution.  There is only one value type and the
+addition and subtraction operations are closed over that type.  Said
+differently, everything is an integer  and plus and minus are defined
+over any pair of integers.
 
-Unfortunately, the same features of AE that make all programs terminate and not crash makes AE useless for programming.  We can't have multiple value types, we can't define variables, we can't define functions, and we can't loop.  To write real programs, we have to have at least some of these capabilities.
+Unfortunately, the same features of AE that make all programs
+terminate and not crash makes AE useless for programming.  We can't
+have multiple value types, we can't define variables, we can't define
+functions, and we can't loop.  To write real programs, we have to have
+at least some of these capabilities.
+
 
 ## Multiple Value Types
 
-Let's address the first issue - a lack of diverse value types - by adding Boolean values and operations over those values.  Specifically, we will add `if`, `<=`, `&&`, and `isZero` as well as the values `true` and `false`.  Certainly this is not a complete set of Boolean operations, but is a representative sample.
+Let's address the first issue - a lack of diverse value types - by
+adding Boolean values and operations over those values.  Specifically,
+we will add `if`, `<=`, `&&`, and `isZero` as well as the values
+`true` and `false`.  Certainly this is not a complete set of Boolean
+operations, but is a representative sample.
+
 
 ## Concrete Syntax
 
-Adding concrete syntax for Boolean values and operations is a simple matter of adding Boolean constant representations and representations for the various operations.  The new concrete syntax for a language we will call `ABE` (*Arithmetic and Boolean Expressions*) is
+Adding concrete syntax for Boolean values and operations is a simple
+matter of adding Boolean constant representations and representations
+for the various operations.  The new concrete syntax for a language we
+will call `ABE` (*Arithmetic and Boolean Expressions*) is
+
 
 $$\begin{align*}
 t ::= & \NUM \mid t + t \mid t - t \\
@@ -52,7 +74,9 @@ The need to add new values foreshadows interesting times ahead.
 
 ## Inference Rules
 
-Let's start with our inference rules for `AE` and extend them to include new rules for `ABE` constructs.  Here are the original evaluation rules for `AE`:
+Let's start with our inference rules for `AE` and extend them to
+include new rules for `ABE` constructs.  Here are the original
+evaluation rules for `AE`: 
 
 $$\frac{}{\eval v = v}\; [NumE]$$
 
@@ -60,31 +84,44 @@ $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1+v_2}\; [PlusE]
 
 $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1-v_2}\; [MinusE]$$
 
-Boolean values are just like numerical values.  So much so that we do no not need another rule for values.  However, we will rename the $NumE$ rule to reflect that it now covers all values:
+Boolean values are just like numerical values.  So much so that we do
+no not need another rule for values.  However, we will rename the
+$NumE$ rule to reflect that it now covers all values: 
 
 $$\frac{}{\eval v = v}\; [ValueE]$$
 
-Rules for $\aand$ and $\lleq$ follow the same pattern as rules for $+$ and $-$:
+Rules for $\aand$ and $\lleq$ follow the same pattern as rules for $+$
+and $-$: 
 
 $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 \aand t_2 = v_1 \wedge v_2}\; [AndE]$$
 
 $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 \lleq t_2 = v_1\leq v_2}\; [LeqE]$$
 
-The rule for $\iisZero$ is only modestly different because it is a unary operation.  Unsurprisingly it has only one antecedent:
+The rule for $\iisZero$ is only modestly different because it is a
+unary operation.  Unsurprisingly it has only one antecedent: 
 
 $$\frac{\eval t = v}{\eval \iisZero t = v==0}\; [isZeroE]$$
 
-Finally, lets deal with $\iif$.  Thinking of $\iif$ as simply an operation with three arguments, we can follow our previous pattern giving us this rule:
+Finally, lets deal with $\iif$.  Thinking of $\iif$ as simply an
+operation with three arguments, we can follow our previous pattern
+giving us this rule: 
 
 $$\frac{\eval t_0 = \ttrue\;\eval t_1 = v_1}{\eval \iif t_0 \tthen t_1 \eelse t_2 = v_1}\;[IfTrueE]$$
 
 $$\frac{\eval t_0 = \ffalse\;\eval t_2 = v_2}{\eval \iif t_0 \tthen t_1 \eelse t_2 = v_2}\;[IfFalseE]$$
 
-The first rule only applies when $\eval t_0$ evaluates to $\ttrue$ while the second applies when $\eval t_0$ evaluates to $\ffalse$.
+The first rule only applies when $\eval t_0$ evaluates to $\ttrue$
+while the second applies when $\eval t_0$ evaluates to $\ffalse$. 
 
 ## Abstract Syntax
 
-Before we extend our `AE` parser to `ABE`, we need to extend our abstract syntax for `AE` to handle new constructs.  We will start with `true` and `false`, the Boolean constant values.  To represent these values in the abstract syntax, we will use a technique similar to numbers.  Specifically, the Haskell `True` and `False` values will be lifted into our AST using the constructor `Boolean`:
+Before we extend our `AE` parser to `ABE`, we need to extend our
+abstract syntax for `AE` to handle new constructs.  We will start with
+`true` and `false`, the Boolean constant values.  To represent these
+values in the abstract syntax, we will use a technique similar to
+numbers.  Specifically, the Haskell `True` and `False` values will be
+lifted into our AST using the constructor `Boolean`: 
+
 
 ```haskell
   Boolean :: Bool -> ABE
@@ -136,20 +173,28 @@ eval (Minus t1 t2) = do { v1 <- (eval t1)
                           return (Num (liftNum (-) v1 v2)) }
 ```
 
-The additional cases are largely as one would anticipate.  `And` `Leq` and `IsZero` each evaluate their arguments and return an appropriate result.  The only real change is operations can now return types that differ from their argument types.  This is not a big change, but operations are no longer closed.
+The additional cases are largely as one would anticipate.  `And` `Leq`
+and `IsZero` each evaluate their arguments and return an appropriate
+result.  The only real change is operations can now return types that
+differ from their argument types.  This is not a big change, but
+operations are no longer closed. 
 
 The `If` construct differs in that not all arguments are evaluated
 before the `If`.  The condition is evaluated and the Haskell `if`
-expression is used to evaluate the appropriate `then` or `else` expression.  Note that in both `ABE` and Haskell `if` is an expression that returns a value when calculated.  This is in contrast to languages like C or Java where `if` is a command that sequences execution.  We'll revisit this concept later.
+expression is used to evaluate the appropriate `then` or `else`
+expression.  Note that in both `ABE` and Haskell `if` is an expression
+that returns a value when calculated.  This is in contrast to
+languages like C or Java where `if` is a command that sequences
+execution.  We'll revisit this concept later. 
 
 ```haskell
 eval (Boolean b) = (Just (Boolean b))
 eval (And t1 t2) = do { r1 <- (eval t1) ;
-	                    r2 <- (eval t2) ;
+                        r2 <- (eval t2) ;
                         return (liftBool (&&) r1 r2) }
 eval (Leq t1 t2) = do { r1 <- (eval t1) ;
-					    r2 <- (eval t2) ;
-					    return (liftNum2Bool (<=) r1 r2) }
+                        r2 <- (eval t2) ;
+                        return (liftNum2Bool (<=) r1 r2) }
 eval (IsZero t) = do { r <- (eval t)
                        return (liftNum2Bool (==) r (Num 0)) }
 eval (If t1 t2 t3) = do { (Boolean v) <- (eval t1)

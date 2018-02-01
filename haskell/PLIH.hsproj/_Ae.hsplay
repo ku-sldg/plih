@@ -2,4 +2,6 @@
 testParser 5
 testEval' 5
 eval (Num 3)
-eval (Num 4
+interp "4"
+interp "4+3"
+interp "4+3-7"

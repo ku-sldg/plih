@@ -39,6 +39,8 @@ data ABE where
   Num :: Int -> ABE
   Plus :: ABE -> ABE -> ABE
   Minus :: ABE -> ABE -> ABE
+  Mult :: ABE -> ABE -> ABE
+  Div :: ABE -> ABE -> ABE
   Boolean :: Bool -> ABE
   And :: ABE -> ABE -> ABE
   Leq :: ABE -> ABE -> ABE
@@ -53,6 +55,8 @@ pprint (Num n) = show n
 pprint (Boolean b) = show b
 pprint (Plus n m) = "(" ++ pprint n ++ " + " ++ pprint m ++ ")"
 pprint (Minus n m) = "(" ++ pprint n ++ " - " ++ pprint m ++ ")"
+pprint (Mult n m) = "(" ++ pprint n ++ " * " ++ pprint m ++ ")"
+pprint (Div n m) = "(" ++ pprint n ++ " / " ++ pprint m ++ ")"
 pprint (And n m) = "(" ++ pprint n ++ " && " ++ pprint m ++ ")"
 pprint (Leq n m) = "(" ++ pprint n ++ " <= " ++ pprint m ++ ")"
 pprint (IsZero m) = "(isZero " ++ pprint m ++ ")"
@@ -64,7 +68,9 @@ pprint (If c n m) = "(if " ++ pprint c ++ " then " ++ pprint n ++ " else " ++ pp
 expr :: Parser ABE
 expr = buildExpressionParser opTable term
 
-opTable = [ [ inFix "+" Plus AssocLeft
+opTable = [ [ inFix "*" Plus AssocLeft
+            , inFix "/" Minus AssocLeft ]
+          , [ inFix "+" Plus AssocLeft
             , inFix "-" Minus AssocLeft ]
           , [ inFix "<=" Leq AssocLeft
             , preFix "isZero" IsZero ]
@@ -128,6 +134,12 @@ eval (Plus t1 t2) = do v1 <- (eval t1)
 eval (Minus t1 t2) = do v1 <- (eval t1)
                         v2 <- (eval t2)
                         return (liftNum (-) v1 v2)
+eval (Mult t1 t2) = do v1 <- (eval t1)
+                       v2 <- (eval t2)
+                       return (liftNum (*) v1 v2)
+eval (Div t1 t2) = do v1 <- (eval t1)
+                      v2 <- (eval t2)
+                      return (liftNum div v1 v2)
 eval (Boolean b) = return (Boolean b)
 eval (And t1 t2) = do v1 <- (eval t1)
                       v2 <- (eval t2)
@@ -162,6 +174,22 @@ evalErr (Minus t1 t2) =
      case r1 of
        (Num v1) -> case r2 of
                      (Num v2) -> (return (Num (v1-v2)))
+                     _ -> Nothing
+       _ -> Nothing
+evalErr (Mult t1 t2) = 
+  do r1 <- (evalErr t1)
+     r2 <- (evalErr t2)
+     case r1 of
+       (Num v1) -> case r2 of
+                     (Num v2) -> (return (Num (v1*v2)))
+                     _ -> Nothing
+       _ -> Nothing
+evalErr (Div t1 t2) = 
+  do r1 <- (evalErr t1)
+     r2 <- (evalErr t2)
+     case r1 of
+       (Num v1) -> case r2 of
+                     (Num v2) -> (return (Num (div v1 v2)))
                      _ -> Nothing
        _ -> Nothing
 evalErr (Boolean b) = (return (Boolean b))
@@ -249,6 +277,11 @@ interpTyped e = let p=(parseABE e) in
                   case (typeof p) of
                     (Just _) -> (eval p)
                     Nothing -> Nothing
+
+interpTyped' :: ABE -> Maybe ABE
+interpTyped' e = do { t <- (typeof e) ;
+                      eval e }
+                    
 
 -- Testing (Requires QuickCheck 2)
 

@@ -273,12 +273,17 @@ will not evaluate because the `x` in the value for `x` is free.  It has no bindi
 With `subst` defined we can easily define `evals`, an evaluator that performs substitution is specified by inference rules.  Cases for `Num`, `Plus` and `Minus` are unchanged from `AE`.  The case for `Bind` is implemented by substitution.  Specifically, the defined identifier is replaced by the value expression in the `bind` body.
 
 {% highlight haskell %}
-evals :: BAE -> Int
-evals (Num x) = x
-evals (Plus l r) = (evals l) + (evals r)
-evals (Minus l r) = (evals l) - (evals r)
-evals (Bind i v b) = (evals (subst i (Num (evals v)) b))
-evals (Id id) = error "Undeclared Variable"
+evals :: BAE -> Maybe BAE
+evals (Num x) = return (Num x)
+evals (Plus l r) = do { l' <- (evals l) ;
+                        r' <- (evals r) ;
+                        return (liftNum (+) l' r') }
+evals (Minus l r) = do { l' <- (evals l) ;
+                         r' <- (evals r) ;
+                         return (liftNum (-) l' r') }
+evals (Bind i v b) = do { v' <- (evals v) ;
+						  (evals (subst i v' b)) }
+evals (Id id) = Nothing
 {% endhighlight %}
 
 The interesting case is for `Id` where an error is raised for an undeclared variable.  Why is this?  In this interpreter, identifiers are replaced immediately following their definition.

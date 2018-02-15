@@ -77,6 +77,11 @@ parseBAE = parseString expr
 
 parseBAEFile = parseFile expr
 
+-- Lifting Functions
+
+liftNum :: (Int -> Int -> Int) -> BAE -> BAE -> BAE
+liftNum f (Num l) (Num r) = (Num (f l r))
+
 -- Substitution
 
 subst :: String -> BAE -> BAE -> BAE
@@ -90,31 +95,37 @@ subst i v (Id i') = if i==i'
                     then v
                     else (Id i')
        
-evals :: BAE -> Int
-evals (Num x) =  x
-evals (Plus l r) = (evals l) +  (evals r)
-evals (Minus l r) = (evals l) - (evals r)
-evals (Bind i v b) = (evals (subst i (Num (evals v)) b))
-evals (Id id) = error "Undeclared Variable"
+evals :: BAE -> Maybe BAE
+evals (Num x) = return (Num x)
+evals (Plus l r) = do { l' <- (evals l) ;
+                        r' <- (evals r) ;
+                        return (liftNum (+) l' r') }
+evals (Minus l r) = do { l' <- (evals l) ;
+                         r' <- (evals r) ;
+                         return (liftNum (-) l' r') }
+evals (Bind i v b) = do { v' <- (evals v) ;
+                          (evals (subst i v' b)) }
+evals (Id id) = Nothing
 
 interps = evals . parseBAE
 
 -- Evaluation
 
-type Env = [(String,Int)]
+type Env = [(String,BAE)]
     
-eval :: Env -> BAE -> Int
-eval env (Num x) = x
-eval env (Plus l r) = (eval env l) + (eval env r)
-eval env (Minus l r) = (eval env l) - (eval env r)
-eval env (Bind i v b) =
-  let v' = eval env v in
-    eval ((i,v'):env) b
-eval env (Id id) = case (lookup id env) of
-                     Just x -> x
-                     Nothing -> error "Varible not found"
+eval :: Env -> BAE -> (Maybe BAE)
+eval env (Num x) = (Just (Num x))
+eval env (Plus l r) = do { l' <- (eval env l) ;
+                           r' <- (eval env r) ;
+                           return (liftNum (+) l' r') }
+eval env (Minus l r) = do { l' <- (eval env l) ;
+                           r' <- (eval env r) ;
+                           return (liftNum (-) l' r') }
+eval env (Bind i v b) = do { v' <- (eval env v) ;
+                             eval ((i,v'):env) b }
+eval env (Id id) = do { x <- (lookup id env) ;
+                        return x }
                                             
-
 interp = (eval []) . parseBAE
 
 

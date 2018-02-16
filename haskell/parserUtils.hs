@@ -41,7 +41,10 @@ inFix o c a = (Infix (reservedOp lexer o >> return c) a)
 preFix o c = (Prefix (reservedOp lexer o >> return c))
 postFix o c = (Postfix (reservedOp lexer o >> return c))
 
-parseM p str = parse p "" str
+parseM p str =
+  case parse p "" str of
+    Left e -> Nothing
+    Right r -> Just r
 
 parseString p str =
   case parse p "" str of

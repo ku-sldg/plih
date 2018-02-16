@@ -123,8 +123,7 @@ eval env (Minus l r) = do { l' <- (eval env l) ;
                            return (liftNum (-) l' r') }
 eval env (Bind i v b) = do { v' <- (eval env v) ;
                              eval ((i,v'):env) b }
-eval env (Id id) = do { x <- (lookup id env) ;
-                        return x }
+eval env (Id id) = lookup id env
                                             
 interp = (eval []) . parseBAE
 

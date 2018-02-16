@@ -114,14 +114,17 @@ This is not a good way to define the semantics of `bind`.  It is confusing and a
 
 ## Concrete and Abstract Syntax
 
-The concrete syntax for this new language is a simple extension of `AE` that includes identifiers and `bind`.  Note that we are back to `AE` without Booleans:
+The concrete syntax for this new language is a simple extension of
+`AE` that includes identifiers and `bind`.  Note that we are back to
+`AE` without Booleans: 
 
 $$\begin{align\*}
 t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
 	  & \mid \bbind \ID=t\; \iin t \\
 \end{align\*}$$
 
-From the concrete syntax we can quickly define a Haskell data type for the abstract syntax:
+From the concrete syntax we can quickly define a Haskell data type for
+the abstract syntax: 
 
 {% highlight haskell %}
 data BAE where
@@ -132,11 +135,16 @@ data BAE where
   Id :: String -> BAE
 {% endhighlight %}
 
-The additions to `AE` that give us `BAE` are the `Bind` constructor and the `Id` constructor.  `Id` is defined over a string in the same way that `Num` is defined over numbers.  `Bind` accepts a string representing the new identifier, an expression representing the identifier value, and a scope for the identifier.
+The additions to `AE` that give us `BAE` are the `Bind` constructor
+and the `Id` constructor.  `Id` is defined over a string in the same
+way that `Num` is defined over numbers.  `Bind` accepts a string
+representing the new identifier, an expression representing the
+identifier value, and a scope for the identifier. 
 
 ## Parsing and Printing
 
-Parsing `BAE` expressions is a simple extension of parsing  `AE`.  We need only add parsers for the and `id` and `bind` cases:
+Parsing `BAE` expressions is a simple extension of parsing  `AE`.  We
+need only add parsers for the and `id` and `bind` cases: 
 
 {% highlight haskell %}
 identExpr :: Parser BAE
@@ -153,7 +161,11 @@ bindExpr = do reserved lexer "bind"
 	          return (Bind i v e)
 {% endhighlight %}
 
-Both cases are routine.  `identExpr` simply calls the built-in `identifier` parser and returns the result lifted into the `BAE` AST using `Id`.  `bindExpr` calls the identifier and `expr` parsers in sequence then `Bind` to create the term AST. Both cases are integrated into the main `term` parser in the same way as other expressions:
+Both cases are routine.  `identExpr` simply calls the built-in
+`identifier` parser and returns the result lifted into the `BAE` AST
+using `Id`.  `bindExpr` calls the identifier and `expr` parsers in
+sequence then `Bind` to create the term AST. Both cases are integrated
+into the main `term` parser in the same way as other expressions: 
 
 {% highlight haskell %}
 term = parens lexer expr
@@ -162,30 +174,48 @@ term = parens lexer expr
 	   <|> bindExpr
 {% endhighlight %}
 
-In the previous description, I used the term *lift* for the first time.  When we lift a term we are transforming a term from the host language into the external language.  The opposite of lift is *lower*.
+In the previous description, I used the term *lift* for the first
+time.  When we lift a term we are transforming a term from the host
+language into the external language.  The opposite of lift is
+*lower*. 
 
-As one would expect, pretty printing `BAE` requires adding only two cases to the `BAE` pretty printer:
+As one would expect, pretty printing `BAE` requires adding only two
+cases to the `BAE` pretty printer: 
 
 {% highlight haskell %}
 pprint (Num n) = show n
 pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b ++ ")"
 {% endhighlight %}
 
-Testing the parser and pretty printer is done exactly as it was with `BAE`.  We'll skip that here, but it is included in this chapter's source code.
+Testing the parser and pretty printer is done exactly as it was with
+`BAE`.  We'll skip that here, but it is included in this chapter's
+source code. 
 
 ## Defining Evaluation
 
-The answer to precise definition is the mathematics of inference rules.  To define `bind` evaluation we will add one new inference rule:
+The answer to precise definition is the mathematics of inference
+rules.  To define `bind` evaluation we will add one new inference
+rule: 
 
 $$
 \frac{\eval a = v}{\eval (\bbind\; i\; = a\;\iin s) = \eval [i\mapsto v]s}\;[BindE]
 $$
 
-$BindE$ is not significantly different from earlier evaluation rules with the exception of a new notation for substitution.  The antecedent requires the argument, $a$, evaluate to $v$.  The consequent uses the standard notation $[i\mapsto v]s$ for specify that $i$ is replaced by $v$ in $s$.  Specifically, $[i\mapsto v]s$ is defined as $s$ with all free instances of $i$ replaced by $v$.  When evaluating `bind`, the `bind` itself falls away and instances of its identifier are replaced with its value.
+$BindE$ is not significantly different from earlier evaluation rules
+with the exception of a new notation for substitution.  The antecedent
+requires the argument, $a$, evaluate to $v$.  The consequent uses the
+standard notation $[i\mapsto v]s$ for specify that $i$ is replaced by
+$v$ in $s$.  Specifically, $[i\mapsto v]s$ is defined as $s$ with all
+free instances of $i$ replaced by $v$.  When evaluating `bind`, the
+`bind` itself falls away and instances of its identifier are replaced
+with its value. 
 
 ## Substitution
 
-Let's spend a bit of time to understand the definition of substitution and why it is the operation we want.  The notation $[i\mapsto v]s$ says that $i$ is replaced by $v$ in $s$.  A simple derivation of the value of `bind x=5 in x+7` works like this:
+Let's spend a bit of time to understand the definition of substitution
+and why it is the operation we want.  The notation $[i\mapsto v]s$
+says that $i$ is replaced by $v$ in $s$.  A simple derivation of the
+value of `bind x=5 in x+7` works like this: 
 
 {% highlight text %}
 eval bind x=5 in x+7 
@@ -194,7 +224,12 @@ eval bind x=5 in x+7
 == 12 [PlusE]
 {% endhighlight %}
 
-The $BindE$ rule transforms `bind` into a substitution by dropping the `bind` and performing substitution.  Dropping the `bind` and binding instance makes any bound instance free.  In the previous example, `x` is a bound instance in the `bind` expression.  When `bind` is dropped, `x` becomes free.  Substituting `[x->5]x+7` now replaces free `x` instances with 5 resulting in `5+7`.
+The $BindE$ rule transforms `bind` into a substitution by dropping the
+`bind` and performing substitution.  Dropping the `bind` and binding
+instance makes any bound instance free.  In the previous example, `x`
+is a bound instance in the `bind` expression.  When `bind` is dropped,
+`x` becomes free.  Substituting `[x->5]x+7` now replaces free `x`
+instances with 5 resulting in `5+7`. 
 
 Let's try another example with a nested `bind`:
 
@@ -210,10 +245,15 @@ eval bind x=5 in
 == 12 [PlusE]
 {% endhighlight %}
 
-Once again the outermost `bind` is dropped and substitution performed over the term `x + bind x=7 in x`.  Only the first instance of `x` is free - the second instance is in the scope of the nested `bind`.  If we didn't include the condition that identifiers must be free when replaced, the second `x` would be replaced with 
-the first even though it is a different identifier instance.
+Once again the outermost `bind` is dropped and substitution performed
+over the term `x + bind x=7 in x`.  Only the first instance of `x` is
+free - the second instance is in the scope of the nested `bind`.  If
+we didn't include the condition that identifiers must be free when
+replaced, the second `x` would be replaced with the first even though
+it is a different identifier instance. 
 
-A third example uses the bound identifier in the definition of a nested identifier:
+A third example uses the bound identifier in the definition of a
+nested identifier: 
 
 {% highlight text %}
 eval bind x=5 in
@@ -225,11 +265,16 @@ eval bind x=5 in
 == 17
 {% endhighlight %}
 
-Here the `x` used in defining a value for `y` becomes free when the binding instance for `x` is dropped.  Thus, the free `x` in the defining expression is replaced by 5.
+Here the `x` used in defining a value for `y` becomes free when the
+binding instance for `x` is dropped.  Thus, the free `x` in the
+defining expression is replaced by 5. 
 
 ## Using Substitution
 
-To define `eval` for `BAE` we need to first define substitution.  The function `subst x v s` will implement the substitition $[x\mapsto v]s$.  Once again we treat our program as a data structure and define `subst` over the `BAE` data type.
+To define `eval` for `BAE` we need to first define substitution.  The
+function `subst x v s` will implement the substitition
+$[x\mapsto v]s$.  Once again we treat our program as a data structure
+and define `subst` over the `BAE` data type. 
 
 {% highlight haskell %}
 subst :: String -> BAE -> BAE -> BAE
@@ -244,7 +289,10 @@ subst i v (Id i') = if i==i'
 	                else (Id i')
 {% endhighlight %}
 
-The cases for numbers and binary operations are trivial.  Substitution has no effect on numbers as they represent constant values.  For addition and subtraction, we simply call substitution recursively on the two expression terms.
+The cases for numbers and binary operations are trivial.  Substitution
+has no effect on numbers as they represent constant values.  For
+addition and subtraction, we simply call substitution recursively on
+the two expression terms. 
 
 Substituting over an identifier compares the identifier name with the name being substituted for.  If the names are the same, the identifier is replaced with the substituted value.  If the names are not the same, the identifier is left alone.
 
@@ -254,7 +302,15 @@ subst i v (Id i') = if i==i'
 	                else (Id i')
 {% endhighlight %}
 
-How do we determine if an identifier is bound or free?  This is determined by where the identifier occurs and not the identifier itself.  Then `Bind` case takes care of this by turning off substitution for the binding instance it creates.  If the identifier being replaced is the same as the bound instance, then no substitution is performed in the `bind` body.  If the identifier being replace is not the same as the bound instance, substitution is performed on the bound body.  Substitution is always performed on the binding instance's value expression.
+How do we determine if an identifier is bound or free?  This is
+determined by where the identifier occurs and not the identifier
+itself.  Then `Bind` case takes care of this by turning off
+substitution for the binding instance it creates.  If the identifier
+being replaced is the same as the bound instance, then no substitution
+is performed in the `bind` body.  If the identifier being replace is
+not the same as the bound instance, substitution is performed on the
+bound body.  Substitution is always performed on the binding
+instance's value expression. 
 
 {% highlight haskell %}
 subst i v (Bind i' v' b') = if i==i'
@@ -262,15 +318,24 @@ subst i v (Bind i' v' b') = if i==i'
 	                        else (Bind i' (subst i v v') (subst i v b'))
 {% endhighlight %}
 
-Note that the scope of an identifier bound by `bind` is the expression *following* the `in` keyword.  The value expression is explicitly not a part of the scope.  Aside from impacting substitution, this means that a bound instance cannot be used in its own definition. For example:
+Note that the scope of an identifier bound by `bind` is the expression
+*following* the `in` keyword.  The value expression is explicitly not
+a part of the scope.  Aside from impacting substitution, this means
+that a bound instance cannot be used in its own definition. For
+example: 
 
 {% highlight haskell %}
 let x=x+x in x
 {% endhighlight %}
 
-will not evaluate because the `x` in the value for `x` is free.  It has no binding instance and will never be replaced during evaluation.
+will not evaluate because the `x` in the value for `x` is free.  It
+has no binding instance and will never be replaced during evaluation. 
 
-With `subst` defined we can easily define `evals`, an evaluator that performs substitution is specified by inference rules.  Cases for `Num`, `Plus` and `Minus` are unchanged from `AE`.  The case for `Bind` is implemented by substitution.  Specifically, the defined identifier is replaced by the value expression in the `bind` body.
+With `subst` defined we can easily define `evals`, an evaluator that
+performs substitution is specified by inference rules.  Cases for
+`Num`, `Plus` and `Minus` are unchanged from `AE`.  The case for
+`Bind` is implemented by substitution.  Specifically, the defined
+identifier is replaced by the value expression in the `bind` body. 
 
 {% highlight haskell %}
 evals :: BAE -> Maybe BAE
@@ -286,7 +351,9 @@ evals (Bind i v b) = do { v' <- (evals v) ;
 evals (Id id) = Nothing
 {% endhighlight %}
 
-The interesting case is for `Id` where an error is raised for an undeclared variable.  Why is this?  In this interpreter, identifiers are replaced immediately following their definition.
+The interesting case is for `Id` where an error is raised for an
+undeclared variable.  Why is this?  In this interpreter, identifiers
+are replaced immediately following their definition. 
 
 An interpreter composes the `BAE` parser with our evaluator:
 
@@ -296,9 +363,13 @@ interps = evals . parseBAE
 
 ## Generating Test Cases
 
-To test our interpreters, we need to extend the generator use for `AE` to include `bind` and identifiers.
+To test our interpreters, we need to extend the generator use for `AE`
+to include `bind` and identifiers. 
 
-Generating random names can be done in several ways.  Rather than generating arbitrary length strings, let's generate single character identifier names using `choose` to select a character and return the character converted to a string:
+Generating random names can be done in several ways.  Rather than
+generating arbitrary length strings, let's generate single character
+identifier names using `choose` to select a character and return the
+character converted to a string: 
 
 {% highlight haskell %}
 genName =
@@ -308,7 +379,8 @@ genName =
 
 `genName` will select a name from the range a to z and return it as a string.
 
-Generating an ID from a name is done in the same way we generated numbers from integers.  Simply take a string, `n` and return `(Id n)`:
+Generating an ID from a name is done in the same way we generated
+numbers from integers.  Simply take a string, `n` and return `(Id n)`: 
 
 {% highlight haskell %}
 genId e =
@@ -317,7 +389,11 @@ genId e =
 
 `genID` now generates completely arbitrary identifier names.
 
-The final term type is `Bind` and we'll generate it much the same way as other multi-argument forms.  `genBind` generates a name for the bound id, an expression for the bound id value, and an expression for the body.  The `Bind` constructor puts the elements together to generate an arbitrary `Bind` construction:
+The final term type is `Bind` and we'll generate it much the same way
+as other multi-argument forms.  `genBind` generates a name for the
+bound id, an expression for the bound id value, and an expression for
+the body.  The `Bind` constructor puts the elements together to
+generate an arbitrary `Bind` construction: 
 
 genBind n e =
   do i \<- genName
@@ -326,7 +402,9 @@ genBind n e =
 	 return (Bind i v b)
 {% endhighlight %}
 
-We can integrate both the `Id` and `Bind` generators into the arbitrary expression generator by adding them to the `oneof` argument lists for the base case and inductive case respectively.
+We can integrate both the `Id` and `Bind` generators into the
+arbitrary expression generator by adding them to the `oneof` argument
+lists for the base case and inductive case respectively. 
 
 Now for a QuickCheck test:
 
@@ -335,15 +413,22 @@ testEvals n = quickCheckWith stdArgs {maxSuccess=n}
   (\t -> (interps $ pprint t) == (evals t))
 {% endhighlight %}
 
-What happens is an almost immediate testing failure resulting from an undefined identifier.  An example `BAE` instance that causes such a failure is:
+What happens is an almost immediate testing failure resulting from an
+undefined identifier.  An example `BAE` instance that causes such a
+failure is: 
 
 {% highlight haskell %}
 (Plus (Id "x") (Num 3))
 {% endhighlight %}
 
-It is almost impossible to get QuickCheck to find an arbitrary term without a free identifier.  Our arbitrary `Id` generator produces `Id` instances without regard to whether the `Id` is a bound instance.  No term will evaluate unless its identifiers are all bound.  What we want is a generator for arbitrary *bound* instances.
+It is almost impossible to get QuickCheck to find an arbitrary term
+without a free identifier.  Our arbitrary `Id` generator produces `Id`
+instances without regard to whether the `Id` is a bound instance.  No
+term will evaluate unless its identifiers are all bound.  What we want
+is a generator for arbitrary *bound* instances. 
 
-Thankfully this is not a difficult feature to add.  What we will do is input a list of bound identifiers to the `BAE` term generator:
+Thankfully this is not a difficult feature to add.  What we will do is
+input a list of bound identifiers to the `BAE` term generator: 
 
 {% highlight haskell %}
 genBAE :: Int -> [String] -> Gen BAE
@@ -361,7 +446,10 @@ genBAE n e =
 	 return term
 {% endhighlight %}
 
-`genBind` will still generate an arbitrary symbol as its binding instance name.  When `genBind` calls `genBAE` to generate its body, the new identifier is added to a list of previously bound identifiers.
+`genBind` will still generate an arbitrary symbol as its binding
+instance name.  When `genBind` calls `genBAE` to generate its body,
+the new identifier is added to a list of previously bound
+identifiers. 
 
 {% highlight haskell %}
 genBind n e =
@@ -371,7 +459,10 @@ genBind n e =
 	 return (Bind i v b)
 {% endhighlight %}
 
-Now when `genId` is called it is given a list of bound identifiers.  Rather than using `choose` over a range of characters, the `elements` generator is used to select an arbitrary element of the bound identifier list:
+Now when `genId` is called it is given a list of bound identifiers.
+Rather than using `choose` over a range of characters, the `elements`
+generator is used to select an arbitrary element of the bound
+identifier list: 
 
 {% highlight haskell %}
 genId e =
@@ -379,7 +470,9 @@ genId e =
 	 return (Id n)
 {% endhighlight %}
 
-Our new arbitrary term generator produces only terms that include bound identifiers.  We can QuickCheck `evals` to determine if it crashes as we did earlier versions of `eval`:
+Our new arbitrary term generator produces only terms that include
+bound identifiers.  We can QuickCheck `evals` to determine if it
+crashes as we did earlier versions of `eval`: 
 
 {% highlight haskell %}
 testEvals :: Int -> IO ()
@@ -389,10 +482,15 @@ testEvals n = quickCheckWith stdArgs {maxSuccess=n}
 
 ## Discussion
 
-Let's assume the interpreter defined by `interps` is a faithful implementation of the `BAE` language and examine how it executes. Each time a `bind` is encountered, `evals` executes `subst` on the body of the `bind` expression.  Although this is technically correct following precisely what the semantics require, it is not efficient.
+Let's assume the interpreter defined by `interps` is a faithful
+implementation of the `BAE` language and examine how it executes. Each
+time a `bind` is encountered, `evals` executes `subst` on the body of
+the `bind` expression.  Although this is technically correct following
+precisely what the semantics require, it is not efficient. 
 
-As an example, consider this intentionally obnoxious code fragment from `BAE`:
-
+As an example, consider this intentionally obnoxious code fragment
+from `BAE`: 
+ 
 {% highlight text %}
 let w=5 in
   let x=7+w in
@@ -410,7 +508,9 @@ let x=7+5 in
 	  5+x+y+z 
 {% endhighlight %}
 
-Each `bind` body and value expression are visited and `w` replaced with `5`.  Now we evaluate the outer `bind` body the same way, replacing `x` by 12.
+Each `bind` body and value expression are visited and `w` replaced
+with `5`.  Now we evaluate the outer `bind` body the same way,
+replacing `x` by 12. 
 
 {% highlight text %}
 let y=14+12+5 in
@@ -418,24 +518,43 @@ let y=14+12+5 in
 	5+12+y+z 
 {% endhighlight %}
 
-Do you see the problem?  Every inner `bind` body and value expression are visited a second time to perform the second replacement.  The process now repeats for `y` and `z` causing the innermost body to be processed 4 times and the innermost `bind` value expression 3 times.  For this tiny code fragment, there is no problem.  For complex code, imagine visiting the entire executable program once for each identifier evaluated!  We must find a more efficient way.
+Do you see the problem?  Every inner `bind` body and value expression
+are visited a second time to perform the second replacement.  The
+process now repeats for `y` and `z` causing the innermost body to be
+processed 4 times and the innermost `bind` value expression 3 times.
+For this tiny code fragment, there is no problem.  For complex code,
+imagine visiting the entire executable program once for each
+identifier evaluated!  We must find a more efficient way. 
 
-As inefficient as they are, `interps` and `evals` as are still useful. `interps` and `evals` define a *normative* interpreter for `BAE`.  Normative in the sense that the interpreter is correct, but is not optimized or made efficient in any way.  It serves as an ideal model for evaluating `BAE`.  In some communities normative implementations are called *golden* and used to evaluate other implementations.  We'll see that at work when we test our interpreters.
+As inefficient as they are, `interps` and `evals` as are still
+useful. `interps` and `evals` define a *normative* interpreter for
+`BAE`.  Normative in the sense that the interpreter is correct, but is
+not optimized or made efficient in any way.  It serves as an ideal
+model for evaluating `BAE`.  In some communities normative
+implementations are called *golden* and used to evaluate other
+implementations.  We'll see that at work when we test our
+interpreters. 
 
 ## Definitions
 
 * Instance - Any usage of an identifier
-* Binding Instance - The instance of an identifier where it is defined and given a value
+* Binding Instance - The instance of an identifier where it is defined
+  and given a value 
 * Scope - The code region where an identifier bound
-* Bound Instance - An instance of an identifier occurring the scope of a binding instance for that identifier
-* Free - An instance of an identifier occurring outside the scope of a binding instance for that identifier
-* Substitution - Replacing an identifier by its value.  The notation $[i\mapsto v]s$ means *replace free instances of i by v in s*.
+* Bound Instance - An instance of an identifier occurring the scope of
+  a binding instance for that identifier 
+* Free - An instance of an identifier occurring outside the scope of a
+  binding instance for that identifier 
+* Substitution - Replacing an identifier by its value.  The notation
+  $[i\mapsto v]s$ means *replace free instances of i by v in s*. 
 * Lift - Moving a term from the host language to the external language
 * Lower - Moving a term from the external language into the host language.
 
 ## Exercises
 
-1. Write a version of `evals` called `evalsErr` that uses the `Either` construct to return either a `BAE` construct or an error message.  How many different error messages need we return?
+1. Write a version of `evals` called `evalsErr` that uses the `Either`
+   construct to return either a `BAE` construct or an error message.
+   How many different error messages need we return? 
 
 ## Source
 

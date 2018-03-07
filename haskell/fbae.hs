@@ -1,12 +1,5 @@
 {-# LANGUAGE GADTs #-}
 
--- Imports for QuickCheck
-import System.Random
-import Test.QuickCheck
-import Test.QuickCheck.Gen
-import Test.QuickCheck.Function
-import Test.QuickCheck.Monadic
-
 -- Imports for Parsec
 import Control.Monad
 import Text.ParserCombinators.Parsec
@@ -139,51 +132,51 @@ subst i v (Id i') = if i==i'
                     then v
                     else (Id i')
        
-evals :: FBAE -> FBAE
-evals (Num x) = (Num x)
-evals (Plus l r) = let (Num l') = (evals l)
-                       (Num r') = (evals r)
-                   in (Num (l' + r'))
-evals (Minus l r) = let (Num l') = (evals l)
-                        (Num r') = (evals r)
-                    in (Num (l' - r'))
-evals (Bind i v b) = (evals (subst i (evals v) b))
-evals (Lambda i b) = (Lambda i b)
-evals (App f a) = let (Lambda i b) = (evals f)
-                      a' = (evals a)
-                  in evals (subst i (evals a) b)
-evals (If c t e) = let (Num c') = (evals c)
-                   in if c'==0 then (evals t) else (evals e)
-evals (Id id) = error "Undeclared Variable"
+evalS :: FBAE -> (Maybe FBAE)
+evalS (Num x) = (Just (Num x))
+evalS (Plus l r) = do { (Num l') <- (evalS l) ;
+                        (Num r') <- (evalS r) ;
+                        return (Num (l' + r')) }
+evalS (Minus l r) = do { (Num l') <- (evalS l) ;
+                         (Num r') <- (evalS r) ;
+                         return (Num (l' - r')) }
+evalS (Bind i v b) = do { v' <- evalS v ;
+                          (evalS (subst i v' b)) }
+evalS (Lambda i b) = return (Lambda i b)
+evalS (App f a) = do { (Lambda i b) <- (evalS f) ;
+                       a' <- (evalS a) ;
+                       evalS (subst i a' b) }
+evalS (If c t e) = do { (Num c') <- (evalS c) ;
+                        if c'==0 then (evalS t) else (evalS e) }
+evalS (Id id) = Nothing
 
-interps = evals . parseFBAE
+interps = evalS . parseFBAE
 
 -- Interpreter (Dynamic Scoping)
 
 type Env = [(String,FBAE)]
          
-eval :: Env -> FBAE -> FBAE
-eval env (Num x) = (Num x)
-eval env (Plus l r) = let (Num l') = (eval env l)
-                          (Num r') = (eval env r)
-                      in (Num (l'+r'))
-eval env (Minus l r) = let (Num l') = (eval env l)
-                           (Num r') = (eval env r)
-                       in (Num (l'-r'))
-eval env (Bind i v b) = let v' = eval env v in
-                          eval ((i,v'):env) b
-eval env (Lambda i b) = (Lambda i b)
-eval env (App f a) = let (Lambda i b) = (eval env f)
-                         a' = (eval env a)
-                     in eval ((i,a'):env) b
-eval env (Id id) = case (lookup id env) of
-                     Just x -> x
-                     Nothing -> error "Varible not found"
-eval env (If c t e) = let (Num c') = (eval env c)
-                      in if c'==0 then (eval env t) else (eval env e)
+evalM :: Env -> FBAE -> (Maybe FBAE)
+evalM env (Num x) = return (Num x)
+evalM env (Plus l r) = do { (Num l') <- (evalM env l) ;
+                            (Num r') <- (evalM env r) ;
+                            return (Num (l'+r')) }
+evalM env (Minus l r) = do { (Num l') <- (evalM env l) ;
+                             (Num r') <- (evalM env r) ;
+                             return (Num (l'-r')) }
+evalM env (Bind i v b) = do { v' <- evalM env v ;
+                              evalM ((i,v'):env) b }
+evalM env (Lambda i b) = return (Lambda i b)
+evalM env (App f a) = do { (Lambda i b) <- (evalM env f) ;
+                           a' <- (evalM env a) ;
+                           evalM ((i,a'):env) b }
+evalM env (Id id) = do { v <- (lookup id env) ;
+                         return v }
+evalM env (If c t e) = do { (Num c') <- (evalM env c) ;
+                            if c'==0 then (evalM env t) else (evalM env e) }
 
 
-interp = (eval []) .  parseFBAE
+interp = (evalM []) .  parseFBAE
 
 
 -- Testing (Requires QuickCheck 2)
@@ -192,66 +185,4 @@ test1 = interp "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app
 
 test2 = let expr = "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
         in interp expr == interps expr
-
--- Arbitrary AST Generator
-
-instance Arbitrary FBAE where
-  arbitrary =
-    sized $ \n -> genFBAE ((rem n 10) + 10) []
-
-genNum =
-  do t <- choose (0,100)
-     return (Num t)
-
-genPlus n e =
-  do s <- genFBAE n e
-     t <- genFBAE n e
-     return (Plus s t)
-
-genMinus n e =
-  do s <- genFBAE n e
-     t <- genFBAE n e
-     return (Minus s t)
-
-genName =
-  do i <- choose ('v','z')
-     return [i]
-
-genId e =
-  do n <- elements e
-     return (Id n)
-
-genBind n e =
-  do i <- genName
-     v <- genFBAE n e
-     b <- genFBAE n (i:e)
-     return (Bind i v b)
-
-genLambda n e =
-  do i <- genName
-     b <- genFBAE n (i:e)
-     return (Lambda i b)
-
-genApp n e =
-  do t1 <- genFBAE n e
-     t2 <- genFBAE n e
-     return (App t1 t2)
-     
-genFBAE :: Int -> [String] -> Gen FBAE
-genFBAE 0 e =
-  do term <- oneof (case e of
-                      [] -> [genNum]
-                      _ -> [genNum
-                           , (genId e)])
-     return term
-genFBAE n e =
-  do term <- oneof [genNum
-                   , (genPlus (n-1) e)
-                   , (genMinus (n-1) e)
-                   , (genLambda (n-1) e)
-                   , (genBind (n-1) e)
-                   , (genApp (n-1) e)]
-     return term
-
--- Arbitrary AST Generator
 

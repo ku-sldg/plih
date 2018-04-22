@@ -7,9 +7,8 @@ import Test.QuickCheck.Gen
 import Test.QuickCheck.Function
 import Test.QuickCheck.Monadic
 
--- Imports for Parser
+-- Imports for Parsec
 import Control.Monad
-import Control.Applicative
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
@@ -20,7 +19,7 @@ import ParserUtils
 
 --
 -- Arithmetic expression langage extended with bind, functions and static
--- scoping using Reader monad
+-- scoping.
 --
 -- Author: Perry Alexander
 -- Date: Wed Jul 13 21:20:26 CDT 2016
@@ -34,64 +33,88 @@ data FBAE where
   Plus :: FBAE -> FBAE -> FBAE
   Minus :: FBAE -> FBAE -> FBAE
   Bind :: String -> FBAE -> FBAE -> FBAE
-  Lambda :: String -> FBAETy -> FBAE -> FBAE
+  Lambda :: String -> FBAE -> FBAE
   App :: FBAE -> FBAE -> FBAE
   Id :: String -> FBAE
   If :: FBAE -> FBAE -> FBAE -> FBAE
   deriving (Show,Eq)
+                    
+-- Parser
 
--- Reader encapsulats a function from some e to some a in a constructor.  Reader
--- is an instance of Functor, Applicative, and Monad. 
+expr :: Parser FBAE
+expr = buildExpressionParser operators term
 
-data Reader e a = Reader (e -> a)
+operators = [ [ inFix "+" Plus AssocLeft
+              , inFix "-" Minus AssocLeft ]
+            ]
 
-instance Functor (Reader e) where
-  fmap f (Reader g) = Reader $ \e -> (f . g) e
+numExpr :: Parser FBAE
+numExpr = do i <- integer lexer
+             return (Num (fromInteger i))
 
-instance Applicative (Reader e) where
-  pure x = Reader $ \e -> x
-  (Reader f) <*> (Reader g) = Reader $ \e -> (f e) (g e)
+identExpr :: Parser FBAE
+identExpr = do i <- identifier lexer
+               return (Id i)
 
-instance Monad (Reader e) where
-  return x = Reader $ \e -> x
-  g >>= f = Reader $ \e -> runR (f (runR g e)) e
+bindExpr :: Parser FBAE
+bindExpr = do reserved lexer "bind"
+              i <- identifier lexer
+              reservedOp lexer "="
+              v <- expr
+              reserved lexer "in"
+              e <- expr
+              return (Bind i v e)
 
--- runR pulls the function out of the monad encapsuation and executes it.
--- Build the monad, call runR on it.
-runR :: Reader e a -> e -> a
-runR (Reader f) e = f e
+ifExpr :: Parser FBAE
+ifExpr = do reserved lexer "if"
+            c <- expr
+            reserved lexer "then"
+            t <- expr
+            reserved lexer "else"
+            e <- expr
+            return (If c t e)
 
--- ask simply returns e
-ask :: Reader a a
-ask = Reader $ \e -> e
+lambdaExpr :: Parser FBAE
+lambdaExpr = do reserved lexer "lambda"
+                i <- argExpr
+                reserved lexer "in"
+                b <- expr
+                return (Lambda i b)
 
--- asks applies a function to e and returns it
-asks :: (e -> a) -> Reader e a
-asks f = ask >>= \e -> (return (f e))
+argExpr :: Parser String
+argExpr = do i <- identifier lexer
+             return i
 
--- local makes local changes to e 
-local :: (e -> t) -> Reader t a -> Reader e a
-local f r = ask >>= \e -> return (runR r (f e))
+appExpr :: Parser FBAE
+appExpr = do reserved lexer "app"
+             f <- expr
+             a <- expr
+             return (App f a)
 
-explicit :: e -> Reader e a -> Reader e a
-explicit e r = return (runR r e)
+term = parens lexer expr
+       <|> numExpr
+       <|> ifExpr
+       <|> bindExpr
+       <|> lambdaExpr
+       <|> appExpr
+       <|> identExpr
 
--- lookupVar and addVar are simple utilities for looking up values in and
--- adding values to an environment.  Neither of these functions is necessary
-lookupVar :: String -> Env -> Maybe FBAEVal
-lookupVar = lookup
+-- Parser invocation
 
-addVar :: String -> FBAEVal -> Env -> Env
-addVar s i e = (s,i):e
+parseFBAE = parseString expr
 
-useClosure :: String -> FBAEVal -> Env -> Env -> Env
-useClosure s i e _ = (s,i):e
+parseFBAEFile = parseFile expr
 
-liftNum :: (Int -> Int -> Int) -> FBAE -> FBAE -> FBAE
-liftNum f (Num t1) (Num t2) = (Num (f t1 t2))
+-- Pretty Printer
 
-numPlus = liftNum (+)
-numMinus = liftNum (-)
+pprint :: FBAE -> String
+pprint (Num n) = show n
+pprint (Id s) = s
+pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
+pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
+pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b ++ ")"
+pprint (Lambda s b) = "(lambda " ++ s ++ " " ++ pprint b ++ ")"
+pprint (App l r) = "(app " ++ pprint l ++ " " ++ pprint r ++ ")"
 
 -- Substitution
 
@@ -102,32 +125,32 @@ subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
 subst i v (Bind i' v' b') = if i==i'
                             then (Bind i' (subst i v v') b')
                             else (Bind i' (subst i v v') (subst i v b'))
-subst i v (Lambda i' t' b') = if i==i'
-                           then (Lambda i' t' b')
-                           else (Lambda i' t' (subst i v b'))
+subst i v (Lambda i' b') = if i==i'
+                           then (Lambda i' b')
+                           else (Lambda i' (subst i v b'))
 subst i v (App l r) = (App (subst i v l) (subst i v r))
 subst i v (Id i') = if i==i'
                     then v
                     else (Id i')
        
-evals :: FBAE -> FBAE
-evals (Num x) = (Num x)
-evals (Plus l r) = let (Num l') = (evals l)
-                       (Num r') = (evals r)
+evalS :: FBAE -> FBAE
+evalS (Num x) = (Num x)
+evalS (Plus l r) = let (Num l') = (evalS l)
+                       (Num r') = (evalS r)
                    in (Num (l' + r'))
-evals (Minus l r) = let (Num l') = (evals l)
-                        (Num r') = (evals r)
+evalS (Minus l r) = let (Num l') = (evalS l)
+                        (Num r') = (evalS r)
                     in (Num (l' - r'))
-evals (Bind i v b) = (evals (subst i (evals v) b))
-evals (Lambda i t b) = (Lambda i t b)
-evals (App f a) = let (Lambda i t b) = (evals f)
-                      a' = (evals a)
-                  in evals (subst i (evals a) b)
-evals (If c t e) = let (Num c') = (evals c)
-                   in if c'==0 then (evals t) else (evals e)
-evals (Id id) = error "Undeclared Variable"
+evalS (Bind i v b) = (evalS (subst i (evalS v) b))
+evalS (Lambda i b) = (Lambda i b)
+evalS (App f a) = let (Lambda i b) = (evalS f)
+                      a' = (evalS a)
+                  in evalS (subst i (evalS a) b)
+evalS (If c t e) = let (Num c') = (evalS c)
+                   in if c'==0 then (evalS t) else (evalS e)
+evalS (Id id) = error "Undeclared Variable"
 
-interps = evals
+interpS = evalS . parseFBAE
 
 -- Interpreter (Static Scoping)
 
@@ -138,96 +161,36 @@ data FBAEVal where
 
 type Env = [(String,FBAEVal)]
          
-evalM :: FBAE -> Reader Env FBAEVal
-evalM (Num x) = return (NumV x)
-evalM (Plus l r) = do
-  (NumV l') <- (evalM l)
-  (NumV r') <- (evalM r)
-  return (NumV (l'+r'))
-evalM (Minus l r) = do
-  (NumV l') <- (evalM l)
-  (NumV r') <- (evalM r)
-  return (NumV (l'-r'))
-evalM (Bind i v b) = do
-  v' <- evalM v
-  local (addVar i v') (evalM b)
-evalM (Lambda i _ b) = do
-  env <- ask
-  return (ClosureV i b env)
-evalM (App f a) = do
-  (ClosureV i b e) <- (evalM f)
-  a' <- (evalM a)
-  explicit ((i,a'):e) (evalM b)
---  local (useClosure i a' e) (evalM b)
-evalM (Id id) = do
-  env <- ask
-  case (lookup id env) of
-    Just x -> return x
-    Nothing -> error "Varible not found"
-evalM (If c t e) = do
-  (NumV c') <- (evalM c)
-  if c'==0 then (evalM t) else (evalM e)
+evalM :: Env -> FBAE -> Maybe FBAEVal
+evalM env (Num x) = return (NumV x)
+evalM env (Plus l r) = do { (NumV l') <- (evalM env l);
+                           (NumV r') <- (evalM env r);
+                           return (NumV (l'+r'))}
+evalM env (Minus l r) = do { (NumV l') <- (evalM env l);
+                            (NumV r') <- (evalM env r);
+                            return (NumV (l'-r'))}
+evalM env (Bind i v b) = do { v' <- evalM env v;
+                             evalM ((i,v'):env) b }
+evalM env (Lambda i b) = return (ClosureV i b env)
+evalM env (App f a) = do { (ClosureV i b e) <- (evalM env f);
+                          a' <- (evalM env a); 
+                          evalM ((i,a'):e) b }
+evalM env (Id id) = lookup id env
+evalM env (If c t e) = do { (NumV c') <- (evalM env c);
+                           if c'==0 then (evalM env t) else (evalM env e) }
 
-interp x = runR (evalM x) []
 
--- Typeof
-
-data FBAETy where
-  TNum :: FBAETy
-  TFun :: FBAETy -> FBAETy -> FBAETy
-  deriving (Show,Eq)
-
-type Cont = [(String,FBAETy)]
-
-lookupVarTy = lookup
-addVarTy :: String -> FBAETy -> Cont -> Cont
-addVarTy s i e = (s,i):e
-
-typeofM :: FBAE -> Reader Cont FBAETy
-typeofM (Num n) = return TNum
-typeofM (Plus l r) = do
-  l' <- (typeofM l)
-  r' <- (typeofM r)
-  return (if (l'==TNum && r'==TNum) then TNum else error "Type error in +")
-typeofM (Minus l r) = do
-  l' <- (typeofM l)
-  r' <- (typeofM r)
-  return (if (l'==TNum && r'==TNum) then TNum else error "Type error in -")
-typeofM (Id id) = do
-  ask >>= \env -> return (case (lookupVarTy id env) of
-                            Just x -> x
-                            Nothing -> error "Variable not found")
-typeofM (Bind i v b) = do
-  con <- ask
-  v' <- typeofM v
-  local (addVarTy i v') (typeofM b)
-typeofM (Lambda i t b) = do
-  r' <- local (addVarTy i t) (typeofM b)
-  return (TFun t r')
-typeofM (App f v) = do
-  (TFun i b) <- typeofM f
-  v' <- typeofM v
-  return (if i==v' then b else error "Type Error in app")
-
-typeof x = runR (typeofM x) []
+interp = (evalM []) .  parseFBAE
 
 
 -- Testing (Requires QuickCheck 2)
 
-testExpr = (Bind "n" (Num 1)
-             (Bind "f" (Lambda "x" TNum (Plus (Id "x") (Id "n")))
-               (Bind "n" (Num 2) (App (Id "f") (Num 1)))))
+test1 = interp "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
 
-test1 = interp (Bind "n" (Num 1)
-                (Bind "f" (Lambda "x" TNum (Plus (Id "x") (Id "n")))
-                 (Bind "n" (Num 2) (App (Id "f") (Num 1)))))
-
-test2 = let expr = (Bind "n" (Num 1)
-                (Bind "f" (Lambda "x" TNum (Plus (Id "x") (Id "n")))
-                 (Bind "n" (Num 2) (App (Id "f") (Num 1)))))
-        in let (NumV v1) = interp expr
-           in let (Num v2) = interps expr
-              in v1 == v2
+test2 = let expr = "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
+        in let (Num v2) = interpS expr
+           in do { (NumV v1) <- interp expr ;
+                   return (v1 == v2) }
 
 -- Arbitrary AST Generator
 
@@ -263,11 +226,10 @@ genBind n e =
      b <- genFBAE n (i:e)
      return (Bind i v b)
 
--- This is wrong.  Need to generate a type here.
 genLambda n e =
   do i <- genName
      b <- genFBAE n (i:e)
-     return (Lambda i TNum b)
+     return (Lambda i b)
 
 genApp n e =
   do t1 <- genFBAE n e
@@ -290,5 +252,24 @@ genFBAE n e =
                    , (genApp (n-1) e)]
      return term
 
--- Arbitrary AST Generator
 
+-- Combinators
+
+-- Omega - Infinite combinator
+
+omega = (App (Lambda "x" (App (Id "x") (Id "x"))) (Lambda "x" (App (Id "x") (Id "x"))))
+
+-- Y - Fixed point Y combinator
+
+y = (Lambda "f" (App (Lambda "x" (App (Id "f") (App (Id "x") (Id "x"))))
+                     (Lambda "x" (App (Id "f") (App (Id "x") (Id "x"))))))
+
+-- Z - Applicative Y combinator
+
+z = (Lambda "f" (App (Lambda "x" (App (Id "f") (Lambda "v" (App (App (Id "x") (Id "x")) (Id "v")))))
+                     (Lambda "x" (App (Id "f") (Lambda "v" (App (App (Id "x") (Id "x")) (Id "v")))))))
+
+
+-- Test Function
+
+ff = (Lambda "ie" (Lambda "x" (If (Id "x") (Id "x") (Plus (Id "x") (App (Id "ie") (Minus (Id "x") (Num 1)))))))

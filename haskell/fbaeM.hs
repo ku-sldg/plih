@@ -1,15 +1,7 @@
 {-# LANGUAGE GADTs #-}
 
--- Imports for QuickCheck
-import System.Random
-import Test.QuickCheck
-import Test.QuickCheck.Gen
-import Test.QuickCheck.Function
-import Test.QuickCheck.Monadic
-
 -- Imports for Parsec
 import Control.Monad
-import Control.Applicative
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
@@ -18,8 +10,8 @@ import Text.ParserCombinators.Parsec.Token
 -- Imports for PLIH
 import ParserUtils
 
--- Untyped arithmetic interpreter extended with untyped functions using the
--- Reader monad
+--
+-- Untyped arithmetic interpreter extended with bind and untyped functions
 --
 -- Author: Perry Alexander
 -- Date: Wed Jul 13 21:20:26 CDT 2016
@@ -39,126 +31,158 @@ data FBAE where
   If :: FBAE -> FBAE -> FBAE -> FBAE
   deriving (Show,Eq)
                     
+-- Parser
+
+expr :: Parser FBAE
+expr = buildExpressionParser operators term
+
+operators = [ [ inFix "+" Plus AssocLeft
+              , inFix "-" Minus AssocLeft ]
+            ]
+
+numExpr :: Parser FBAE
+numExpr = do i <- integer lexer
+             return (Num (fromInteger i))
+
+identExpr :: Parser FBAE
+identExpr = do i <- identifier lexer
+               return (Id i)
+
+bindExpr :: Parser FBAE
+bindExpr = do reserved lexer "bind"
+              i <- identifier lexer
+              reservedOp lexer "="
+              v <- expr
+              reserved lexer "in"
+              e <- expr
+              return (Bind i v e)
+
+ifExpr :: Parser FBAE
+ifExpr = do reserved lexer "if"
+            c <- expr
+            reserved lexer "then"
+            t <- expr
+            reserved lexer "else"
+            e <- expr
+            return (If c t e)
+
+lambdaExpr :: Parser FBAE
+lambdaExpr = do reserved lexer "lambda"
+                i <- argExpr
+                reserved lexer "in"
+                b <- expr
+                return (Lambda i b)
+
+argExpr :: Parser String
+argExpr = do i <- identifier lexer
+             return i
+
+-- appExpr :: Parser FBAE
+-- appExpr = do reserved lexer "app"
+--              f <- expr
+--              a <- expr
+--              return (App f a)
+
+appExpr :: Parser FBAE
+appExpr = do reserved lexer "app"
+             f <- expr
+             a <- expr
+             return (App f a)
+
+
+term = parens lexer expr
+       <|> numExpr
+       <|> ifExpr
+       <|> bindExpr
+       <|> lambdaExpr
+       <|> identExpr
+       <|> appExpr
+
+-- Parser invocation
+
+parseFBAE = parseString expr
+
+parseFBAEFile = parseFile expr
+
+-- Pretty Printer
+
+pprint :: FBAE -> String
+pprint (Num n) = show n
+pprint (Id s) = s
+pprint (Plus n m) = "(" ++ pprint n ++ "+" ++ pprint m ++ ")"
+pprint (Minus n m) = "(" ++ pprint n ++ "-" ++ pprint m ++ ")"
+pprint (Bind n v b) = "(bind " ++ n ++ " = " ++ pprint v ++ " in " ++ pprint b ++ ")"
+pprint (Lambda s b) = "(lambda " ++ s ++ " " ++ pprint b ++ ")"
+pprint (App l r) = "(app " ++ pprint l ++ " " ++ pprint r ++ ")"
+
+-- Substitution
+
+subst :: String -> FBAE -> FBAE -> FBAE
+subst _ _ (Num x) = (Num x)
+subst i v (Plus l r) = (Plus (subst i v l) (subst i v r))
+subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
+subst i v (Bind i' v' b') = if i==i'
+                            then (Bind i' (subst i v v') b')
+                            else (Bind i' (subst i v v') (subst i v b'))
+subst i v (Lambda i' b') = if i==i'
+                           then (Lambda i' b')
+                           else (Lambda i' (subst i v b'))
+subst i v (App l r) = (App (subst i v l) (subst i v r))
+subst i v (Id i') = if i==i'
+                    then v
+                    else (Id i')
+       
+evalS :: FBAE -> (Maybe FBAE)
+evalS (Num x) = (Just (Num x))
+evalS (Plus l r) = do { (Num l') <- (evalS l) ;
+                        (Num r') <- (evalS r) ;
+                        return (Num (l' + r')) }
+evalS (Minus l r) = do { (Num l') <- (evalS l) ;
+                         (Num r') <- (evalS r) ;
+                         return (Num (l' - r')) }
+evalS (Bind i v b) = do { v' <- evalS v ;
+                          (evalS (subst i v' b)) }
+evalS (Lambda i b) = return (Lambda i b)
+evalS (App f a) = do { (Lambda i b) <- (evalS f) ;
+                       a' <- (evalS a) ;
+                       evalS (subst i a' b) }
+evalS (If c t e) = do { (Num c') <- (evalS c) ;
+                        if c'==0 then (evalS t) else (evalS e) }
+evalS (Id id) = Nothing
+
+interps = evalS . parseFBAE
+
+-- Interpreter (Dynamic Scoping)
+
 type Env = [(String,FBAE)]
-
--- Reader encapsulats a function from some e to some a in a constructor.  Reader
--- is an instance of Functor, Applicative, and Monad. 
-
-data Reader e a = Reader (e -> a)
-
-instance Functor (Reader e) where
-  fmap f (Reader g) = Reader $ \e -> (f . g) e
-
-instance Applicative (Reader e) where
-  pure x = Reader $ \e -> x
-  (Reader f) <*> (Reader g) = Reader $ \e -> (f e) (g e)
-
-instance Monad (Reader e) where
-  return x = Reader $ \e -> x
-  g >>= f = Reader $ \e -> runR (f (runR g e)) e
-
--- runR pulls the function out of the monad encapsuation and executes it.
--- Build the monad, call runR on it.
-runR :: Reader e a -> e -> a
-runR (Reader f) e = f e
-
--- ask simply returns e
-ask :: Reader a a
-ask = Reader $ \e -> e
-
--- asks applies a function to e and returns it
-asks :: (e -> a) -> Reader e a
-asks f = ask >>= \e -> (return (f e))
-
--- local makes local changes to e 
-local :: (e -> t) -> Reader t a -> Reader e a
-local f r = ask >>= \e -> return (runR r (f e))
-
--- lookupVar and addVar are simple utilities for looking up values in and
--- adding values to an environment.  Neither of these functions is necessary
-lookupVar :: String -> Env -> Maybe FBAE
-lookupVar = lookup
-
-addVar :: String -> FBAE -> Env -> Env
-addVar s i e = (s,i):e
-
-liftNum :: (Int -> Int -> Int) -> FBAE -> FBAE -> FBAE
-liftNum f (Num t1) (Num t2) = (Num (f t1 t2))
-
-numPlus = liftNum (+)
-numMinus = liftNum (-)
-
--- evalM builds the monad for a calculation. Note that Plus and Minus
--- should be nearly identical. However, I wanted to mess with multiple
--- implementations, thus you'll see to ways of executing binary operations.
-evalM :: FBAE -> Reader Env FBAE
-evalM (Num n) = return (Num n)
-evalM (Plus l r) = do
-  l' <- (evalM l)
-  r' <- (evalM r)
-  return (numPlus l' r')
-evalM (Minus l r) = do
-  l' <- (evalM l)
-  r' <- (evalM r)
-  return (numMinus l' r')
-evalM (Id id) = do
-  ask >>= \env -> return (case (lookupVar id env) of
-                             Just x -> x
-                             Nothing -> error "Variable not found")
-evalM (Bind i v b) = do
-  v' <- evalM v
-  local (addVar i v') (evalM b)
-evalM (Lambda i b) = return (Lambda i b)
-evalM (App f v) = do
-  (Lambda i b) <- evalM f
-  v' <- evalM v
-  local (addVar i v') (evalM b)
-
-eval x = runR (evalM x) []
-
-data FBAETy where
-  TNum :: FBAETy
-  TFun :: FBAETy -> FBAETy -> FBAETy
-  deriving (Show,Eq)
-
-type Cont = [(String,FBAETy)]
-
-lookupVarTy = lookup
-addVarTy :: String -> FBAETy -> Cont -> Cont
-addVarTy s i e = (s,i):e
-
-typeofM :: FBAE -> Reader Cont FBAETy
-typeofM (Num n) = return TNum
-typeofM (Plus l r) = do
-  l' <- (typeofM l)
-  r' <- (typeofM r)
-  return (if (l'==TNum && r'==TNum) then TNum else error "Type error in +")
-typeofM (Minus l r) = do
-  l' <- (typeofM l)
-  r' <- (typeofM r)
-  return (if (l'==TNum && r'==TNum) then TNum else error "Type error in -")
-typeofM (Id id) = do
-  ask >>= \env -> return (case (lookupVarTy id env) of
-                            Just x -> x
-                            Nothing -> error "Variable not found")
-typeofM (Bind i v b) = do
-  con <- ask
-  v' <- typeofM v
-  local (addVarTy i v') (typeofM b)
-typeofM (Lambda i b) = do
-  r' <- local (addVarTy i TNum) (typeofM b)
-  return (TFun TNum r')
-typeofM (App f v) = do
-  (TFun i b) <- typeofM f
-  v' <- typeofM v
-  return (if i==v' then b else error "Type Error in app")
-
-typeof x = runR (typeofM x) []
-
-interp x = let ty = typeof x in eval x
-
-test1 = interp (Num 1)
-test2 = interp (App (Lambda "x" (Plus (Id "x") (Num 1))) (Num 1))
+         
+evalM :: Env -> FBAE -> (Maybe FBAE)
+evalM env (Num x) = return (Num x)
+evalM env (Plus l r) = do { (Num l') <- (evalM env l) ;
+                            (Num r') <- (evalM env r) ;
+                            return (Num (l'+r')) }
+evalM env (Minus l r) = do { (Num l') <- (evalM env l) ;
+                             (Num r') <- (evalM env r) ;
+                             return (Num (l'-r')) }
+evalM env (Bind i v b) = do { v' <- evalM env v ;
+                              evalM ((i,v'):env) b }
+evalM env (Lambda i b) = return (Lambda i b)
+evalM env (App f a) = do { (Lambda i b) <- (evalM env f) ;
+                           a' <- (evalM env a) ;
+                           evalM ((i,a'):env) b }
+evalM env (Id id) = do { v <- (lookup id env) ;
+                         return v }
+evalM env (If c t e) = do { (Num c') <- (evalM env c) ;
+                            if c'==0 then (evalM env t) else (evalM env e) }
 
 
+interp = (evalM []) .  parseFBAE
+
+
+-- Testing (Requires QuickCheck 2)
+
+test1 = interp "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
+
+test2 = let expr = "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
+        in interp expr == interps expr
 

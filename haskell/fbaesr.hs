@@ -170,30 +170,28 @@ data FBAEVal where
 
 type Env = [(String,FBAEVal)]
          
-eval :: Env -> FBAE -> FBAEVal
-eval env (Num x) = (NumV x)
-eval env (Plus l r) = let (NumV l') = (eval env l)
-                          (NumV r') = (eval env r)
-                      in (NumV (l'+r'))
-eval env (Minus l r) = let (NumV l') = (eval env l)
-                           (NumV r') = (eval env r)
-                       in (NumV (l'-r'))
-eval env (Bind i v b) = let v' = eval env v in
-                          eval ((i,v'):env) b
-eval env (Lambda i b) = (ClosureV i b env)
-eval env (App f a) = let (ClosureV i b e) = (eval env f)
-                         a' = (eval env a)
-                     in eval ((i,a'):e) b
-eval env (Id id) = case (lookup id env) of
-                     Just x -> x
-                     Nothing -> error ("Varible " ++ id ++ " not found")
-eval env (If c t e) = let (NumV c') = (eval env c)
-                      in if c'==0 then (eval env t) else (eval env e)
-eval env (Fix t) = let (ClosureV i b e) = (eval env t) in
-                     eval e (subst i (Fix (Lambda i b)) b)
+evalM :: Env -> FBAE -> (Maybe FBAEVal)
+evalM env (Num x) = return (NumV x)
+evalM env (Plus l r) = do {(NumV l') <- (evalM env l);
+                          (NumV r') <- (evalM env r);
+                          return (NumV (l'+r'))}
+evalM env (Minus l r) = do {(NumV l') <- (evalM env l);
+                           (NumV r') <- (evalM env r);
+                           return (NumV (l'-r'))}
+evalM env (Bind i v b) = do {v' <- evalM env v;
+                            evalM ((i,v'):env) b}
+evalM env (Lambda i b) = return (ClosureV i b env)
+evalM env (App f a) = do { (ClosureV i b e) <- (evalM env f) ;
+                          a' <- (evalM env a) ;
+                          evalM ((i,a'):e) b}
+evalM env (Id id) = (lookup id env)
+evalM env (If c t e) = do { (NumV c') <- (evalM env c) ;
+                           if c'==0 then (evalM env t) else (evalM env e) }
+evalM env (Fix t) = do { (ClosureV i b e) <- (evalM env t) ;
+                        evalM e (subst i (Fix (Lambda i b)) b) }
 
 
-interp = (eval []) .  parseFBAE
+interp = (evalM []) .  parseFBAE
 
 ff = (Lambda "ie" (Lambda "x" (If (Id "x") (Id "x") (Plus (Id "x") (App (Id "ie") (Minus (Id "x") (Num 1)))))))
 ffs = "app (fix (lambda ie in (lambda x in if x then x else x + app ie x - 1))) 5"
@@ -205,9 +203,9 @@ ffr = (Bind "f" (Lambda "x" (If (Id "x") (Id "x") (Plus (Id "x") (App (Id "f") (
 test1 = interp "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
 
 test2 = let expr = "(bind n = 1 in (bind f = (lambda x in x+n) in (bind n = 2 in app f 1)))"
-        in let (NumV v1) = interp expr
-           in let (Num v2) = interps expr
-              in v1 == v2
+        in let (Num v2) = interps expr in
+           do { (NumV v1) <- interp expr ;
+                return (v1 == v2) }
 
 -- Arbitrary AST Generator
 

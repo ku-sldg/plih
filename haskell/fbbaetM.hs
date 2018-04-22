@@ -176,8 +176,8 @@ parseFBAEFile = parseFile expr
 type Env = [(String,FBAE)]
 type Cont = [(String,TFBAE)]
          
-eDyn :: Env -> FBAE -> (Either String FBAE)
-eDyn env (Num x) = (Right (Num x))
+eDyn :: Env -> FBAE -> (Maybe FBAE)
+eDyn env (Num x) = return (Num x)
 eDyn env (Plus l r) = do { (Num l') <- (eDyn env l) ;
                            (Num r') <- (eDyn env r) ;
                            return (Num (l'+r'))
@@ -197,9 +197,7 @@ eDyn env (Lambda i t b) = return (Lambda i t b)
 eDyn env (App f a) = do { (Lambda i t b) <- (eDyn env f) ;
                           a' <- (eDyn env a) ;
                           eDyn ((i,a'):env) b }
-eDyn env (Id id) = case (lookup id env) of
-                     Just x -> (Right x)
-                     Nothing -> (Left "Varible not found")
+eDyn env (Id id) = (lookup id env)
 eDyn env (Boolean b) = return (Boolean b)
 eDyn env (And l r) = do { (Boolean l') <- (eDyn env l) ;
                           (Boolean r') <- (eDyn env r) ;
@@ -224,8 +222,8 @@ data FBAEVal where
   ClosureV :: String -> TFBAE -> FBAE -> EnvS -> FBAEVal
   deriving (Show,Eq)
 
-eSta :: EnvS -> FBAE -> (Either String FBAEVal)
-eSta env (Num x) = (Right (NumV x))
+eSta :: EnvS -> FBAE -> (Maybe FBAEVal)
+eSta env (Num x) = return (NumV x)
 eSta env (Plus l r) = do { (NumV l') <- (eSta env l) ;
                            (NumV r') <- (eSta env r) ;
                            return (NumV (l'+r')) }
@@ -244,9 +242,7 @@ eSta env (Lambda i t b) = return (ClosureV i t b env)
 eSta env (App f a) = do { (ClosureV i t b e) <- (eSta env f) ;
                           a' <- (eSta env a) ;
                           (eSta ((i,a'):e) b) }
-eSta env (Id id) = case (lookup id env) of
-                     Just x -> (Right x)
-                     Nothing -> (Left "Varible not found")
+eSta env (Id id) = (lookup id env)
 eSta env (Boolean b) = return (BooleanV b)
 eSta env (And l r) = do { (BooleanV l') <- (eSta env l) ;
                           (BooleanV r') <- (eSta env r) ;
@@ -263,74 +259,55 @@ eSta env (If c t e) = do { (BooleanV c') <- (eSta env c) ;
                            (if c' then (eSta env t) else (eSta env e)) }
 
 
-typeof :: Cont -> FBAE -> (Either String TFBAE)
-typeof cont (Num x) = return TNum
-typeof cont (Plus l r) = do { l' <- (typeof cont l) ;
-                              r' <- (typeof cont r) ;
-                              if l'==TNum && r'==TNum
-                              then return TNum
-                              else (Left "Type Mismatch in +")}
-typeof cont (Minus l r) = do { l' <- (typeof cont l) ;
-                               r' <- (typeof cont r) ;
-                               if l'==TNum && r'==TNum
-                               then return TNum else Left "Type Mismatch in -" }
-typeof cont (Mult l r) = do { l' <- (typeof cont l) ;
-                              r' <- (typeof cont r) ;
-                              if l'==TNum && r'==TNum
-                              then return TNum
-                              else Left "Type Mismatch in *" }
-typeof cont (Div l r) = do { l' <- (typeof cont l) ;
-                             r' <- (typeof cont r) ;
-                             if l'==TNum && r'==TNum
-                             then return TNum
-                             else Left "Type Mismatch in /" }
-typeof cont (Bind i v b) = do { v' <- typeof cont v ;
-                                typeof ((i,v'):cont) b }
-typeof cont (Id id) = case (lookup id cont) of
-                        Just x -> (Right x)
-                        Nothing -> (Left "Varible not found")
-typeof cont (Lambda x t b) = do { tyB <- typeof ((x,t):cont) b ;
+typeofM :: Cont -> FBAE -> (Maybe TFBAE)
+typeofM cont (Num x) = return TNum
+typeofM cont (Plus l r) = do { TNum <- (typeofM cont l) ;
+                              TNum <- (typeofM cont r) ;
+                              return TNum}
+typeofM cont (Minus l r) = do { TNum <- (typeofM cont l) ;
+                               TNum <- (typeofM cont r) ;
+                               return TNum }
+typeofM cont (Mult l r) = do { TNum <- (typeofM cont l) ;
+                              TNum <- (typeofM cont r) ;
+                              return TNum }
+typeofM cont (Div l r) = do { TNum <- (typeofM cont l) ;
+                             TNum <- (typeofM cont r) ;
+                             return TNum}
+typeofM cont (Bind i v b) = do { v' <- typeofM cont v ;
+                                typeofM ((i,v'):cont) b }
+typeofM cont (Id id) = (lookup id cont)
+typeofM cont (Lambda x t b) = do { tyB <- typeofM ((x,t):cont) b ;
                                   return (t :->: tyB) }
-typeof cont (App x y) = do { tyXd :->: tyXr <- typeof cont x ;
-                             tyY <- typeof cont y ;
+typeofM cont (App x y) = do { tyXd :->: tyXr <- typeofM cont x ;
+                             tyY <- typeofM cont y ;
                              if tyXd==tyY
                              then return tyXr
-                             else Left "Type mismatch in app" }
-typeof cont (Boolean b) = return TBool
-typeof cont (And l r) = do { l' <- (typeof cont l) ;
-                             r' <- (typeof cont r) ;
-                             if l'== TBool && r' == TBool
-                             then return TBool
-                             else Left "Type mismatch in &&" }
-typeof cont (Or l r) = do { l' <- (typeof cont l) ;
-                            r' <- (typeof cont r) ;
-                            if l' == TBool && r' == TBool
-                            then return TBool
-                            else Left "Type mismatch in ||" }
-typeof cont (Leq l r) = do { l' <- (typeof cont l) ;
-                             r' <- (typeof cont r) ;
-                             if l'== TNum && r' == TNum
-                             then return TBool
-                             else Left "Type mismatch in <=" }
-typeof cont (IsZero v) = do { v' <- (typeof cont v) ;
-                              if v' == TNum
-                              then return TBool
-                              else Left "Type mismatch in IsZero" }
-typeof cont (If c t e) = do { c' <- (typeof cont c) ;
-                              t' <- (typeof cont t) ;
-                              e' <- (typeof cont e) ;
-                              if c' == TBool && t'==e'
+                             else Nothing }
+typeofM cont (Boolean b) = return TBool
+typeofM cont (And l r) = do { TBool <- (typeofM cont l) ;
+                             TBool <- (typeofM cont r) ;
+                             return TBool }
+typeofM cont (Or l r) = do { TBool <- (typeofM cont l) ;
+                            TBool <- (typeofM cont r) ;
+                            return TBool}
+typeofM cont (Leq l r) = do { TNum <- (typeofM cont l) ;
+                             TNum <- (typeofM cont r) ;
+                             return TBool }
+typeofM cont (IsZero v) = do { TNum <- (typeofM cont v) ;
+                              return TBool }
+typeofM cont (If c t e) = do { TBool <- (typeofM cont c) ;
+                              t' <- (typeofM cont t) ;
+                              e' <- (typeofM cont e) ;
+                              if t'==e'
                               then return t'
-                              else (Left "Type mismatch in if") }
+                              else Nothing }
 
-intDyn :: String -> (Either String FBAE)
-intDyn e = let p=(parseFBAE e) in
-           case (typeof [] p) of
-             (Right _) -> (eDyn [] p)
-             (Left x) -> (Left x)
+intDyn :: String -> (Maybe FBAE)
+intDyn e = let p = (parseFBAE e) in
+             do { typeofM [] p ;
+                  eDyn [] p }
 
-intSta :: String -> (Either String FBAEVal)
-intSta e = let p=(parseFBAE e) in
-           case (typeof [] p) of
-             (Right _) -> (eSta [] p)
-             (Left x) -> (Left x)
+intSta :: String -> (Maybe FBAEVal)
+intSta e = let p = (parseFBAE e) in
+             do { typeofM [] p ;
+                  eSta [] p }

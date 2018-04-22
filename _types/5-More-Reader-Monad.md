@@ -7,7 +7,9 @@ categories: chapter
 
 ## Reader and Type Inference
 
-As you might have guessed, the `Reader` is also quite effective at type checking.  What is particularly interesting is the similarly between the type checker and evaluator.
+As you might have guessed, the `Reader` is also quite effective at
+type checking.  What is particularly interesting is the similarly
+between the type checker and evaluator. 
 
 For completeness, the context type is defined as a list of string/type pairs:
 

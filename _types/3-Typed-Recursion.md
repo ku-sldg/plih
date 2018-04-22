@@ -36,13 +36,13 @@ $$
 
 ## Typing Omega
 
-Having established that the type of a `lambda` is of the form
-`D:->:R`, typing an increment function is quite simple: 
+Having established that the type of a `lambda` is of the form 
+`D:->:R`, typing an increment function is quite simple:
 
 {% highlight text %}
 typeof cont (lambda (x:TNum) in x + 1)
 == TNum -> TNum
-{% endhighlight %}
+{% endhighlight %} 
 
 It follows directly that a `lambda` taking another `lambda` and
 applying it to a value is similarly typed: 
@@ -59,14 +59,16 @@ arguments.  The `app` in the body of the `lambda` applies the function
 argument to a value.  We have seen this before.  Specifically, when we
 looked at untyped recursion and the $\Omega$ and `Y`. 
 
-Remember $\Omega$, a simple recursive function that does not terminate:
+Remember $\Omega$, a simple recursive function that does not
+terminate:
 
 {% highlight text %}
 (app (lambda x in (app x x))
 	 (lambda x in (app x x)))
 {% endhighlight %}
 
-Let's add a type placeholder, call it `T->T`, to the `lambda` and determine what a typed version of the $\Omega$ would look like:
+Let's add a type placeholder, call it `T->T`, to the `lambda` and
+determine what a typed version of the $\Omega$ would look like:
 
 {% highlight text %}
 (app (lambda (x:T->T) in (app x x))
@@ -81,7 +83,7 @@ the range of the type of `f`.  However, we will never find a type for
 `x` has type `T->T`, then for `app x x` to have type `T`, `x` must
 also have type `T`.  This will never work as `x` would need to have
 both type `T` and `T->T`.  The only way this will happen is when `T` =
-`T->T`, something that is not possible in our current type system. 
+`T->T`, something that is not possible in our current type system.
 
 $\Omega$ cannot have a type.  Using the same argument, `Y` cannot have
 a type.  Thus, neither can be written in our new language that
@@ -105,7 +107,7 @@ _stuck_ values and represent errors in a language definition.  It is
 always desirable to show that the only normal forms in a language are
 values. 
 
-Normalization is the property that all evaluating any term in a
+Normalization is the property that evaluating any term in a
 language always terminates resulting in a value.  No non-termination
 and no stuck terms.  Evaluation always halts with a value. 
 
@@ -268,18 +270,18 @@ evaluation more precisely.
 
 Fixed points are common structures in mathematics, but we only need to
 understand what a basic fixed point structure looks like to solve our
-problem. 
+problem.
 
 The rule for the general recursive structure is:
 
 $$\frac{}{\eval \ffix \llambda i b = \eval [i\mapsto (\ffix (\llambda i b))] b}$$
 
 Evaluating `fix` uses substitution to replace the called function with
-`fix` over the called function.  Note that `eval` appears on both
-sides of the definition. 
+`fix` over the called function.  Note that `eval` appears on both 
+sides of the definition.
 
 The `let` evaluates `t` to get a closure.  the body of the closure is
-evaluated in `e` replacing `i` with `lambda i b`.  What the heck? 
+evaluated in `e` replacing `i` with `lambda i b`.  What the heck?
 
 {% highlight haskell %}
 eval env (Fix f) = let (ClosureV i b e) = (eval env f) in
@@ -288,7 +290,7 @@ eval env (Fix f) = let (ClosureV i b e) = (eval env f) in
 
 To better understand how the `fix` operation works, let's evaluate
 factorial of `3` using our new operation.  First, let's define `f`,
-the function we will use to implement factorial: 
+the function we will use to implement factorial:
 
 {% highlight text %}
 bind fact = (lambda g in (lambda x in (if x=0 then 1 else x * (app g x-1)))) in ...

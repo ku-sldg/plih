@@ -274,7 +274,7 @@ problem.
 
 The rule for the general recursive structure is:
 
-$$\frac{}{\eval \ffix \llambda i b = \eval [i\mapsto (\ffix (\llambda i b))] b}$$
+$$\frac{}{\eval \ffix \llambda i\; b = \eval [i\mapsto (\ffix (\llambda i\; b))] b}$$
 
 Evaluating `fix` uses substitution to replace the called function with
 `fix` over the called function.  Note that `eval` appears on both 

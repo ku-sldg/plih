@@ -284,8 +284,8 @@ The `let` evaluates `t` to get a closure.  the body of the closure is
 evaluated in `e` replacing `i` with `lambda i b`.  What the heck?
 
 {% highlight haskell %}
-eval env (Fix f) = let (ClosureV i b e) = (eval env f) in
-                     eval e (subst i (Fix (Lambda i b)) b)
+eval env (Fix f) = do { (ClosureV i b e) <- (eval env f) ;
+                        eval e (subst i (Fix (Lambda i b)) b) }
 {% endhighlight %}
 
 To better understand how the `fix` operation works, let's evaluate

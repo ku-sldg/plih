@@ -453,7 +453,7 @@ function itself.  Just like an `app`, the type of `fix` is the range
 of the input function: 
 
 {% highlight haskell %}
-typeof cont (Fix t) = let d:->:r = typeof cont t
-                      in r
+typeof cont (Fix t) = do { (d :->: r) <- typeof cont t ;
+                            return r }
 {% endhighlight %}
 

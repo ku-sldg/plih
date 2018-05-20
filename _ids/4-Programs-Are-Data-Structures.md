@@ -21,7 +21,6 @@ x - 0 == x
 Let's define an optimization that replaces each expression on the left with the corresponding expression on the right.
 
 ## Implementation
-
 Implementation of the optimization involves writing an interpreter.
 
 The signature of the optimizer accepts a BBAE and produces a BBAE:
@@ -68,7 +67,6 @@ interp = eval [] . optimize . parseBBAE
 {% endhighlight %}
 
 ## Testing
-
 Optimizations must be extensively tested and verified.  We can use roughly the same QuickCheck function to ensure correctness that we used earlier:
 
 {% highlight haskell %}

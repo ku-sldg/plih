@@ -8,44 +8,55 @@ categories: chapter
 # Reader Monad
 
 We saw how the `Maybe` monad captures a computational feature that
-captures threading messages through an expression evaluation.  The
-`Reader` monad similarly captures a feature that threads a read-only
+implements a kind of simple exception handling.  The
+`Reader` monad similarly captures a computational feature that threads a read-only
 environment through a computation.  Recall the signature of the
 current `eval` function for `FBAE`: 
 
 {% highlight haskell %}
-eval :: Env -> FBAE -> FBAE
+evalM :: Env -> FBAE -> (Maybe FBAE)
 {% endhighlight %}
 
-where an environment is explicitly passed as an argument.  While this
-works fine, we typically don't pass environments to interpreters to
-pragmatic evaluation functions.  The environment exists as an
-ephemeral data structure the interpreter is aware of implicitly.  The
-`Reader` gives us exactly this capability for maintaining an
-environment during evaluation. 
+where `Env` is defined as a list of string, value pairs:
+
+{% highlight haskell %}
+type Env = [ (string,FBAEValue) ]
+{% endhighlight %}
+
+When using `evalM`, an environment is explicitly passed as an argument.  The environment
+is updated by `bind` and `app`, then passed to subsequent calls to `evalM`.  Even when a term
+does not require an environment for evaluation, it still appears in the `evalM` signature.  While this works fine, we typically don't pass environments to interpreters to
+evaluation functions.  For example, one does not pass an environment to the Haskell or Racket evaluator. Instead, the environment exists as an
+_ephemeral data structure_ the interpreter is aware of implicitly.   It is there in the background, ready to be used when needed.
+
+The `Reader` monad gives us exactly this capability for maintaining an
+environment during evaluation.  Our next interpreter will use the `Reader` to
+manage the environment during execution, making it available without
+explicitly passing it around as a parameter.  It will be there when needed
+and disappear from most terms in the `evalM` definition.
 
 The `Reader` is a datatype with a single constructor whose argument is
-a function from environment to value. 
+a function from environment to value:
 
 {% highlight haskell %}
 data Reader e a = Reader (e -> a)
 {% endhighlight %}
 
-`runR` pulls the function out of the monad encapsulation and executes
-it on a specific environment: 
+Recall that`Maybe` is also a data type with two constructors.  As `Just` is parameterized over the the type it encasulates, `Reader` is parameterized over its environment type, `e` and value type `a`.  `Reader` can use anything as an environment and return value, but we will use `Env` and `FBAEValue`.
 
+`Maybe` captures the difference between a value and a failed computation.  `evalM` uses `bind` and `return` to manage evaluation results that represent successful and failed computations. `Reader` values represent _computations_.  The value encapsulated by `Reader` is a function that takes an environment and produces a value.  It does not input an expression, but instead represents a computation that evaluates a specific expression.  This is important.  `Reader` values represent computations that have not yet been performed.
+
+`runR` is an auxiliary function that performs the computation a `Reader` represents.  `runR` is a rather trivial function that pulls the function representing a computation out of the `Reader` encapsulation and executes it on a specific environment.  For this reason `runR` is frequently read as “run reader”.  The definition of `runR` is really quite simple:
+
+```haskell
 runR :: Reader e a -> e -> a
 runR (Reader f) e = f e
+```
 
-Given some `R` of type `Reader`, `runR e` extracts the function and
-applies it to a specific environment, `e`.  We'll construct the
-`Reader` instance that encapsulates a function, then extract and
-execute the function. 
+Given some `R` of type `Reader`, `runR e` extracts the function representing its computation and applies it to a specific environment resulting in a value.  We use the `Reader` by constructing
+a`Reader` instance then extracting and executing its computation using `runR` and an environment. 
 
-So far, this looks nothing like `Either` in form or function.  Let's
-look at the `Monad` instance for `Reader` and see how `return` and
-`bind` are implemented.  Following is the `Monad` instance for
-`Reader`: 
+So far this looks nothing like `Maybe` in either form or function.  If it is a monad, then we know `return` and `bind` must be defined.  To understand `Reader`, let's look at the `Monad` instance for `Reader` and see how `return` and`bind` are implemented.  Following is the `Monad` instance for `Reader`: 
 
 {% highlight haskell %}
 instance Monad (Reader e) where
@@ -53,32 +64,48 @@ instance Monad (Reader e) where
   g >>= f = Reader $ \e -> runR (f (runR g e)) e
 {% endhighlight %}
 
-The `return` function takes a value, creates a function from an
-environment, and wraps it up in the `Reader` constructor.  The
+There is a bit of Haskell-foo in this definition that needs explanation.  The shorthand `f $ v` is the same as `(f v)`.  It gets used quite often to reduce the number of parenthesis to parse mentally.  The following two expressions result in the same value:
+
+ ```haskell
+ Reader $ \e -> x
+ (Reader \e -> x)
+```
+ 
+The notation `\n -> n + 1` is an example of Haskell’s anonymous function definition mechanism.  Evaluating `\n -> n + 1` results in the increment function.  The following two definitions result in the same definition of `Inc`:
+
+```haskell
+inc x = x + 1
+inc = \x -> x + 1
+```
+
+Now we’re set to go.
+
+The `return` function creates trivial comutations that simply return values.  Looking at its definition, `return` takes a value, `x`, creates a function from an environment, `e` to that value, and wraps it up in the `Reader` constructor.  This
 function returns the argument to `return` regardless of the input
-environment.  In effect, `return` creates a constant function from
-environment to value.  Let's see it at work with `runR`: 
+environment.  `return` creates a constant function from an environment to a specific value.  Let's see it at work with `runR`: 
 
 {% highlight haskell %}
 runR (return 5) []
+== runR (Reader \e -> 5) []
+== (\e -> 5) []
 == 5
 {% endhighlight %}
 
 `return 5` creates the `Reader` value `(Reader \e -> 5)`.  `runR`
-extracts  `\e -> 5` and applies it to the second argument, `[]`,
-resulting in `5`. A second example shows the same result with an
+extracts  `\e -> 5` and applies it `[]` resulting in `5`. A second example shows the same result with an
 alternative environment: 
 
 {% highlight haskell %}
 runR (return 5) [6,7,8]
+== runR (Reader \e -> 5) [6,7,8]
+== (\e -> 5) [6,7,8]
 == 5
 {% endhighlight %}
 
-`return` encapsulates a the simplest computation - returning a
-constant value. 
+In fact, running `(return 5)` will always result in `5` regardless of its input value.  `return` encapsulates the most trivial computation - returning a constant value.  Foreshadowing, the `return` will be used at the end of strings of computations.
 
-In `Either`, `>>=` passed through a `Left` value and performed a
-specified operation on a `Right` value.  In `Reader`, `>>=` will
+In `Maybe`, `bind` passed through a `Nothing` value and performed a
+specified operation on a `Just` value.  In `Reader`, `bind` will always
 perform a computation and pass the result to a subsequent computation.
 It is, in effect, a sequence operator.  For reference, the type from
 the `Monad` class  and the `bind` instance for `Reader` are: 

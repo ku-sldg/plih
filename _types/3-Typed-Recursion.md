@@ -8,9 +8,9 @@ categories: chapter
 $$
 \newcommand\calc{\mathsf{calc}\;}
 \newcommand\parse{\mathsf{parse}\;}
-\newcommand\typeof{\mathsf{typeof}\;}
+\newcommand\typeof{\mathsf{typeofM}\;}
 \newcommand\interp{\mathsf{interp}\;}
-\newcommand\eval{\mathsf{eval}\;}
+\newcommand\eval{\mathsf{evalM}\;}
 \newcommand\NUM{\mathsf{NUM}\;}
 \newcommand\ID{\mathsf{ID}\;}
 \newcommand\iif{\mathsf{if}\;}
@@ -40,7 +40,7 @@ Having established that the type of a `lambda` is of the form
 `D:->:R`, typing an increment function is quite simple:
 
 {% highlight text %}
-typeof cont (lambda (x:TNum) in x + 1)
+typeofM cont (lambda (x:TNum) in x + 1)
 == TNum -> TNum
 {% endhighlight %} 
 
@@ -48,7 +48,7 @@ It follows directly that a `lambda` taking another `lambda` and
 applying it to a value is similarly typed: 
 
 {% highlight text %}
-typeof cont (lambda (f:Num -> Num) in (lambda (x:Num) in (app f x)))
+typeofM cont (lambda (f:Num -> Num) in (lambda (x:Num) in (app f x)))
 == (TNum -> TNum) -> TNum
 {% endhighlight %}
 
@@ -94,7 +94,7 @@ includes function types.
 _Normalization_ is a term used to talk about termination.  We say that
 a _normal form_ is a term in a language that cannot be reduced by
 evaluation.  In our languages terms like `1`, `true` and `lambda x in
-x + 1` are normal forms because `eval` simply returns their values
+x + 1` are normal forms because `evalM` simply returns their values
 without reduction.  We also define these normal forms to be _values_
 representing acceptable evaluation results. 
 
@@ -195,7 +195,7 @@ demonstrates the problem immediately:
 
 {% highlight text %}
 (app (ClosureV "x" TNum (if (isZero x) then 1 else x * (app fact x-1)) []) 1)  env
-== eval (if (isZero 1) then 1 else 1 * (app fact 0))                           []
+== evalM (if (isZero 1) then 1 else 1 * (app fact 0))                           []
 == 1 * (app fact 0)                                                            []
 == error on lookup of fact in []
 {% endhighlight %}
@@ -224,7 +224,7 @@ a shot for `1`:
 (app (ClosureV "x" TNum (if (isZero x) then 1 else x * (app fact x-1)) []) 1) []
 == (if (isZero x) then 1 else x * (app fact x-1)         [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
 == (if (isZero 1) then 1 else 1 * (app fact 0))          [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
-== eval 1 * (app fact 0)                                 [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
+== evalM 1 * (app fact 0)                                 [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
 == 1 * (app (lambda x in (if (isZero x) then 1 else x * (app fact x-1)) [])  0 [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
 == 1 * (if (isZero x) then 1 else x * (app fact x-1)     [(x,0)]
 == 1 * 1
@@ -274,19 +274,26 @@ problem.
 
 The rule for the general recursive structure is:
 
-$$\frac{}{\eval \ffix \llambda i b = \eval [i\mapsto (\ffix (\llambda i b))] b}$$
+$$\frac{}{\eval \ffix \llambda i\; b = \eval [i\mapsto (\ffix (\llambda i\; b))]\; b}$$
 
 Evaluating `fix` uses substitution to replace the called function with
-`fix` over the called function.  Note that `eval` appears on both 
+`fix` over the called function.  Note that `evalM` appears on both 
 sides of the definition.
 
-The `let` evaluates `t` to get a closure.  the body of the closure is
+The bind evaluates `t` to get a closure.  The body of the closure is
 evaluated in `e` replacing `i` with `lambda i b`.  What the heck?
 
 {% highlight haskell %}
-eval env (Fix f) = let (ClosureV i b e) = (eval env f) in
-                     eval e (subst i (Fix (Lambda i b)) b)
+evalM env (Fix f) = do { (ClosureV i b e) <- (evalM env f) ;
+                        evalM e (subst i (Fix (Lambda i b)) b) }
 {% endhighlight %}
+
+{% highlight haskell %}
+evalM env (Fix f) = do { (ClosureV i b e) <- (evalM env f) ;
+	                    g <- evalM env (Fix f) ;
+                        evalM e (i,g):env b) }
+{% endhighlight %}
+
 
 To better understand how the `fix` operation works, let's evaluate
 factorial of `3` using our new operation.  First, let's define `f`,
@@ -436,10 +443,10 @@ return another number.  What then is the type of `fact`?  It takes a
 value `g` and returns a function that calls `g`.  So, the argument to
 `fact` must be a function.  The result must also be a function because
 it is applied to a value.  `fact` takes a function and returns a
-function.  If we call `typeof` on just `fact` we learn: 
+function.  If we call `typeofM` on just `fact` we learn: 
 
 {% highlight text %}
-typeof [] (lambda (ie:Nat->Nat) in
+typeofM [] (lambda (ie:Nat->Nat) in
              (lambda (x:Nat) in
                 (if (isZero x) then x else x + app ie x - 1)))
  == (Nat->Nat) -> (Nat->Nat)
@@ -453,7 +460,7 @@ function itself.  Just like an `app`, the type of `fix` is the range
 of the input function: 
 
 {% highlight haskell %}
-typeof cont (Fix t) = let d:->:r = typeof cont t
-                      in r
+typeofM cont (Fix t) = do { (d :->: r) <- typeofM cont t ;
+                            return r }
 {% endhighlight %}
 

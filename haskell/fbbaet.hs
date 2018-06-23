@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs, FlexibleContexts #-}
 
 import Text.ParserCombinators.Parsec
 import Control.Monad
@@ -220,7 +220,7 @@ subst i v (Fix t) = (Fix (subst i v t))
 type Env = [(String,FBAE)]
 
 -- Dynamically scoped eval
-         
+
 eDyn :: Env -> FBAE -> FBAE
 eDyn env (Num x) = (Num x)
 eDyn env (Plus l r) = let (Num l') = (eDyn env l)
@@ -422,3 +422,4 @@ intSta :: String -> FBAEVal
 intSta e = let p=(parseFBAE e) in
            let t=(typeof [] p) in
              (eSta [] p)
+

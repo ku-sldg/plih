@@ -115,7 +115,15 @@ the `Monad` class  and the `bind` instance for `Reader` are:
   g >>= f = Reader $ \e -> runR (f (runR g e)) e
 {% endhighlight %}
 
-Before diving into `bind` in depth, look carefully at executing the
+It’s quite simple to think that `g >>= f` runs `f` and uses its output as an input for running `g`.  Looking at the inside of the definition we even see a term:
+
+f (runR g e)) e
+```
+that looks exactly like what we want.
+
+Unfortunately, this is wrong.  Remember, `g >>= f` returns _a monad_ not a value.  In the case of `Reader` the monad encapsulates a function that will be run later with an environment.  `g>>=f` needs to create _a function_ and encapsulate that function in `Reader` reading for `runR` to use later.  The argument to the `Reader` constructor is:
+
+Before diving into `>>=` in depth, look carefully at executing the
 function it creates from the inside out.  If we think of `runR` as
 `eval`, we first evaluate `g` with the result used as input to `f`.
 At its essence, `Reader` sequences the execution of `g` and `f`. The

@@ -150,62 +150,60 @@ runR ((return 5) >>= (\x -> (return (x + 1)))) []
 
 Because the result of `runR` is a number, we can add other operations to the sequence: 
 
-{% highlight haskell %}
+```haskell
 runR ((return 5)
       >>= (\x -> (return (x + 1)))
       >>= (\x -> (return (x - 3)))
       >>= (\x -> (return (x `mod` 2)))) []
 == 1
-{% endhighlight %}
+```
 
 Now we can sequence operations.  But given nothing else, the
 environment is constant across all the `runR` executions.  Worse yet, there's no way to use or modify it.  Let's look at how to look at and change the environment locally.  `ask` simply returns the environment: 
 
-{% highlight haskell %}
+```haskell
 ask :: Reader a a
 ask = Reader $ \e -> e
-{% endhighlight %}
+```
 
 It's important to realize that `ask` is not a function, but a `Reader` instance.  Let's run it and see what it does: 
 
-{% highlight haskell %}
+```haskell
 runR ask 5
 == 5
-{% endhighlight %}
+```
 
-`ask` returns the environment.  If the result of `ask` is the
-environment value, then `ask >>= f` should use the environment as the input to `f`: 
+`ask` returns the environment.  If the result of `ask` is the environment value, then `ask >>= f` should use the environment as the input to `f`: 
 
-{% highlight haskell %}
+```haskell
 runR (ask >>= (\x -> (return (x+1)))) 5
 == 5
-{% endhighlight %}
+```
 
-That's exactly what happens here.  The environment is used in
-subsequent calculations following `ask`. 
+That's exactly what happens here.  The environment is used in subsequent calculations following `ask`. 
 
 Similarly, `asks` will apply a function to the environment and return the result: 
 
-{% highlight haskell %}
+```haskell
 asks :: (e -> a) -> Reader e a
 asks f = ask >>= \e -> (return (f e))
-{% endhighlight %}
+```
 
 `asks` is not a `Reader`, but instead a function from environment to value to `Reader`.  It builds a `Reader` using `bind`.  For example, `asks (\x -> head x)` is an operation that takes the first element of an environment an returns it.  Assuming of course, the environment is a list.  Let's try it out: 
 
-{% highlight haskell %}
+```haskell
 runR ((asks (\e -> head e)) >>= (\x -> (return x))) [4,5,6]
 == 4
-{% endhighlight %}
+```
 
 Here `asks` runs and pulls the first element off the environment list. The result is passed to a simple function that returns its input. `asks` applies a function to the environment and `return` produces it as output.  We can now ignore the environment, return the environment, and apply a function to the environment. 
 
 `local` makes things interesting and starts showing off the `Reader` at work by making changes to the local environment.  Like `asks`, local is a function that creates a `Reader` that can be used in a `bind` sequence: 
 
-{% highlight haskell %}
+```haskell
 local :: (e -> t) -> Reader t a -> Reader e a
 local f r = ask >>= \e -> return (runR r (f e))
-{% endhighlight %}
+```
 
 `local`'s two arguments are a function on the environment and a
 `Reader`.  The function is applied to the environment in a similar manner as `asks`.  The `Reader` is a monad that will be run with the modified environment.  `r` is a `Reader` that will be run in the environment created by `f e`.  How does `local` do this? 
@@ -220,9 +218,9 @@ How can we use the `Reader` to implement an interpreter?  In earlier versions of
 
 Let's start through the definition of `evalM`, a monadic evaluator for FBAE.  The signature is: 
 
-{% highlight haskell %}
+```haskell
 evalM :: FBAE -> Reader Env FBAE
-{% endhighlight %}
+```
 
 The return result is a `Reader`.  Remember that to get a value from the `Reader` we must run `runR` on the result.  We'll define an `eval` function later that does just this. 
 
@@ -234,7 +232,7 @@ Thinking about expressions in `FBAE`, we can divide them up into two groups base
 
 The first set includes returning constants and evaluating mathematical expressions.  None of them require accessing the environment directly: 
 
-{% highlight haskell %}
+```haskell
 evalM (Num n) = return (Num n)
 evalM (Plus l r) = do { (Num l') <- (evalM l) ;
 	                     (Num r') <- (evalM r) ;
@@ -242,7 +240,7 @@ evalM (Plus l r) = do { (Num l') <- (evalM l) ;
 evalM (Minus l r) = do { (Num l') <- (evalM l) ;
                          (Num r') <- (evalM r) ;
                          return (Num l'-r') }
-{% endhighlight %}
+```
 
 Evaluating `Id` requires accessing the environment to find the value of an identifier.  This is easily done using `ask` to get the environment and using a lookup function to find the needed environment record. 
 

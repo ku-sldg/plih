@@ -117,25 +117,47 @@ the `Monad` class  and the `bind` instance for `Reader` are:
 
 It’s quite simple to think that `g >>= f` runs `f` and uses its output as an input for running `g`.  Looking at the inside of the definition we even see a term:
 
-f (runR g e)) e
+```haskell
+runR (f (runR g e)) e
 ```
+
 that looks exactly like what we want.
 
-Unfortunately, this is wrong.  Remember, `g >>= f` returns _a monad_ not a value.  In the case of `Reader` the monad encapsulates a function that will be run later with an environment.  `g>>=f` needs to create _a function_ and encapsulate that function in `Reader` reading for `runR` to use later.  The argument to the `Reader` constructor is:
+Unfortunately, this is wrong.  Remember, `g >>= f` returns _a monad_ not a value.  In the case of `Reader` the monad encapsulates a function that will be run later with an environment.  `g >>= f` needs to create _a function_ and encapsulate that function in `Reader`for `runR` to use later.  Looking more carefully, the actual argument to the `Reader` constructor is the function:
 
-Before diving into `>>=` in depth, look carefully at executing the
-function it creates from the inside out.  If we think of `runR` as
-`eval`, we first evaluate `g` with the result used as input to `f`.
-At its essence, `Reader` sequences the execution of `g` and `f`. The
-role of `e` is as an environment for both.  We can define arbitrary
-numbers of functions, sequence them, and provide an environment. 
+```haskell
+\e -> runR (f (runR g e)) e
+```
 
-Let's look at a simple example of adding 1 to an input value:
+`runR` is not executed when the `Reader` value is created, but deferred until the function is evaluated with some `e` as input.  Note also that both `f` and `g` are evaluated with `e` as their environment argument.  The same argument for both that is input when `runR` evaluates the monad.  In fact, we can bind as many functions together as we want and the same `e` will always be the environment argument and will never vary.  Thus the name `Reader`.  The environment allows passing in data to `runR`, but is constant over the entire `Reader` evaluation.
 
-{% highlight haskell %}
+Let's look at at some simple examples. First, let's start with a computation than returns `5` and bind it to a computation that adds `1`.  The computation that returns `5` is a simple application of `return`.  Remember, return simply creates a `Reader` value that returns a constant value for any environment input:
+
+```haskell
+(return 5)
+```
+
+Now let's create a computation that adds `1` to the result of the previous computation.  Remember the signature for `f` is `f::a -> M b`.  `f` will take a value and return a monad that uses that value in its computation.  At first glance, a function that returns its argument plus 1 is simply `\x -> x+1`.  But we need the function to return a monad, not a value.  Our friend `return` will help us out here:
+
+```haskell
+\x -> (return (x + 1))
+```
+
+There is an important concept working here.  The computation resulting in `x` sets up the computation that follows.  Evaluating `\x -> (return (x + 1))` will replace `x` with a value in the computation created by `return`.  Instead of calculating, this function creates a computation using the result of the previous computation.  The `Reader` builds up a computation then `runR` performs that computation.
+
+Our monad now becomes:
+
+```haskell
+((return 5) >>= (\x -> (return (x + 1))))
+```
+
+To evaluate our monad we simply call `runR` and specify an environment:
+
+```haskell
 runR ((return 5) >>= (\x -> (return (x + 1)))) []
-== 6
-{% endhighlight %}
+== runR (Reader \e -> 5) >>= (\x -> (return (x + 1))) []
+== runR(Reader \e -> 5) >>= (\x -> Reader (\e -> (x + 1))) []
+== (runR (runR (\e -> 5) []) 
 
 `g` is `return 5`, the `Reader` that simple returns `5`.  `f` is the
 function that takes a value and produces a `Reader` that returns the

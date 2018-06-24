@@ -153,11 +153,14 @@ Our monad now becomes:
 
 To evaluate our monad we simply call `runR` and specify an environment:
 
+**Example under development**
+
 ```haskell
 runR ((return 5) >>= (\x -> (return (x + 1)))) []
 == runR (Reader \e -> 5) >>= (\x -> (return (x + 1))) []
 == runR(Reader \e -> 5) >>= (\x -> Reader (\e -> (x + 1))) []
 == (runR (runR (\e -> 5) []) 
+```
 
 `g` is `return 5`, the `Reader` that simple returns `5`.  `f` is the
 function that takes a value and produces a `Reader` that returns the

@@ -66,11 +66,11 @@ instance Monad (Reader e) where
 
 There is a bit of Haskell-foo in this definition that needs explanation.  The shorthand `f $ v` is the same as `(f v)`.  It gets used quite often to reduce the number of parenthesis to parse mentally.  The following two expressions result in the same value:
 
- ```haskell
- Reader $ \e -> x
- (Reader \e -> x)
+```haskell
+Reader $ \e -> x
+(Reader \e -> x)
 ```
- 
+
 The notation `\n -> n + 1` is an example of Haskell’s anonymous function definition mechanism.  Evaluating `\n -> n + 1` results in the increment function.  The following two definitions result in the same definition of `Inc`:
 
 ```haskell
@@ -157,17 +157,15 @@ To evaluate our monad we simply call `runR` and specify an environment:
 
 ```haskell
 runR ((return 5) >>= (\x -> (return (x + 1)))) []
-== runR (Reader \e -> 5) >>= (\x -> (return (x + 1))) []
-== runR(Reader \e -> 5) >>= (\x -> Reader (\e -> (x + 1))) []
-== (runR (runR (\e -> 5) []) 
+== runR (Reader $ \e -> runR ((\x -> (return (x + 1))) (runR (return 5) e)) e) []
+== \e -> runR ((\x -> (return (x + 1))) (runR (return 5) e)) e) []
+== runR ((\x -> (return (x + 1))) (runR (return 5) [])) [])
+== runR ((\x -> (return (x + 1))) 5) []
+== runR (return (5 + 1)) []
+== 6
 ```
 
-`g` is `return 5`, the `Reader` that simple returns `5`.  `f` is the
-function that takes a value and produces a `Reader` that returns the
-result of adding `1` to the input.  Looking at executing `>>=`, `runR`
-runs `(return 5)` resulting in `5`. It then applies `f` to `5`
-resulting in a `Reader` that simply returns `6`.  Finally, `runR`
-evaluates `(return 6)` resulting in `6`. 
+`g` is `return 5`, the computation that simple returns `5`.  `f` is the function that takes a value and produces a `Reader` that returns the result of adding `1` to the input.  Looking at executing `>>=`, `runR` runs `(return 5)` resulting in `5`. It then applies `f` to `5` resulting in a `Reader` that simply returns `6`.  Finally, `runR` evaluates `(return 6)` resulting in `6`. 
 
 Because the result of `runR` is a number, we can add other operations
 to the sequence: 

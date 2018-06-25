@@ -212,7 +212,7 @@ runR (ask >>= (\x -> (return (x+1)))) 5
 
 That is what happens here.  The environment is used as a value in subsequent calculations. 
 
-Similarly, `asks` will apply a function to the environment and return the result: 
+Similarly, `asks` will apply a function to the environment and return the result.  `asks` does exactly what `ask` does, but calls a function on the environment before returning it: 
 
 ```haskell
 asks :: (e -> a) -> Reader e a
@@ -228,21 +228,51 @@ runR ((asks (\e -> head e)) >>= (\x -> (return (x+1))) [4,5,6]
 
 `asks` runs and returns the `head` element from the environment list. The result is passed to a computation that returns its input plus `1`.  `asks` works just like `ask`, but applies a function to the environment instead of returning it.
 
-To summarize, we can now run computations in sequence and: (i) ignore the environment; (ii) return the environment using `ask`; and (iii) apply a function to the environment using `asks`,
+Let's look at one more example of `asks` that gets us closer to the environment that we want for our languages.  In this example our environment will be a list of string, integer pairs:
 
-`local` makes things interesting and starts showing off the `Reader` at work by making changes to the local environment.  Like `asks`, local is a function that creates a `Reader` that can be used in a `bind` sequence: 
+```haskell
+type Env = [(String,Int)]
+```
+
+and we will define a `lookup` function that either returns an integer or throws an exception:
+
+```haskell
+lookupName :: String -> Env -> Int
+lookupName s e = case (lookup s e) of
+	Just x -> x
+	Nothing -> error "name not found:
+```
+Nothin special here, we've wrapped `lookup` in a function that makes its return value non-Monadic.  Now let's write a `Reader` instance that uses `lookupName` to find an element in an environment of thpe `Env`:
+
+```haskell
+runM (asks (lookupName "b")) >>= (\x -> (return (x+1))) [("a",1)("b",2),("c",3)]
+```
+
+The computation constructed by `asks` performs a lookup on `"b"` whose associated value in the environment is `2`.  That `2` is then input to `(\x -> (return (x+1)))` resulting in a computation that will add `2` to `1` and return `3`.  In this example, we are using the environment as a lookup table just as we would for identifier references in one of our languages.  We simply need to add the ability to define new identifiers in the table and we'll be done.
+
+`local` creates a local environment for running a `Reader`.  `local` will perform an operation on the environment and then evaluate a `Reader` with that new environment.  The effects are local in that when the local evaluation ends, the environment will be unchanged.  Like `asks`, `local` is a function that creates a `Reader` that can be used in a `bind` sequence: 
 
 ```haskell
 local :: (e -> t) -> Reader t a -> Reader e a
 local f r = ask >>= \e -> return (runR r (f e))
 ```
 
-`local`'s two arguments are a function on the environment and a
-`Reader`.  The function is applied to the environment in a similar manner as `asks`.  The `Reader` is a monad that will be run with the modified environment.  `r` is a `Reader` that will be run in the environment created by `f e`.  How does `local` do this? 
+`local`'s two arguments are a function on the environment and a `Reader` to execute in the new environment.  `local`'s function is applied to the environment in a similar manner as `asks`.  The `Reader` argument is a monad that will be run with the environment resulting from the function application.  Looking at the above definition, `r` is a `Reader` that will be run in the environment created by `f e`.  How does `local` do this? 
 
-`local` first executes `ask` to get the environment.  The result is then passed as input to the second `bind` argument as `e`.  Remember, the second argument to `bind` is a function from an environment to a `Reader`.  Look carefully at the returned `Reader`.  `return` of course returns a value.  That value is obtained by running the `Reader` passed to `local` using `f e` as the environment.  The `Reader` passed to local as `t` is run _inside_ another `Reader` with a new environment.  Thus the name `local`.  When the nested `Reader` runs, the created environment is lost and the original environment restored.  This is key as it is exactly the behavior our environment exhibits. 
+`local` first executes `ask` to get the environment that is then passed as input to the second `bind` argument as `e`.  Remember, the second argument to `bind` is a function from an environment to a `Reader`.  Look carefully at the returned `Reader`.  `return` computes a value by running the `Reader` passed to `local` using `f e` as the environment.  The function `runR r (f e)` accomplishes this task.  The `Reader` passed to local as `r` is run _inside_ the `Reader` created by `local` with the new environment `(f e)`.  Thus the name `local`.  After the nested `Reader` runs, the local environment is lost and the original environment restored. 
 
-Take a step back and think about what we've done in a different way. All `Reader` instances are encapsulated computations wrapped up in a datatype.  `runR` executes those computations.  `return` encapsulates single, atomic computations.  `bind` sequences computations allowing results from prior computations to flow to later computations. `Reader` adds and environment, but all instances of `Monad` do roughly the same thing.  Encapsulate and sequence computations. 
+Let's have a look at one quick example before diving into a monadic interpreter that uses `Reader`.  In this example, the pair `("b",5)` is added to the environment by `local` creating a new list.  The `local` computation is the same as our previous computation where `b` is dereferenced and its value added to `1` and returned:
+
+```haskell
+runR (local (\e -> ("b",5):e) ((asks (lookupName "b")) >>= \x -> return (x+1)) []
+== 6
+```
+
+We will use `local` and lookup functions extensively in the definition of a new interpreter for FBAE.
+
+To summarize, we can now create computations that: (i) ignore the environment; (ii) return the environment using `ask`; (iii) apply a function to the environment using `asks`; and (iv) create a new, local environment using `local`.  These tools for manipulating the environment give us what we need to write more concise interpreters for languages that bind and use identifiers.
+
+Before moving on, take a step back and think about what we've done in a different way. All `Reader` instances are encapsulated computations wrapped up in a datatype.  `runR` executes those computations.  `return` encapsulates single, atomic computations.  `bind` sequences computations allowing results from prior computations to flow to later computations. `Reader` adds and environment, but all instances of `Monad` do roughly the same thing - encapsulate and sequence computations.
 
 ## Reader and Evaluation
 

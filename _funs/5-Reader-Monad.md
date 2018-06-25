@@ -66,19 +66,16 @@ inc = \x -> x + 1
 
 Now we’re set to go.
 
-The `return` function creates trivial comutations that simply return values.  Looking at its definition, `return` takes a value, `x`, creates a function from an environment, `e` to that value, and wraps it up in the `Reader` constructor.  This
-function returns the argument to `return` regardless of the input
-environment.  `return` creates a constant function from an environment to a specific value.  Let's see it at work with `runR`: 
+The `return` function creates trivial comutations that simply return values.  Looking at its definition, `return` takes a value, `x`, creates a function from an environment, `e` to that value, and wraps it up in the `Reader` constructor.  This function returns the argument to `return` regardless of the input environment.  `return` creates a constant function from an environment to a specific value.  Let's see it at work with `runR`: 
 
 ```haskell
-runR (return 5) []
-== runR (Reader \e -> 5) []
-== (\e -> 5) []
+runR (return 5) 0
+== runR (Reader \e -> 5) 0
+== (\e -> 5) 0
 == 5
 ```
 
-`return 5` creates the `Reader` value `(Reader \e -> 5)`.  `runR`
-extracts  `\e -> 5` and applies it `[]` resulting in `5`. A second example shows the same result with an alternative environment: 
+`return 5` creates the `Reader` value `(Reader \e -> 5)`.  `runR` extracts  `\e -> 5` and applies it to the environment value `0` resulting in `5`. A second example shows the same result with the alternative environment `[6,7,8]`: 
 
 ```haskell
 runR (return 5) [6,7,8]
@@ -87,7 +84,7 @@ runR (return 5) [6,7,8]
 == 5
 ```
 
-In fact, running `(return 5)` will always result in `5` regardless of its input value.  `return` encapsulates the most trivial computation - returning a constant value.  Foreshadowing, the `return` will be used at the end of strings of computations.
+In fact, running `(return 5)` will always result in `5` regardless of its environment value.  `return` encapsulates the most trivial computation - returning a constant value.  Foreshadowing, the `return` will frequently be used at the end of strings of computations to return values.
 
 In `Maybe`, `bind` passed through a `Nothing` value and performed a specified operation on a `Just` value.  In `Reader`, `bind` will always perform a computation and pass the result to a subsequent computation. It is, in effect, a sequence operator.  For reference, the type from the `Monad` class  and the `bind` instance for `Reader` are: 
 
@@ -137,12 +134,12 @@ To evaluate our monad we simply call `runR` and specify an environment:
 **Example under development**
 
 ```haskell
-runR ((return 5) >>= (\x -> (return (x + 1)))) []
-== runR (Reader $ \e -> runR ((\x -> (return (x + 1))) (runR (return 5) e)) e) []
-== \e -> runR ((\x -> (return (x + 1))) (runR (return 5) e)) e) []
-== runR ((\x -> (return (x + 1))) (runR (return 5) [])) [])
-== runR ((\x -> (return (x + 1))) 5) []
-== runR (return (5 + 1)) []
+runR ((return 5) >>= (\x -> (return (x + 1)))) 0
+== runR (Reader $ \e -> runR ((\x -> (return (x + 1))) (runR (return 5) e)) e) 0
+== \e -> runR ((\x -> (return (x + 1))) (runR (return 5) e)) e) 0
+== runR ((\x -> (return (x + 1))) (runR (return 5) 0)) 0)
+== runR ((\x -> (return (x + 1))) 5) 0
+== runR (return (5 + 1)) 0
 == 6
 ```
 
@@ -154,18 +151,52 @@ Because the result of `runR` is a number, we can add other operations to the seq
 runR ((return 5)
       >>= (\x -> (return (x + 1)))
       >>= (\x -> (return (x - 3)))
-      >>= (\x -> (return (x `mod` 2)))) []
+      >>= (\x -> (return (x `mod` 2)))) 0
 == 1
 ```
 
-Now we can sequence operations.  But given nothing else, the environment is constant across all the `runR` executions.  Worse yet, there's no way to use or modify it.  Let's look at how to look at and change the environment locally.  `ask` simply returns the environment: 
+Now we can sequence operations as we did with `Maybe`, but none of our operations reference the environment.  In fact, the value of the environment makes no difference at all in our examples thus far.  How do we include the environment in a computation?
+
+Let's assume that instead of adding `1` to a constant `5`, we want to add `1` to the value stored in the environment.  In the definition of `bind`, the variable bound to the environment is `e`, so let's just use it:
+
+```haskell
+((return e) >>= (\x -> (return (x+1))))
+```
+
+Nice idea, but `e` is not in scope when the new monad is defined.  The answer follows quickly by lookin at `return` again:
+
+```haskell
+return x = (Reader \e -> x)
+```
+
+There is our missing environment!  What happens if instead of returning `x`, we return `e`:
+
+```haskell
+((Reader \e->e) >>= (\x -> return (x+1))))
+```
+
+This new monad represents the computation that returns the environment:
+
+```haskell
+runR (Reader \e->e) 5
+== 5
+```
+
+and can be used to include the environment in subsequent computations like the one above:
+
+```haskell
+runR ((Reader \e->e) >>= (\x -> return (x+1)))) 5
+== 6
+```
+
+This monad is commonly called `ask`.  `ask` simply returns its environment: 
 
 ```haskell
 ask :: Reader a a
 ask = Reader $ \e -> e
 ```
 
-It's important to realize that `ask` is not a function, but a `Reader` instance.  Let's run it and see what it does: 
+It's important to realize that `ask` is not a function, but a `Reader` instance.  It simply names the `Reader` we used above and operates the same way:
 
 ```haskell
 runR ask 5
@@ -176,10 +207,10 @@ runR ask 5
 
 ```haskell
 runR (ask >>= (\x -> (return (x+1)))) 5
-== 5
+== 6
 ```
 
-That's exactly what happens here.  The environment is used in subsequent calculations following `ask`. 
+That is what happens here.  The environment is used as a value in subsequent calculations. 
 
 Similarly, `asks` will apply a function to the environment and return the result: 
 
@@ -188,14 +219,16 @@ asks :: (e -> a) -> Reader e a
 asks f = ask >>= \e -> (return (f e))
 ```
 
-`asks` is not a `Reader`, but instead a function from environment to value to `Reader`.  It builds a `Reader` using `bind`.  For example, `asks (\x -> head x)` is an operation that takes the first element of an environment an returns it.  Assuming of course, the environment is a list.  Let's try it out: 
+`asks` is not a `Reader`, but instead a function from environment to value to `Reader` that builds a `Reader` using `ask` and `bind`.  For example, `asks (\x -> head x)` is an operation that takes the first element of the environment and returns it.  Let's try it out: 
 
 ```haskell
-runR ((asks (\e -> head e)) >>= (\x -> (return x))) [4,5,6]
+runR ((asks (\e -> head e)) >>= (\x -> (return (x+1))) [4,5,6]
 == 4
 ```
 
-Here `asks` runs and pulls the first element off the environment list. The result is passed to a simple function that returns its input. `asks` applies a function to the environment and `return` produces it as output.  We can now ignore the environment, return the environment, and apply a function to the environment. 
+`asks` runs and returns the `head` element from the environment list. The result is passed to a computation that returns its input plus `1`.  `asks` works just like `ask`, but applies a function to the environment instead of returning it.
+
+To summarize, we can now run computations in sequence and: (i) ignore the environment; (ii) return the environment using `ask`; and (iii) apply a function to the environment using `asks`,
 
 `local` makes things interesting and starts showing off the `Reader` at work by making changes to the local environment.  Like `asks`, local is a function that creates a `Reader` that can be used in a `bind` sequence: 
 

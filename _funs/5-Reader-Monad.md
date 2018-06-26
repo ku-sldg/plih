@@ -276,65 +276,65 @@ Before moving on, take a step back and think about what we've done in a differen
 
 ## Reader and Evaluation
 
-How can we use the `Reader` to implement an interpreter?  In earlier versions of interpreters with an environment, we passed the environment as an argument to `eval`.  Each expression is evaluated by recursive calls to `eval` on subterms.  This is long established. Evaluating some subterms cause changes to the environment, an issue not explored thoroughly. 
+We now have all the pieces in place to us `Reader` to implement an interpreter.  In earlier versions of interpreters with an environment, we passed the environment as an argument to `eval`.  In this new version we will use the `Reader`, `ask`, `asks`, and `local` to manage the environment without passing it around as a parameter.
 
-Let's start through the definition of `evalM`, a monadic evaluator for FBAE.  The signature is: 
+Let's start through the definition of `evalM`, a monadic evaluator for FBAE based on `Reader`.  The signature for `evalM` is: 
 
 ```haskell
 evalM :: FBAE -> Reader Env FBAE
 ```
 
-The return result is a `Reader`.  Remember that to get a value from the `Reader` we must run `runR` on the result.  We'll define an `eval` function later that does just this. 
+where:
 
-Thinking about expressions in `FBAE`, we can divide them up into two groups based on how they use the environment.  Specifically, there are three sets: 
+```haskell
+type Env = [(String,FBAEVal)]
+```
 
-1. No direct reference
-2. Lookup environment entries
-3. Locally modify entries
+Not much changes other than the return type and removal of the environment parameter.  The return result is a `Reader` that we must evaluate with `runR`.  We'll define another function later that does just this, but for now lets focus on `evalM`.  The environment type remains the same, but as noted there is no `Env` parameter to `evalM`.
 
-The first set includes returning constants and evaluating mathematical expressions.  None of them require accessing the environment directly: 
+When discussing the `Reader` we established that we can ignore, query, and make local changes to the environment.  Thinking about expressions in `FBAE`, we can divide them into three groups based on how they use the environment:
+
+1. No direct reference - mathematical and boolean expressions, constants, `if`
+2. Lookup identifiers in the environment - identifiers
+3. Locally modify entries - add identifiers to the environment
+
+The first set includes returning constants and evaluating mathematical expressions.  None require accessing the environment directly.  As has been our practice, subterms are evaluated the the results used to calculate expression values:
 
 ```haskell
 evalM (Num n) = return (Num n)
+evalM (Lambda i b) = return (Lambda i b)
 evalM (Plus l r) = do { (Num l') <- (evalM l) ;
-	                     (Num r') <- (evalM r) ;
+	                    (Num r') <- (evalM r) ;
                         return (Num l'+r') }
 evalM (Minus l r) = do { (Num l') <- (evalM l) ;
                          (Num r') <- (evalM r) ;
                          return (Num l'-r') }
 ```
 
+The only change here is removal of the environment parameter.  The `Reader` takes are of threading the environment through to subterm evaluation.
+
 Evaluating `Id` requires accessing the environment to find the value of an identifier.  This is easily done using `ask` to get the environment and using a lookup function to find the needed environment record. 
 
 ```haskell
 evalM (Id id) = do { env <- ask ;
-                     return (case (lookupVar id env) of
+                     return (case (lookup id env) of
                               Just x -> x
                               Nothing -> error "Variable not found") }
 ```
 
-`lookupVar` returns a `Maybe`, thus we use a case statement to extract the return value or throw an error message.  For completeness, `lookupVar` is simply a call to `lookup` that treats its argument as a list of pairs:
+First, `ask` returns the environment from the `Reader` and binds it to `env`.  `lookup` is used to find `id` just as it was in earlier implementations.  `lookup` returns a `Maybe` that we will not use as a Monad. Instead `case` distinguishes between `Just` and `Nothing` returning a value while throwing an exception for `Nothing`.  At this point it is easier to use `error` than manage errors using the monad, but we'll come back to that later.
 
-```haskell
-lookupVar :: String -> Env -> Maybe FBAE
-lookupVar = lookup
-```
-
-The last two expressions require adding information to the
-environment.  `local` does exactly what we need.  Evaluating both
-`Bind` and `App` requires adding a variable binding to the
-environment: 
+The last two expressions require adding information to the environment.  `local` does exactly what we need.  Evaluating both `Bind` and `App` requires adding a variable binding to the environment: 
 
 ```haskell
 evalM (Bind i v b) = do { v' <- evalM v ;
                           local (addVar i v') (evalM b) }
-evalM (Lambda i b) = return (Lambda i b)
 evalM (App f v) = do { (Lambda i b) <- evalM f ;
                        v' <- evalM v ;
                        local (addVar i v') (evalM b) }
 ```
 
-Both `Bind` and `App` use `local` exactly the same way.  The value associated with the added identifier is calculated first and use with the identifier to partially instantiate `addVar`.  When supplied with an environment, `addVar` will result in a new environment with the addition.  `evalM b` evaluates `b` in the context of the environment created by `addVar`. 
+Both `Bind` and `App` use in `local` exactly the same manner.  The value associated with the added identifier is calculated first and use with the identifier to partially instantiate `addVar`.  When supplied with an environment, `addVar` will result in a new environment with the addition.  `evalM b` evaluates `b` in the context of the environment created by `addVar`. 
 
 Again for completeness, the definition of `addVar` is:
 
@@ -559,3 +559,5 @@ It is worth spending time with a good Haskell tutorial and learning the `Reader`
 ## Definitions
 
 ## Exercises
+
+1. Rewrite the identifier lookup to use `asks` rather than `ask`.

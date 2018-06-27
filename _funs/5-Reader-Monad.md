@@ -449,8 +449,7 @@ evalM (Id id) = do { env <- ask ;
                        Nothing -> error "Varible not found" }
 ```
 
-It's useful to redefine `eval` using `evalM` so the interpreter
-operates in the same way as previous interpreters:
+It's useful to redefine `eval` using `evalM` so the interpreter operates in the same way as previous interpreters:
 
 ```haskell
 eval x = runR (evalM x) []
@@ -542,8 +541,7 @@ typeof x = runR (typeofM x) []
 
 ## Discussion
 
-The `Reader` is an exceptionally powerful and useful programming
-pattern.  Utility functions like `ask`, `asks`, and `local` are just few samples of what kinds of operations can be defined on the environment.  Even the function `useClosure` could be rewritten as a custom operation rather than using `local`:
+The `Reader` is an exceptionally powerful and useful programming pattern.  Utility functions like `ask`, `asks`, and `local` are just few samples of what kinds of operations can be defined on the environment.  Even the function `useClosure` could be rewritten as a custom operation rather than using `local`:
 
 ```haskell
 explicit :: e -> Reader t a -> Reader e a

@@ -20,15 +20,15 @@ Let's start our investigation with an interpreter for a very simple language of 
 
 ## Concrete Syntax
 
-*Concrete Syntax* is the textual language written by programmers as input to compilers and interpreters.  When you think of a programming language, you think first of its concrete syntax.  The block structure of C, s-expressions defining Lisp, and the functional syntax of Haskell are examples of concrete syntax that immediately associates with a particular language.
+_Concrete Syntax_ is the textual language written by programmers as input to compilers and interpreters.  When you think of a programming language, you think first of its concrete syntax.  The block structure of C, s-expressions defining Lisp, and the functional syntax of Haskell are examples of concrete syntax that immediately associates with a particular language.
 
-Concrete syntax is always described by a grammar consisting of an alphabet and a collection of grammar rules.  As discussed in the introduction, the alphabet defines basic symbols or tokens in the concrete syntax while grammar rules define how those tokens are sequenced defining elements of the language. A *term* is any text string defined by the grammar.  Similarly, a *language* is the smallest set of terms that satisfy a set of grammar rules.  It is quite useful to think of a language as a set and a grammar as a specifier for that set.  Using traditional set comprehension we can define a language, $L$, as:
+Concrete syntax is always described by a grammar consisting of an alphabet and a collection of grammar rules.  As discussed in the introduction, the alphabet defines basic symbols or tokens in the concrete syntax while grammar rules define how those tokens are sequenced defining elements of the language. A _term_ is any text string defined by the grammar.  Similarly, a _language_ is the smallest set of terms that satisfy a set of grammar rules.  It is quite useful to think of a language as a set and a grammar as a specifier for that set.  Using traditional set comprehension we can define a language, $L$, as:
 
 $$L = \{s:string\; \mid\; G(s)\}$$
 
 where $G$ is a predicate that is true when $s$ satisfies $L$'s grammar rules.
 
-Let's define the concrete syntax for our first language that we will call `AE` for *Arithmetic Expressions*.  Terms in `AE` are defined by the following grammar:
+Let's define the concrete syntax for our first language that we will call `AE` for _Arithmetic Expressions_.  Terms in `AE` are defined by the following grammar:
 
 $$\begin{align*}
 t ::= & \NUM \mid t + t \mid t - t \\
@@ -38,23 +38,22 @@ This is hopefully familiar.  Terms, $t$, in `AE` are either numbers or sums and 
 
 The language `AE` is the set of all strings that can be created with the grammar.  The strings:
 
-{% highlight text %}
+```text
 3
 1+5
 3+5-1
-{% endhighlight %}
-
+```
 are all terms in `AE`.  While the strings:
 
-{% highlight text %}
+```text
 A
 1*5
 A+B-C
-{% endhighlight %}
+```
 
 are not terms in `AE`.
 
-Let's also define *values* in `AE` as the numbers:
+Let's also define _values_ in `AE` as the numbers:
 
 $$\begin{align*}
 v ::= & \NUM \\
@@ -92,15 +91,15 @@ We define subtraction similarly in the $MinusE$ rule:
 
 $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 - t_2 = v_1-v_2}\; [MinusE]$$
 
-Understanding the structure of these rules before moving forward is vital.  They both define antecedents that effectively name the results of other calculations.  More specifically, other *recursive* calculations.  When writing and defining interpreters, recursion is your best friend.  We needn't think now about calculating the values of $t_1$ and $t_2$, only that their values are calculated the same way all other values are calculated.
+Understanding the structure of these rules before moving forward is vital.  They both define antecedents that effectively name the results of other calculations.  More specifically, other _recursive_ calculations.  When writing and defining interpreters, recursion is your best friend.  We needn't think now about calculating the values of $t_1$ and $t_2$, only that their values are calculated the same way all other values are calculated.
 
 ## Abstract Syntax
 
-Now we have both a concrete syntax and an evaluation semantics for  `AE` defined using mathematical techniques.  We need to transform both definitions into Haskell structures to build our first interpreter for `AE`.  To do this, we will first define an *abstract syntax* for `AE`.
+Now we have both a concrete syntax and an evaluation semantics for  `AE` defined using mathematical techniques.  We need to transform both definitions into Haskell structures to build our first interpreter for `AE`.  To do this, we will first define an _abstract syntax_ for `AE`.
 
 Concrete syntax is nice on the user side, but painful to work with directly when writing interpreters and compilers.  If you want to try an experiment, write a Haskell program that will interpret the `AE` language directly.  It can be done, but making changes or extending the language is quite laborious and potentially painful.
 
-*Abstract Syntax* is a data structure representing parsed terms.  This data structure is far more useful than concrete syntax when writing interpreters and compilers. Programs are data and abstract syntax is the data structure that represents them.  An abstract syntax for `AE` written using a Haskell data type is:
+_Abstract Syntax_ is a data structure representing parsed terms.  This data structure is far more useful than concrete syntax when writing interpreters and compilers. Programs are data and abstract syntax is the data structure that represents them.  An abstract syntax for `AE` written using a Haskell data type is:
 
 ```haskell
 data AE where
@@ -110,17 +109,16 @@ data AE where
   deriving (Show,Eq)
 ```
 
-where `Num`, `Plus` and `Minus` are the *constructors* of the data type `AE` that correspond with numbers, sums and differences in the `AE` concrete syntax.  We use the term constructor because all values of type `AE` are constructed with one of these operations.  By definition, the `AE` type contains all constructions using `Plus`, `Minus` and `Num`, and no more.
+where `Num`, `Plus` and `Minus` are the _constructors_ of the data type `AE` that correspond with numbers, sums and differences in the `AE` concrete syntax.  We use the term constructor because all values of type `AE` are constructed with one of these operations.  By definition, the `AE` type contains all constructions using `Plus`, `Minus` and `Num`, and no more.
 
 All terms in AE have associated data structures in the abstract
-syntax.  For example `(Num 1)` is the abstract syntax for 1. `(Plus (Num 1) (Num 3))` is the abstract syntax for `1+3`. `(Minus (Plus (Num 3 (Num 5)) (Num 1))` is the abstract syntax for `3+5-1`.  For the abstract syntax to be effective, every term in the concrete syntax must have an associated term in the abstract syntax.  Remember the properties of relations you learned in your discrete math class?  They come in handy right now.  The relationship between concrete syntax and associated abstract syntax should be a total function. Specifically,
-concrete syntax terms should have exactly one abstract syntax value and all concrete syntax terms should be associated with some abstract syntax value. Remember that errors are outputs.
+syntax.  For example `(Num 1)` is the abstract syntax for 1. `(Plus (Num 1) (Num 3))` is the abstract syntax for `1+3`. `(Minus (Plus (Num 3 (Num 5)) (Num 1))` is the abstract syntax for `3+5-1`.  For the abstract syntax to be effective, every term in the concrete syntax must have an associated term in the abstract syntax.  Remember the properties of relations you learned in your discrete math class?  They come in handy right now.  The relationship between concrete syntax and associated abstract syntax should be a total function. Specifically, concrete syntax terms should have exactly one abstract syntax value and all concrete syntax terms should be associated with some abstract syntax value. Remember that errors are outputs.
 
-From this point forward I will use TLA[^1] *AST* when referring to abstract syntax data structures.  AST literally means *abstract syntax tree*.  It turns out that Haskell data types naturally form trees and trees are perfect representations for abstract syntax.  I'll come back to this later, but for now remember that AST, abstract syntax, and abstract syntax tree refer to the same Haskell data type.
+From this point forward I will use TLA[^1] _AST_ when referring to abstract syntax data structures.  AST literally means _abstract syntax tree_.  It turns out that Haskell data types naturally form trees and trees are perfect representations for abstract syntax.  I'll come back to this later, but for now remember that AST, abstract syntax, and abstract syntax tree refer to the same Haskell data type.
 
 ## Parsers and Pretty Printers
 
-A *parser* is a program that translates concrete syntax into an AST.  It checks the syntax of its input, generates error messages if the syntax is bad, and generates an AST if the syntax is good. The signature of a parser for the _AE_ language is:
+A _parser_ is a program that translates concrete syntax into an AST.  It checks the syntax of its input, generates error messages if the syntax is bad, and generates an AST if the syntax is good. The signature of a parser for the _AE_ language is:
 
 ```haskell
 parseAE :: String -> AE
@@ -128,7 +126,7 @@ parseAE :: String -> AE
 
 Give `parseAE` a string and it will return an `AE` if it does not crash.  More generally, the parser's signature for any language will be a string to the datatype for that language's abstract syntax.
 
-A *pretty printer* is the inverse of a parser.  It translates an `AE` data structure into a string representing the concrete syntax.  The signature of a pretty printer for the _AE_ language is:
+A _pretty printer_ is the inverse of a parser.  It translates an `AE` data structure into a string representing the concrete syntax.  The signature of a pretty printer for the _AE_ language is:
 
 ```haskell
 pprintAE :: AE -> String
@@ -139,7 +137,7 @@ Give `pprintAE` an `AE` data structure and it will return a string.  More genera
 If `parseAE` and `pprintAE` are correct, then the following equivalence should hold for any string representing legal concrete syntax:
 
 ```haskell
-  pprintAE (parseAE s) == s
+pprintAE (parseAE s) == s
 ```
 
 If we parse a string and pretty print the result, we back the string.  A useful relationship for testing these tools.
@@ -148,7 +146,7 @@ This course is not about building parsers and pretty printers.  This task is lar
 
 ## Evaluator
 
-An *evaluator* converts an abstract syntax term into a value.  As noted earlier, values represent valid interpretation results.  If an evaluator produces anything besides a value, something went wrong.  Either the input is invalid, the evaluator is written wrong, or the language definition is problematic.  We'll talk about these issues later.  For now, let's look at an evaluator where everything works as it should.
+An _evaluator_ converts an abstract syntax term into a value.  As noted earlier, values represent valid interpretation results.  If an evaluator produces anything besides a value, something went wrong.  Either the input is invalid, the evaluator is written wrong, or the language definition is problematic.  We'll talk about these issues later.  For now, let's look at an evaluator where everything works as it should.
 
 How should the evaluator be constructed?  The data type defined for the abstract syntax gives us a big clue.  If the constructors from the data type define every possible AST element, then defining an evaluator for each element of the data type should do the trick.  We need to define how the interpreter behaves on each constructor from the `AE` datatype.
 
@@ -178,9 +176,9 @@ $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1+v_2}\; [PlusE]
 
 The inference rule is defined in terms of concrete rather than abstract syntax, so we have to do a bit of translation work. $t_1+t_2$ translates quickly into `(Plus t1 t2)`. If `t1` evaluates to `(Num v1)` and `t2` evaluates to `(Num v2)` then `(Plus t1 t2)` evalautes to `(Num v1)+(Num v2)`.  There is no `+` operation in Haskell for `(Num n)` constructions, this we need to write one to define addition in `AE`.  We can define addition in `AE` in terms of addition in Haskell.  Specifically:
 
-{% highlight text %}
+```Haskell
 (Num n) + (Num m) == (Num n+m)
-{% endhighlight %}
+```
 
 There are many ways to construct this operation in Haskell, but we will use a lifting function that will allow us to define any operation in `AE` using an operation from Haskell:
 
@@ -382,6 +380,5 @@ Lots of definitions to get us started:
 ## Notes
 
 Documentation for the [Parsec Expression Parser](https://hackage.haskell.org/package/parsec-3.1.9/docs/Text-Parsec-Expr.html)
-
 
 [^1]: Three Letter Acronym

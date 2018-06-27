@@ -559,3 +559,4 @@ It is worth spending time with a good Haskell tutorial and learning the `Reader`
 ## Exercises
 
 1. Rewrite the identifier lookup to use `asks` rather than `ask`.
+2. Extend the interpreter and type inference function of this chapter to include typed recrursion by implementing the `fix` operator.  Note specifically whether this has any impact on already implemented language features.

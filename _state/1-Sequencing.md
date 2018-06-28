@@ -61,7 +61,7 @@ u:unit
 
 `unit` has a number of special properties that we'll skip for now.  All we need is a trival type that conveys no infomration.
 
-## Sequencing statements
+## Sequencing Statements
 
 Executing statements sequentially is so common in imperative languages that we often overlook it as a paradigm.
 
@@ -127,20 +127,54 @@ By the way, which monad did we use in the implementation above?  Is it `Maybe` o
 Another mechanism for implementing sequence is to define it as a derived for using `app` and `lambda`.  If we want to execute `t1` followed by `t2` we can translated `(Seq t1 t2)` in the following manner:
 
 ```text
-Seq t1 t2 == (app (lambda x in t2) t1)
+Seq l r == (app (lambda x in r) l)
 ```
 
-Assuming call-by-value semantics, `app` evalutes the argument to its function, binds that value to the function's formal parameter, and evaluates the function's body.  Here the parameter is named `x` and `evalM t1` gets bound to `x`.  As long as `x` does not appear free in `t2`, this derived form works just fine.  However, `x` _must not_ be free in `t2` or we will run into all kinds of type problems at runtime.  It is simple enough to check this property statically or we can use a wildcard parameter:
+Assuming call-by-value semantics, `app` evalutes the argument to its function, binds that value to the function's formal parameter, and evaluates the function's body.  Here the parameter is named `x` and `evalM l` gets bound to `x`.  As long as `x` does not appear free in `r`, this derived form works just fine.  However, `x` _must not_ be free in `r` or we will run into all kinds of type problems at runtime.  It is simple enough to check this property statically or we can use a wildcard parameter:
 
 ```text
-Seq t1 t2 == (app (lambda _ in t2) t1)
+Seq t1 t2 == (app (lambda _ in r) l)
 ```
 
-Here `x` is replacec by the wildcard `_`.  This symbol is not a variable and is ignored by `app`.  No value is bound to it eliminating any messiness due to the result type of `evalM t1`.
+Here `x` is replacec by the wildcard `_`.  This symbol is not a variable and is ignored by `app`.  No value is bound to it eliminating any messiness due to the result type of `evalM r`.
 
-## Sequencing Typed Terms
+## Sequencing Typed Statements
 
+What happens when we add static typing to sequencing?  As it turns out, not much and quite alot.  Let's look again at the impelementation of `Seq` evaluation:
 
+```haskell
+evalM (Seq l r) = do { evalM l ;
+                       evalM r }
+```
+Because `l` does not interact with `r` during evaluation, the type resulting from `evalM l` makes no difference.  Furthermore, the type of a sequence operation is easily determined to be the type of `r`:
+
+```haskell
+typeofM (Seq l r) = typeofM r
+```
+
+Life is more intresting if we defined sequence using a derived form as we did earlier.  Recall the untyped definition:
+
+```haskell
+Seq l r == (app (lambda x in r) l)
+```
+
+and note that `x` has no type.  In a statically typed language the lambda's formal parmeter must have an ascribed type.  There are several ways around this, but the most common is to make the type of `x` the `unit` type described earlier:
+
+```haskell
+Seq l r == (app (lambda x:unit in r) l)
+```
+
+This forces `l` to return a `u` in every case and thus be of type `unit`.
+
+This sounds restrictive, but it is true to the concept that a statement need not return a value.  Returning `unit` is exactly that - returning a value that conveys no information.  For completeness, the wildcard variable should be used rather than `x`:
+
+```haskell
+Seq l r == (app (lambda _:unit in r) l)
+```
+
+## discussion
+
+We're going to skip the full implementation of sequence for now.  It is quite important in our upcoming discussion of state, but as of right now sequence doesn't do a thing.  Literally.  We can sequence FBAE terms as much as we want and the execution result will never differ from simply executing the last operation in the sequence.  Why is this?  By definition the execution of the first term in a sequence never passes anything to the second.  The `Monad` implementation drops the first term on the floor.  The elaboration implementation makes sure the first result cannot be used in the second computation buy using a wildcard.  So what is sequence for?  When we add global state you will recognize its importance quickly.
 
 ## Exercises
 

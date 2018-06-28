@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs,FlexibleContexts #-}
 
 import Text.ParserCombinators.Parsec
 import Control.Monad
@@ -8,7 +8,7 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 
 -- Calculator language extended with an environment to hold defined variables
 
-data TFBAE = TNum | TBool | TFBAE :->: TFBAE deriving (Show,Eq)
+data TFBAE = TNum | TBool | TFBAE :->: TFBAE | TLoc deriving (Show,Eq)
 
 data FBAE = Num Int
           | Plus FBAE FBAE
@@ -25,9 +25,9 @@ data FBAE = Num Int
           | Leq FBAE FBAE
           | IsZero FBAE
           | If FBAE FBAE FBAE
-          | Newbox FBAE
-          | Setbox FBAE FBAE
-          | Openbox FBAE
+          | New FBAE
+          | Set FBAE FBAE
+          | Deref FBAE
           | Seq FBAE FBAE
           deriving (Show,Eq)
 
@@ -202,56 +202,58 @@ newLoc (i,m) v = ((i+1),(setMem i m v))
 openLoc :: Int -> Sto -> Maybe FBAEVal
 openLoc x (i,m) = m x
 
-type RVal = (Sto,FBAEVal)
+type RVal = Maybe (Sto,FBAEVal)
 
-eSta :: EnvS -> Sto -> FBAE -> RVal
-eSta env sto (Num x) = (sto,(NumV x))
-eSta env sto (Plus l r) = let (sto',(NumV l')) = (eSta env sto l)
-                              (sto'',(NumV r')) = (eSta env sto' r)
-                          in (sto'',(NumV (l'+r')))
-eSta env sto (Minus l r) = let (sto',(NumV l')) = (eSta env sto l)
-                               (sto'',(NumV r')) = (eSta env sto' r)
-                           in (sto'',(NumV (l'-r')))
-eSta env sto (Mult l r) = let (sto',(NumV l')) = (eSta env sto l)
-                              (sto'',(NumV r')) = (eSta env sto' r)
-                          in (sto'',(NumV (l'*r')))
-eSta env sto (Div l r) = let (sto',(NumV l')) = (eSta env sto l)
-                             (sto'',(NumV r')) = (eSta env sto' r)
-                          in (sto'',(NumV (div l' r')))
-eSta env sto (Bind i v b) = let (sto',v') = eSta env sto v in
-                              eSta ((i,v'):env) sto' b
-eSta env sto (Lambda i t b) = (sto,(ClosureV i t b env))
-eSta env sto (App f a) = let (sto',(ClosureV i t b e)) = (eSta env sto f)
-                             (sto'',a') = (eSta env sto' a)
-                         in eSta ((i,a'):e) sto'' b
-eSta env sto (Id id) = case (lookup id env) of
-                         Just x -> (sto,x)
+eStaM :: EnvS -> Sto -> FBAE -> RVal
+eStaM env sto (Num x) = return (sto,(NumV x))
+eStaM env sto (Plus l r) = do { (sto',(NumV l')) <- (eStaM env sto l) ;
+                               (sto'',(NumV r')) <- (eStaM env sto' r) ;
+                               return (sto'',(NumV (l'+r'))) }
+eStaM env sto (Minus l r) = do { (sto',(NumV l')) <- (eStaM env sto l) ;
+                                (sto'',(NumV r')) <- (eStaM env sto' r) ;
+                                return (sto'',(NumV (l'-r'))) }
+eStaM env sto (Mult l r) = do { (sto',(NumV l')) <- (eStaM env sto l) ;
+                               (sto'',(NumV r')) <- (eStaM env sto' r) ;
+                               return (sto'',(NumV (l'*r'))) }
+eStaM env sto (Div l r) = do { (sto',(NumV l')) <- (eStaM env sto l) ;
+                              (sto'',(NumV r')) <- (eStaM env sto' r) ;
+                              return (sto'',(NumV (div l' r'))) }
+eStaM env sto (Bind i v b) = do { (sto',v') <- (eStaM env sto v) ;
+                                 eStaM ((i,v'):env) sto' b }
+eStaM env sto (Lambda i t b) = return (sto,(ClosureV i t b env))
+eStaM env sto (App f a) = do { (sto',(ClosureV i t b e)) <- (eStaM env sto f) ;
+                              (sto'',a') <- (eStaM env sto' a) ;
+                              (eStaM ((i,a'):e) sto'' b) }
+eStaM env sto (Id id) = case (lookup id env) of
+                         Just x -> return (sto,x)
                          Nothing -> error "Varible not found"
-eSta env sto (Boolean b) = (sto,(BooleanV b))
-eSta env sto (And l r) = let (sto',(BooleanV l')) = (eSta env sto l)
-                             (sto'',(BooleanV r')) = (eSta env sto' r)
-                         in (sto',(BooleanV (l' && r')))
-eSta env sto (Or l r) = let (sto',(BooleanV l')) = (eSta env sto l)
-                            (sto'',(BooleanV r')) = (eSta env sto' r)
-                        in (sto',(BooleanV (l' || r')))
-eSta env sto (Leq l r) = let (sto',(NumV l')) = (eSta env sto l)
-                             (sto'',(NumV r')) = (eSta env sto' r)
-                         in (sto',(BooleanV (l' <= r')))
-eSta env sto (IsZero v) = let (sto',(NumV v')) = (eSta env sto v)
-                          in (sto',(BooleanV (v' == 0)))
-eSta env sto (If c t e) = let (sto',(BooleanV c')) = (eSta env sto c)
-                          in if c' then (eSta env sto' t) else (eSta env sto' e)
-eSta env sto (Newbox t) = let (s,v) = (eSta env sto t)
-                          in ((newLoc s v),v)
-eSta env sto (Setbox l v) = let (sto',(LocV l')) = (eSta env sto l)
-                                (sto'',v') = (eSta env sto' v)
-                            in ((setLoc l' sto'' v'),v')
-eSta env sto (Openbox l) = let (sto',(LocV l')) = (eSta env sto l)
-                           in case (openLoc l' sto') of
-                                Just v -> (sto',v)
-                                Nothing -> error "undefined location"
-eSta env sto (Seq l r) = let (sto',_) = (eSta env sto l)
-                         in (eSta env sto' r)
+eStaM env sto (Boolean b) = return (sto,(BooleanV b))
+eStaM env sto (And l r) = do { (sto',(BooleanV l')) <- (eStaM env sto l) ;
+                              (sto'',(BooleanV r')) <- (eStaM env sto' r) ;
+                              return (sto',(BooleanV (l' && r'))) }
+eStaM env sto (Or l r) = do { (sto',(BooleanV l')) <- (eStaM env sto l) ;
+                             (sto'',(BooleanV r')) <- (eStaM env sto' r) ;
+                             return (sto',(BooleanV (l' || r'))) }
+eStaM env sto (Leq l r) = do { (sto',(NumV l')) <- (eStaM env sto l) ;
+                              (sto'',(NumV r')) <- (eStaM env sto' r) ;
+                              return (sto',(BooleanV (l' <= r'))) }
+eStaM env sto (IsZero v) = do { (sto',(NumV v')) <- (eStaM env sto v) ;
+                               return (sto',(BooleanV (v' == 0))) }
+eStaM env sto (If c t e) = do { (sto',(BooleanV c')) <- (eStaM env sto c) ;
+                               (if c'
+                                 then (eStaM env sto' t)
+                                 else (eStaM env sto' e)) }
+eStaM env sto (New t) = do { (s,v) <- (eStaM env sto t) ;
+                            return ((newLoc s v),v) }
+eStaM env sto (Set l v) = do { (sto',(LocV l')) <- (eStaM env sto l) ;
+                              (sto'',v') <- (eStaM env sto' v) ;
+                              return ((setLoc l' sto'' v'),v') }
+eStaM env sto (Deref l) = do { (sto',(LocV l')) <- (eStaM env sto l) ;
+                              return (case (openLoc l' sto') of
+                                        Just v -> (sto',v)
+                                        Nothing -> error "undefined location" ) } ;
+eStaM env sto (Seq l r) = do { (sto',_) <- (eStaM env sto l) ;
+                              (eStaM env sto' r) }
 
 -- Type Checker has not been updated to include state.
 
@@ -304,11 +306,19 @@ typeof cont (If c t e) = if (typeof cont c) == TBool
                             && (typeof cont t)==(typeof cont e)
                          then (typeof cont t)
                          else error "Type mismatch in if"
+typeof cont (New t) = TLoc
+typeof cont (Set l v) = if (typeof cont l)==TLoc
+                        then (typeof cont v)
+                        else error "Type error in Set"
+typeof cont (Deref l) = if (typeof cont l)==TLoc
+                        then 
+                        else error "bad dereferenced type"
+eStaM env sto (Seq l r) = typeof cont r ;
 
 
-intSta :: String -> (Sto,FBAEVal)
+intSta :: String -> RVal
 intSta e = let p=(parseFBAE e) in
            let t=(typeof [] p) in
              if (t==TNum) || (t==TBool)
-             then (eSta [] initSto p)
+             then (eStaM [] initSto p)
              else error "This should never happen"

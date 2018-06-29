@@ -7,24 +7,6 @@ categories: chapter ch2
 
 # Locations and Storage
 
-Define a new type called `TyLoc`.
-
-Define a new type called `Sto`
-
-```haskell
-type Sto = location -> FBAEVal
-```
-
-Update `FBAEVal` to include `location`:
-
-```haskell
-data FBAEVal where
-  NumV :: Int -> FBAEVal
-  BooleanV :: Bool -> FBAEVal
-  ClosureV :: String -> FBAETy -> FBAE -> Env -> FBAEVal
-  LocV :: Int -> FBAEVal
-```
-
 $$\begin{align*}
 t ::= & \; \mathsf{new}\; s\; t \\
   & \mid \mathsf{deref}\; s\; l \\
@@ -81,6 +63,26 @@ bind loc = new 5 in
 
 This is a clever implementation of `loc := loc + 1`.  Because the store is emphemeral, it is updated in subsequent statements.  `deref loc` returns the new value.
 
+## Implementing Store
+
 `new :: Sto -> FBAEVal -> FBAEVal`
 `deref :: Sto -> FBAEVal -> FBAEVal`
 `set :: Sto -> FBAEVal -> FBAEVal -> FBAEVal`
+
+Define a new type called `TyLoc`.
+
+Define a new type called `Sto`
+
+```haskell
+type Sto = location -> FBAEVal
+```
+
+Update `FBAEVal` to include `location`:
+
+```haskell
+data FBAEVal where
+  NumV :: Int -> FBAEVal
+  BooleanV :: Bool -> FBAEVal
+  ClosureV :: String -> FBAETy -> FBAE -> Env -> FBAEVal
+  LocV :: Int -> FBAEVal
+```

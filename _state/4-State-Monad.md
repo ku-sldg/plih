@@ -1,11 +1,11 @@
 ---
 layout: frontpage
-title: Locations and Storage
+title: State Monad
 use_math: true
 categories: chapter ch2
 ---
 
-# Locations and Storage
+# State Monad
 
 `deref`
 `set`

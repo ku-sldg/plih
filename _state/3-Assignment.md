@@ -1,6 +1,6 @@
 ---
 layout: frontpage
-title: Locations and Storage
+title: Assignment
 use_math: true
 categories: chapter ch2
 ---

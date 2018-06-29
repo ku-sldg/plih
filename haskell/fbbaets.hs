@@ -205,59 +205,70 @@ openLoc x (i,m) = m x
 
 type RVal = Maybe (Sto,FBAEVal)
 
-eStaM :: EnvS -> Sto -> FBAE -> RVal
-eStaM env sto (Num x) = return (sto,(NumV x))
-eStaM env sto (Plus l r) = do { (sto',(NumV l')) <- (eStaM env sto l) ;
-                               (sto'',(NumV r')) <- (eStaM env sto' r) ;
+evalM :: EnvS -> Sto -> FBAE -> RVal
+evalM env sto (Num x) = return (sto,(NumV x))
+evalM env sto (Plus l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
+                               (sto'',(NumV r')) <- (evalM env sto' r) ;
                                return (sto'',(NumV (l'+r'))) }
-eStaM env sto (Minus l r) = do { (sto',(NumV l')) <- (eStaM env sto l) ;
-                                (sto'',(NumV r')) <- (eStaM env sto' r) ;
+evalM env sto (Minus l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
+                                (sto'',(NumV r')) <- (evalM env sto' r) ;
                                 return (sto'',(NumV (l'-r'))) }
-eStaM env sto (Mult l r) = do { (sto',(NumV l')) <- (eStaM env sto l) ;
-                               (sto'',(NumV r')) <- (eStaM env sto' r) ;
+evalM env sto (Mult l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
+                               (sto'',(NumV r')) <- (evalM env sto' r) ;
                                return (sto'',(NumV (l'*r'))) }
-eStaM env sto (Div l r) = do { (sto',(NumV l')) <- (eStaM env sto l) ;
-                              (sto'',(NumV r')) <- (eStaM env sto' r) ;
+evalM env sto (Div l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
+                              (sto'',(NumV r')) <- (evalM env sto' r) ;
                               return (sto'',(NumV (div l' r'))) }
-eStaM env sto (Bind i v b) = do { (sto',v') <- (eStaM env sto v) ;
-                                 eStaM ((i,v'):env) sto' b }
-eStaM env sto (Lambda i t b) = return (sto,(ClosureV i t b env))
-eStaM env sto (App f a) = do { (sto',(ClosureV i t b e)) <- (eStaM env sto f) ;
-                              (sto'',a') <- (eStaM env sto' a) ;
-                              (eStaM ((i,a'):e) sto'' b) }
-eStaM env sto (Id id) = case (lookup id env) of
+evalM env sto (Bind i v b) = do { (sto',v') <- (evalM env sto v) ;
+                                 evalM ((i,v'):env) sto' b }
+evalM env sto (Lambda i t b) = return (sto,(ClosureV i t b env))
+evalM env sto (App f a) = do { (sto',(ClosureV i t b e)) <- (evalM env sto f) ;
+                              (sto'',a') <- (evalM env sto' a) ;
+                              (evalM ((i,a'):e) sto'' b) }
+evalM env sto (Id id) = case (lookup id env) of
                          Just x -> return (sto,x)
                          Nothing -> error "Varible not found"
-eStaM env sto (Boolean b) = return (sto,(BooleanV b))
-eStaM env sto (And l r) = do { (sto',(BooleanV l')) <- (eStaM env sto l) ;
-                              (sto'',(BooleanV r')) <- (eStaM env sto' r) ;
+evalM env sto (Boolean b) = return (sto,(BooleanV b))
+evalM env sto (And l r) = do { (sto',(BooleanV l')) <- (evalM env sto l) ;
+                              (sto'',(BooleanV r')) <- (evalM env sto' r) ;
                               return (sto',(BooleanV (l' && r'))) }
-eStaM env sto (Or l r) = do { (sto',(BooleanV l')) <- (eStaM env sto l) ;
-                             (sto'',(BooleanV r')) <- (eStaM env sto' r) ;
+evalM env sto (Or l r) = do { (sto',(BooleanV l')) <- (evalM env sto l) ;
+                             (sto'',(BooleanV r')) <- (evalM env sto' r) ;
                              return (sto',(BooleanV (l' || r'))) }
-eStaM env sto (Leq l r) = do { (sto',(NumV l')) <- (eStaM env sto l) ;
-                              (sto'',(NumV r')) <- (eStaM env sto' r) ;
+evalM env sto (Leq l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
+                              (sto'',(NumV r')) <- (evalM env sto' r) ;
                               return (sto',(BooleanV (l' <= r'))) }
-eStaM env sto (IsZero v) = do { (sto',(NumV v')) <- (eStaM env sto v) ;
+evalM env sto (IsZero v) = do { (sto',(NumV v')) <- (evalM env sto v) ;
                                return (sto',(BooleanV (v' == 0))) }
-eStaM env sto (If c t e) = do { (sto',(BooleanV c')) <- (eStaM env sto c) ;
+evalM env sto (If c t e) = do { (sto',(BooleanV c')) <- (evalM env sto c) ;
                                (if c'
-                                 then (eStaM env sto' t)
-                                 else (eStaM env sto' e)) }
-eStaM env sto (New t) = do { ((i,m),v) <- (eStaM env sto t) ;
+                                 then (evalM env sto' t)
+                                 else (evalM env sto' e)) }
+evalM env sto (New t) = do { ((i,m),v) <- (evalM env sto t) ;
                              return ((newLoc (i,m) v),(LocV i)) }
-eStaM env sto (Set l v) = do { (sto',(LocV l')) <- (eStaM env sto l) ;
-                               (sto'',v') <- (eStaM env sto' v) ;
+evalM env sto (Set l v) = do { (sto',(LocV l')) <- (evalM env sto l) ;
+                               (sto'',v') <- (evalM env sto' v) ;
                                return ((setLoc l' sto'' v'),v') }
-eStaM env sto (Deref l) = do { (sto',(LocV l')) <- (eStaM env sto l) ;
+evalM env sto (Deref l) = do { (sto',(LocV l')) <- (evalM env sto l) ;
                                return (case (openLoc l' sto') of
                                          Just v -> (sto',v)
                                          Nothing -> error "undefined location" ) } ;
-eStaM env sto (Seq l r) = do { (sto',_) <- (eStaM env sto l) ;
-                              (eStaM env sto' r) }
+evalM env sto (Seq l r) = do { (sto',_) <- (evalM env sto l) ;
+                              (evalM env sto' r) }
 
-eStaMi t = do { (s,v) <- eStaM [] initSto t ;
+-- Simple function that evaluates a term with an empty memory and
+-- environment, drops the state, and prints the resulting value.
+evalMi t = do { (s,v) <- evalM [] initSto t ;
                 return v }
+
+dumps s = let Just ((i,m),v) = s in dumpm i m
+
+dumpm i m = do { print (m (i-1)) ; if i>=0 then dumpm (i-1) m else print "done"}
+
+-- Examples for testing
+ex1 = (Bind "x" (New (Num 3))
+       (Seq (Set (Id "x")
+             (Plus (Num 1) (Deref (Id "x")))) (Deref (Id "x"))))
 
 -- Type Checker has not been updated to include state.
 
@@ -324,5 +335,5 @@ intSta :: String -> RVal
 intSta e = let p=(parseFBAE e) in
            let t=(typeof [] p) in
              if (t==TNum) || (t==TBool)
-             then (eStaM [] initSto p)
+             then (evalM [] initSto p)
              else error "This should never happen"

@@ -121,21 +121,22 @@ argExpr = do i <- identifier
              return (i,t)
 
 appExpr :: Parser FBAE
-appExpr = do reserved "app"
-             f <- expr
+appExpr = do f <- expr
              a <- expr
              return (App f a)
 
-term = parens expr
+-- reserved "app"
+
+term = bindExpr
+       <|> lambdaExpr
+       <|> parens appExpr
        <|> numExpr
        <|> trueExpr
        <|> falseExpr
        <|> ifExpr
        <|> identExpr
-       <|> bindExpr
-       <|> lambdaExpr
-       <|> appExpr
-
+       <|> parens expr
+ 
 
 -- Type parser
 
@@ -311,9 +312,9 @@ typeof cont (Set l v) = if (typeof cont l)==TLoc
                         then (typeof cont v)
                         else error "Type error in Set"
 typeof cont (Deref l) = if (typeof cont l)==TLoc
-                        then 
+                        then TLoc
                         else error "bad dereferenced type"
-eStaM env sto (Seq l r) = typeof cont r ;
+typeof cont (Seq l r) = typeof cont r ;
 
 
 intSta :: String -> RVal

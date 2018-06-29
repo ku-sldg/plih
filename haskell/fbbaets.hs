@@ -261,6 +261,7 @@ evalM env sto (Seq l r) = do { (sto',_) <- (evalM env sto l) ;
 evalMi t = do { (s,v) <- evalM [] initSto t ;
                 return v }
 
+-- Simple function to peek in a memory location
 peek s x = let Just ((i,m),v) = s in print (m x)
 
 -- Examples for testing

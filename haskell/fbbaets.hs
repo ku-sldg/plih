@@ -261,9 +261,7 @@ evalM env sto (Seq l r) = do { (sto',_) <- (evalM env sto l) ;
 evalMi t = do { (s,v) <- evalM [] initSto t ;
                 return v }
 
-dumps s = let Just ((i,m),v) = s in dumpm i m
-
-dumpm i m = do { print (m (i-1)) ; if i>=0 then dumpm (i-1) m else print "done"}
+peek s x = let Just ((i,m),v) = s in print (m x)
 
 -- Examples for testing
 ex1 = (Bind "x" (New (Num 3))

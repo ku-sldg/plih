@@ -5,7 +5,7 @@ use_math: true
 categories: chapter ch2
 ---
 
-# Locations and Storage
+# Variables and Assignment
 
 `deref`
 `set`

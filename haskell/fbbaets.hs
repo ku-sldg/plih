@@ -191,7 +191,7 @@ initMem x = Nothing
 setMem :: Int -> Mem -> FBAEVal -> Mem
 setMem x m v = \z -> if z==x then (Just v) else m z
 
-initSto :: (Sto)
+initSto :: Sto
 initSto = (0,initMem)
 
 setLoc :: Int -> Sto -> FBAEVal -> Sto
@@ -244,17 +244,20 @@ eStaM env sto (If c t e) = do { (sto',(BooleanV c')) <- (eStaM env sto c) ;
                                (if c'
                                  then (eStaM env sto' t)
                                  else (eStaM env sto' e)) }
-eStaM env sto (New t) = do { (s,v) <- (eStaM env sto t) ;
-                            return ((newLoc s v),v) }
+eStaM env sto (New t) = do { ((i,m),v) <- (eStaM env sto t) ;
+                             return ((newLoc (i,m) v),(LocV i)) }
 eStaM env sto (Set l v) = do { (sto',(LocV l')) <- (eStaM env sto l) ;
-                              (sto'',v') <- (eStaM env sto' v) ;
-                              return ((setLoc l' sto'' v'),v') }
+                               (sto'',v') <- (eStaM env sto' v) ;
+                               return ((setLoc l' sto'' v'),v') }
 eStaM env sto (Deref l) = do { (sto',(LocV l')) <- (eStaM env sto l) ;
-                              return (case (openLoc l' sto') of
-                                        Just v -> (sto',v)
-                                        Nothing -> error "undefined location" ) } ;
+                               return (case (openLoc l' sto') of
+                                         Just v -> (sto',v)
+                                         Nothing -> error "undefined location" ) } ;
 eStaM env sto (Seq l r) = do { (sto',_) <- (eStaM env sto l) ;
                               (eStaM env sto' r) }
+
+eStaMi t = do { (s,v) <- eStaM [] initSto t ;
+                return v }
 
 -- Type Checker has not been updated to include state.
 

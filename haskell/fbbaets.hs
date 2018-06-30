@@ -74,16 +74,23 @@ appl = Infix space AssocLeft
                 *> notFollowedBy (choice . map reservedOp $ ops)
                 *> return (\x y -> App x y)
 
+binary name label assoc = Infix (do { reservedOp name ;
+                                      return (\x y -> label x y)
+                                    }) assoc
+
+prefix name label = Prefix (reservedOp name *> return (\x -> label x))
+
+
 operators = [ [ appl ]
-            , [Infix (reservedOp "*" >> return (Mult )) AssocLeft,
-               Infix (reservedOp "/" >> return (Div )) AssocLeft ]
-            , [Infix (reservedOp "+" >> return (Plus )) AssocLeft,
-               Infix (reservedOp "-" >> return (Minus )) AssocLeft ]
-            , [Infix (reservedOp "&&" >> return (And )) AssocLeft,
-               Infix (reservedOp "||" >> return (Or )) AssocLeft]
-            , [Infix (reservedOp "<=" >> return (Leq )) AssocLeft ]
-            , [Prefix (reserved "isZero" >> return (IsZero )) ]
-            , [Infix (reservedOp ";" >> return (Seq )) AssocLeft ]
+            , [ binary "*" Mult AssocLeft,
+                binary "/" Div AssocLeft ]
+            , [ binary "+" Plus AssocLeft,
+                binary "-" Minus AssocLeft ]
+            , [ binary "&&" And AssocLeft,
+                binary "||" Or AssocLeft]
+            , [ binary "<=" Leq AssocLeft ]
+            , [ prefix "isZero" IsZero ]
+            , [ binary ";" Seq AssocLeft ]
             ]
 
 numExpr :: Parser FBAE

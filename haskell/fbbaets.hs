@@ -45,7 +45,9 @@ tokenDef =
                                     , "Num"
                                     , "Bool"
                                     , "true"
-                                    , "false" ]
+                                    , "false"
+                                    , "Loc"
+                                    ]
             , Token.reservedOpNames = [ "+","-","*","/","&&","||","<=","=",":","->"]
             }
 
@@ -154,6 +156,10 @@ tyNat = do reserved "Nat"
 tyBool :: Parser TFBAE
 tyBool = do reserved "Bool"
             return TBool
+
+tyLoc :: Parser TFBAE
+tyLoc = do reserved "Loc"
+           return TLoc
 
 -- Parser invocation
 
@@ -271,68 +277,80 @@ ex1 = (Bind "x" (New (Num 3))
 
 -- Type Checker has not been updated to include state.
 
-typeof :: ContS -> FBAE -> TFBAE
-typeof cont (Num x) = TNum
-typeof cont (Plus l r) = let l' = (typeof cont l)
-                             r' = (typeof cont r)
-                         in if l'==TNum && r'==TNum
-                            then TNum
-                            else error "Type Mismatch in +"
-typeof cont (Minus l r) = let l' = (typeof cont l)
-                              r' = (typeof cont r)
-                          in if l'==TNum && r'==TNum then TNum else error "Type Mismatch in -"
-typeof cont (Mult l r) = let l' = (typeof cont l)
-                             r' = (typeof cont r)
-                         in if l'==TNum && r'==TNum
-                            then TNum
-                            else error "Type Mismatch in *"
-typeof cont (Div l r) = let l' = (typeof cont l)
-                            r' = (typeof cont r)
-                        in if l'==TNum && r'==TNum
-                           then TNum
-                           else error "Type Mismatch in /"
-typeof cont (Bind i v b) = let v' = typeof cont v in
-                             typeof ((i,v'):cont) b
-typeof cont (Id id) = case (lookup id cont) of
-                        Just x -> x
-                        Nothing -> error "Varible not found"
-typeof cont (Lambda x t b) = let tyB = typeof ((x,t):cont) b
-                             in t :->: tyB
-typeof cont (App x y) = let tyXd :->: tyXr = typeof cont x
-                            tyY = typeof cont y
-                        in if tyXd==tyY
-                           then tyXr
-                           else error "Type mismatch in app"
-typeof cont (Boolean b) = TBool
-typeof cont (And l r) = if (typeof cont l) == TBool && (typeof cont r) == TBool
-                        then TBool
-                        else error "Type mismatch in &&"
-typeof cont (Or l r) = if (typeof cont l) == TBool && (typeof cont r) == TBool
-                       then TBool
-                       else error "Type mismatch in ||"
-typeof cont (Leq l r) = if (typeof cont l) == TNum && (typeof cont r) == TNum
-                        then TBool
-                        else error "Type mismatch in <="
-typeof cont (IsZero v) = if (typeof cont v) == TNum
-                         then TBool
-                         else error "Type mismatch in IsZero"
-typeof cont (If c t e) = if (typeof cont c) == TBool
-                            && (typeof cont t)==(typeof cont e)
-                         then (typeof cont t)
-                         else error "Type mismatch in if"
-typeof cont (New t) = TLoc
-typeof cont (Set l v) = if (typeof cont l)==TLoc
-                        then (typeof cont v)
-                        else error "Type error in Set"
-typeof cont (Deref l) = if (typeof cont l)==TLoc
-                        then TLoc
-                        else error "bad dereferenced type"
-typeof cont (Seq l r) = typeof cont r ;
+typeofM :: ContS -> FBAE -> (Maybe TFBAE)
+typeofM cont (Num x) = return TNum
+typeofM cont (Plus l r) = do { l' <- (typeofM cont l) ;
+                              r' <- (typeofM cont r) ;
+                              if l'==TNum && r'==TNum
+                              then return TNum
+                              else Nothing }
+typeofM cont (Minus l r) = do { l' <- (typeofM cont l) ;
+                               r' <- (typeofM cont r) ;
+                               if l'==TNum && r'==TNum
+                               then return TNum
+                               else Nothing }
+typeofM cont (Mult l r) = do { l' <- (typeofM cont l) ;
+                              r' <- (typeofM cont r) ;
+                              if l'==TNum && r'==TNum
+                              then return TNum
+                              else Nothing }
+typeofM cont (Div l r) = do { l' <- (typeofM cont l) ;
+                             r' <- (typeofM cont r) ;
+                             if l'==TNum && r'==TNum
+                             then return TNum
+                             else Nothing }
+typeofM cont (Bind i v b) = do { v' <- typeofM cont v ;
+                                typeofM ((i,v'):cont) b }
+typeofM cont (Id id) = (lookup id cont) 
+typeofM cont (Lambda x t b) = do { tyB <- typeofM ((x,t):cont) b ;
+                                  return (t :->: tyB) }
+typeofM cont (App x y) = do { tyXd :->: tyXr <- typeofM cont x ; 
+                             tyY <- typeofM cont y ;
+                             if tyXd==tyY
+                             then return tyXr
+                             else Nothing }
+typeofM cont (Boolean b) = return TBool                   
+typeofM cont (And l r) = do { l' <- (typeofM cont l) ;
+                             r' <- (typeofM cont r) ;
+                             if l' == TBool && r' == TBool
+                             then return TBool
+                             else Nothing }
+typeofM cont (Or l r) = do { l' <- (typeofM cont l) ;
+                            r' <- (typeofM cont r);
+                            if l' == TBool && r' == TBool
+                            then return TBool
+                            else Nothing }
+typeofM cont (Leq l r) = do { l' <- (typeofM cont l) ;
+                             r' <- (typeofM cont r) ;
+                             if l' == TNum && r' == TNum
+                             then return TBool
+                             else Nothing }
+typeofM cont (IsZero v) = do { v' <- (typeofM cont v) ;
+                              if v' == TNum
+                              then return TBool
+                              else Nothing }
+typeofM cont (If c t e) = do { c' <- (typeofM cont c) ;
+                              t' <- (typeofM cont t) ;
+                              e' <- (typeofM cont e) ;
+                              if c' == TBool && t' == e'
+                              then return t'
+                              else Nothing }
+typeofM cont (New t) = return TLoc
+typeofM cont (Set l v) = do { l' <- (typeofM cont l) ;
+                             v' <- (typeofM cont v) ;
+                             if l'==TLoc
+                             then return v'
+                             else Nothing }
+typeofM cont (Deref l) = do { l' <- (typeofM cont l) ;
+                             if l'==TLoc
+                             then return TLoc
+                             else Nothing }
+typeofM cont (Seq l r) = (typeofM cont r)
 
 
-intSta :: String -> RVal
-intSta e = let p=(parseFBAE e) in
-           let t=(typeof [] p) in
-             if (t==TNum) || (t==TBool)
+intM :: String -> RVal
+intM e = let p=(parseFBAE e) in
+           let t=(typeofM [] p) in
+             if (t==(Just TNum)) || (t==(Just TBool))
              then (evalM [] initSto p)
              else error "This should never happen"

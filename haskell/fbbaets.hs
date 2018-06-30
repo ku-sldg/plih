@@ -31,24 +31,28 @@ data FBAE = Num Int
           | Seq FBAE FBAE
           deriving (Show,Eq)
 
+names = [ "lambda"
+        , "bind"
+        , "in"
+        , "if"
+        , "then"
+        , "else"
+        , "isZero"
+        , "true"
+        , "false"
+        , "Num"
+        , "Bool"
+        , "Loc"
+        ]
+
+ops = [ "+","-","*","/","&&","||","<=","=",":","->",";"]
+
 tokenDef =
-  javaStyle { Token.identStart = letter
-            , Token.identLetter = alphaNum
-            , Token.reservedNames = [ "lambda"
-                                    , "bind"
-                                    , "in"
-                                    , "if"
-                                    , "then"
-                                    , "else"
-                                    , "isZero"
-                                    , "app"
-                                    , "Num"
-                                    , "Bool"
-                                    , "true"
-                                    , "false"
-                                    , "Loc"
-                                    ]
-            , Token.reservedOpNames = [ "+","-","*","/","&&","||","<=","=",":","->"]
+  emptyDef { Token.commentLine = "--"
+           , Token.identStart = letter
+           , Token.identLetter = alphaNum <|> char '_'
+           , Token.reservedNames = names
+           , Token.reservedOpNames = ops
             }
 
 lexer = Token.makeTokenParser tokenDef
@@ -66,9 +70,9 @@ expr :: Parser FBAE
 expr = buildExpressionParser operators term
 
 appl = Infix space AssocLeft
-    where space = whiteSpace
-            *> notFollowedBy (choice . map reservedOp $ (Token.reservedOpNames tokenDef))
-            *> return (\x y -> App x y)
+  where space = whiteSpace
+                *> notFollowedBy (choice . map reservedOp $ ops)
+                *> return (\x y -> App x y)
 
 operators = [ [ appl ]
             , [Infix (reservedOp "*" >> return (Mult )) AssocLeft,
@@ -79,6 +83,7 @@ operators = [ [ appl ]
                Infix (reservedOp "||" >> return (Or )) AssocLeft]
             , [Infix (reservedOp "<=" >> return (Leq )) AssocLeft ]
             , [Prefix (reserved "isZero" >> return (IsZero )) ]
+            , [Infix (reservedOp ";" >> return (Seq )) AssocLeft ]
             ]
 
 numExpr :: Parser FBAE
@@ -128,18 +133,8 @@ argExpr = do i <- identifier
              t <- ty
              return (i,t)
 
--- appExpr :: Parser FBAE
--- appExpr = do reservedOp "("
---              f <- expr
---              a <- expr
---              reservedOp ")"
---              return (App f a)
-
--- reserved "app"
-
 term = bindExpr
        <|> lambdaExpr
---       <|> appExpr
        <|> numExpr
        <|> trueExpr
        <|> falseExpr
@@ -196,7 +191,11 @@ data FBAEVal where
   LocV :: Int -> FBAEVal
   deriving (Show,Eq)
 
+-- Model memmory as a function from int to value returning Nothiung when
+-- memory location as not been initialized
 type Mem = Int -> Maybe FBAEVal
+-- Model the store as a memory and a last allocated counter.  Counter should
+-- be upated by new.
 type Sto = (Int,Mem)
 
 initMem :: Mem
@@ -362,3 +361,10 @@ intM e = let p=(parseFBAE e) in
              if (t==(Just TNum)) || (t==(Just TBool))
              then (evalM [] initSto p)
              else Nothing
+
+intMi :: String -> Maybe FBAEVal
+intMi e = let p=(parseFBAE e) in
+            let t=(typeofM [] p) in
+              if (t==(Just TNum)) || (t==(Just TBool))
+              then (evalMi p)
+              else Nothing

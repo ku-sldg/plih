@@ -69,6 +69,9 @@ whiteSpace = Token.whiteSpace lexer
 expr :: Parser FBAE
 expr = buildExpressionParser operators term
 
+
+-- Treating whitespace as an operator.  I guess that's one way to parse
+-- applications.
 appl = Infix space AssocLeft
   where space = whiteSpace
                 *> notFollowedBy (choice . map reservedOp $ ops)

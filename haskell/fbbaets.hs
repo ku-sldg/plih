@@ -379,7 +379,8 @@ typeofM cont (Deref l) = do { l' <- (typeofM cont l) ;
                               if l'==TLoc
                               then return TLoc
                               else Nothing }
-typeofM cont (Seq l r) = (typeofM cont r)
+typeofM cont (Seq l r) = do { (typeofM cont l) ;
+                              (typeofM cont r) }
 
 
 intM :: String -> RVal
@@ -392,6 +393,6 @@ intM e = let p=(parseFBAE e) in
 intMi :: String -> Maybe FBAEVal
 intMi e = let p=(parseFBAE e) in
             let t=(typeofM [] p) in
-              if (t==(Just TNum)) || (t==(Just TBool))
+              if (t==(Just TNum)) || (t==(Just TBool)) || (t==(Just TLoc))
               then (evalMi p)
               else Nothing

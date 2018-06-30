@@ -40,12 +40,15 @@ names = [ "lambda"
         , "isZero"
         , "true"
         , "false"
+        , "new"
+        , "deref"
+        , "set"
         , "Num"
         , "Bool"
         , "Loc"
         ]
 
-ops = [ "+","-","*","/","&&","||","<=","=",":","->",";"]
+ops = [ "+","-","*","/","&&","||","<=","=",":","->",";",":="]
 
 tokenDef =
   emptyDef { Token.commentLine = "--"
@@ -93,6 +96,9 @@ operators = [ [ appl ]
                 binary "||" Or AssocLeft]
             , [ binary "<=" Leq AssocLeft ]
             , [ prefix "isZero" IsZero ]
+            , [ prefix "deref" Deref,
+                prefix "new" New ,
+                binary ":=" Set AssocLeft ]
             , [ binary ";" Seq AssocLeft ]
             ]
 
@@ -143,15 +149,23 @@ argExpr = do i <- identifier
              t <- ty
              return (i,t)
 
+setExpr :: Parser FBAE
+setExpr = do reserved "set"
+             l <- expr
+             reservedOp "="
+             v <- expr
+             return (Set l v)
+             
+
 term = bindExpr
        <|> lambdaExpr
        <|> numExpr
        <|> trueExpr
        <|> falseExpr
+       <|> setExpr
        <|> ifExpr
        <|> identExpr
        <|> parens expr
- 
 
 -- Type parser
 
@@ -289,8 +303,11 @@ peek s x = let Just ((i,m),v) = s in print (m x)
 
 -- Examples for testing
 ex1 = (Bind "x" (New (Num 3))
-       (Seq (Set (Id "x")
-             (Plus (Num 1) (Deref (Id "x")))) (Deref (Id "x"))))
+       (Seq
+         (Set (Id "x") (Plus (Num 1) (Deref (Id "x"))))
+         (Deref (Id "x"))))
+
+ex1s = "bind x = (new 3) in x := (1+(deref x)) ; (deref x)"
 
 -- Type Checker has not been updated to include state.
 

@@ -353,4 +353,4 @@ intM e = let p=(parseFBAE e) in
            let t=(typeofM [] p) in
              if (t==(Just TNum)) || (t==(Just TBool))
              then (evalM [] initSto p)
-             else error "This should never happen"
+             else Nothing

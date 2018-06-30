@@ -65,7 +65,13 @@ whiteSpace = Token.whiteSpace lexer
 expr :: Parser FBAE
 expr = buildExpressionParser operators term
 
-operators = [ [Infix (reservedOp "*" >> return (Mult )) AssocLeft,
+appl = Infix space AssocLeft
+    where space = whiteSpace
+            *> notFollowedBy (choice . map reservedOp $ (Token.reservedOpNames tokenDef))
+            *> return (\x y -> App x y)
+
+operators = [ [ appl ]
+            , [Infix (reservedOp "*" >> return (Mult )) AssocLeft,
                Infix (reservedOp "/" >> return (Div )) AssocLeft ]
             , [Infix (reservedOp "+" >> return (Plus )) AssocLeft,
                Infix (reservedOp "-" >> return (Minus )) AssocLeft ]
@@ -122,16 +128,18 @@ argExpr = do i <- identifier
              t <- ty
              return (i,t)
 
-appExpr :: Parser FBAE
-appExpr = do f <- expr
-             a <- expr
-             return (App f a)
+-- appExpr :: Parser FBAE
+-- appExpr = do reservedOp "("
+--              f <- expr
+--              a <- expr
+--              reservedOp ")"
+--              return (App f a)
 
 -- reserved "app"
 
 term = bindExpr
        <|> lambdaExpr
-       <|> parens appExpr
+--       <|> appExpr
        <|> numExpr
        <|> trueExpr
        <|> falseExpr

@@ -199,16 +199,21 @@ derefStore :: Store -> Maybe FBAEVal
 derefStore (l,s) = deref s
 ```
 
+** This is broken* **
+
 ```haskell
 setStore :: Store -> Store
-setStore :: (l,s) = (setSto l s
+setStore :: (l,s) = (l,setSto l s)
+```
 
 and finally `new` for which we did this work:
 
-```haskell
-newStore :: Store -> FBAEVal -> Loc
-newStore (i,s) v = 
+**This is broken** 
 
+```haskell
+newStore :: Store -> Store
+newStore (i,s) = ((i+1),s) 
+```
 
 
 `new :: FBAEVal -> FBAEVal`

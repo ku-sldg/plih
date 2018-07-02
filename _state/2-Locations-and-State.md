@@ -40,7 +40,7 @@ bind l = new 2+3 in deref l
 == 5
 ```
 
-`deref` evaluates `l` to get a location and then returns the `5` used as the initial value in `new`. 
+`deref` evaluates `l` to get a location and then returns the `5` used as the initial value in `new`.
 
 The `set` operation changes the value in a storage location and is what makes storage interesting.  Given a location and a value, `set` replaces the stored value with the new value and returns the new value.  `set` changes storage contents and is our first example of a _computational effect_.  Given our previous `bind` again, we can `set` the valued stored at `l` to change its value:
 
@@ -179,7 +179,7 @@ Starting with the initial store defined above, repeated applications of `setSto`
 
 Unfortunately, `new` introduces a hiccup in our nice memory model.  Given a value, `new` allocates a fresh location and stores the value in that location.  The trick is accomplishing _fresh location_.  We need to ensure that every new location has not been used before.
 
-The simplest way to implement `new` is to allocate locations starting with `0` and counting up with each call to `new`. The first location allocated is `0`, the section `1`, the third `2` and so forth.  We then must ensure that storage cannot be allocated without calling `new`. The latter is easy.  Locations do not have a concrete syntax and cannot be operated on other that dereference.  No pointer arithmetic or casting a number to a location.  Locations are values that cannot be changed and cannot be generated other than using `new`. 
+The simplest way to implement `new` is to allocate locations starting with `0` and counting up with each call to `new`. The first location allocated is `0`, the section `1`, the third `2` and so forth.  We then must ensure that storage cannot be allocated without calling `new`. The latter is easy.  Locations do not have a concrete syntax and cannot be operated on other that dereference.  No pointer arithmetic or casting a number to a location.  Locations are values that cannot be changed and cannot be generated other than using `new`.
 
 To implement the monotonic counter let’s define a new type, `Store` that is a `Loc`/`Sto` pair:
 
@@ -199,7 +199,7 @@ derefStore :: Store -> Maybe FBAEVal
 derefStore (l,s) = deref s
 ```
 
-** This is broken* **
+**This is broken**
 
 ```haskell
 setStore :: Store -> Store
@@ -208,11 +208,11 @@ setStore :: (l,s) = (l,setSto l s)
 
 and finally `new` for which we did this work:
 
-**This is broken** 
+**This is broken**
 
 ```haskell
 newStore :: Store -> Store
-newStore (i,s) = ((i+1),s) 
+newStore (i,s) = ((i+1),s)
 ```
 
 

@@ -133,18 +133,93 @@ Several take-always here.  One is that calling `f` on a different function would
 
 ## Implementing Store
 
-`new :: Sto -> FBAEVal -> FBAEVal`
-`deref :: Sto -> FBAEVal -> FBAEVal`
-`set :: Sto -> FBAEVal -> FBAEVal -> FBAEVal`
+To implement mutable store we need to define a data type for representing locations and stores and the extend the interpreter include the three new operations plus sequence.
 
-Define a new type called `TyLoc`.
+### Store As a Function
+
+There are many ways to define a storage structure in Haskell.  A list of pairs, some kind of array-like structure, or a linked list all come to mind.  We will use a technique using a function to represent storage that is common in the formal methods and modeling community.  This technique is descriptive in that it will define how storage should behave and not necessarily how it should be implemented.
+
+The new type `Sto` will implement a basic concept of storage.   `Sto` has the following definition:
+
+```haskell
+Sto :: Loc -> Maybe FBAEVal
+```
+
+`Sto` will be a mapping from location to either a value or nothing.  Seems like an excellent definition of storage.  Given `s::Sto` then `s l` for some `l::Loc` will return a value or will return nothing.
+
+The simplest way to model a location is using integers.  This is necessarily flawed because locations are not negative and there are not an infinite number of them.  For our purposes, integers plus a bit of care will be fine:
+
+```haskell
+type Loc = Int
+```
+
+The simplest store to think about is an empty store.   The empty store contains no values and all locations should return `Nothing` if accessed.  A function with this behavior is easily defined  as:
+
+```haskell
+initSto :: Sto
+initSto x = Nothing
+```
+
+The function `initSto` will return `Nothing` for every input location.  Exactly the behavior we wanted from our empty store.  Given any location `initSto l` returns `Nothing`.
+
+Updating storage to contain new values is a matter of creating a new `Sto` function with the property that every location except the updated location will return their original value while the updated location returns the new value.  Lets assume `s::Sto` is an existing store and we would like to update `s 1` to contain `5`.  We need a new function that returns `s l` for every location other than `1` and `5` for location `1`.  Such a function is rather easy to define:
+
+```haskell
+\l -> if l==1 then Just 5 else m l
+```
+
+In this new store if `l` is `1` then `Just 5` is returned.  However, if `l` is not `1`, then whatever is associated with `l` in the original store, `m`, is returned.  This is precisely what we want.  We can write a simple utility function that takes a store, a location and a new value and produces a new store:
+
+```haskell
+setSto :: Sto -> Loc -> FBAEVal -> Sto
+setSto s l v = \m -> if m==l then (Just v) else (s m)
+```
+
+Starting with the initial store defined above, repeated applications of `setSto` will associate values with locations.  Any location that is not explicitly set will return `Nothing` when dereferenced.  It should be clear that if a location is set multiple times, the latest value is always returned.
+
+Unfortunately, `new` introduces a hiccup in our nice memory model.  Given a value, `new` allocates a fresh location and stores the value in that location.  The trick is accomplishing _fresh location_.  We need to ensure that every new location has not been used before.
+
+The simplest way to implement `new` is to allocate locations starting with `0` and counting up with each call to `new`. The first location allocated is `0`, the section `1`, the third `2` and so forth.  We then must ensure that storage cannot be allocated without calling `new`. The latter is easy.  Locations do not have a concrete syntax and cannot be operated on other that dereference.  No pointer arithmetic or casting a number to a location.  Locations are values that cannot be changed and cannot be generated other than using `new`. 
+
+To implement the monotonic counter let’s define a new type, `Store` that is a `Loc`/`Sto` pair:
+
+```haskell
+type Store = (Int,Sto)
+```
+
+We now now define all our operations over this new type:
+
+```haskell
+initStore :: Store
+initStore = (0,initSto)
+```
+
+```haskell
+derefStore :: Store -> Maybe FBAEVal
+derefStore (l,s) = deref s
+```
+
+```haskell
+setStore :: Store -> Store
+setStore :: (l,s) = (setSto l s
+
+and finally `new` for which we did this work:
+
+```haskell
+newStore :: Store -> FBAEVal -> Loc
+newStore (i,s) v = 
+
+
+
+`new :: FBAEVal -> FBAEVal`
+`deref :: FBAEVal -> FBAEVal`
+`set :: FBAEVal -> FBAEVal -> FBAEVal`
 
 Define a new type called `Sto`
 
 ```haskell
 type Sto = location -> FBAEVal
 ```
-
 Update `FBAEVal` to include `location`:
 
 ```haskell

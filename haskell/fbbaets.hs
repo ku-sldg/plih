@@ -401,3 +401,4 @@ intMi e = let p=(parseFBAE e) in
               if (t==(Just TNum)) || (t==(Just TBool)) || (t==(Just TLoc))
               then (evalMi p)
               else Nothing
+

@@ -309,6 +309,11 @@ ex1 = (Bind "x" (New (Num 3))
 
 ex1s = "bind x = (new 3) in x := (1+(deref x)) ; (deref x)"
 
+ex2 = (Bind "f" (New (Lambda "x" TNum (Plus (Id "x") (Num 1))))
+        (App (Deref (Id "f")) (Num 1)))
+
+ex2s = "bind f = (new (lambda (x:Nat) in x+1)) in ((deref f) 1)"
+
 -- Type Checker has not been updated to include state.
 
 typeofM :: ContS -> FBAE -> (Maybe TFBAE)

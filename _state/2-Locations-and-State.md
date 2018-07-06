@@ -196,14 +196,12 @@ initStore = (0,initSto)
 
 ```haskell
 derefStore :: Store -> Maybe FBAEVal
-derefStore (l,s) = deref s
+derefStore (i,s) = deref s
 ```
 
-**This is broken**
-
 ```haskell
-setStore :: Store -> Store
-setStore :: (l,s) = (l,setSto l s)
+setStore :: Store -> Loc -> FBAEVal -> Store
+setStore :: (i,s) l v = (i,(setSto s l v))
 ```
 
 and finally `new` for which we did this work:
@@ -211,8 +209,9 @@ and finally `new` for which we did this work:
 **This is broken**
 
 ```haskell
+setSto :: Sto -> Loc -> FBAEVal -> Sto
 newStore :: Store -> Store
-newStore (i,s) = ((i+1),s)
+newStore (i,s) = ((i+1),(setSto s i v))
 ```
 
 

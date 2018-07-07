@@ -173,7 +173,7 @@ term = bindExpr
 
 ty = buildExpressionParser tyoperators tyTerm
 
-tyoperators = [ [Infix (reservedOp "->" >> return (:->: )) AssocLeft ] ]
+tyoperators = [ [ binary "->" (:->:) AssocLeft ] ]
 
 tyTerm :: Parser TFBAE
 tyTerm = parens ty <|> tyNat <|> tyBool

@@ -1,0 +1,6 @@
+-- Haskell Playground 1.0
+evalMi ex1
+evalMi ex2
+parseFBAE "f 3 4 6"
+parseFBAE "!l"
+evalMi (parseFBAE ex1s)

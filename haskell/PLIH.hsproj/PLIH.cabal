@@ -10,32 +10,34 @@ stability: experimental
 synopsis: Haskell code for PLIH
 category: Education
 author: Perry Alexander
-x-ghc-framework-version: 8.0.2-8.9-3
-x-last-ide-version: HfM1.5.1
-Executable Untitled
-  main-is: Main.hs
-  buildable: True
-  build-depends:
-      base -any,
-      QuickCheck -any,
-      random -any,
-      parsec -any
-  other-modules:
-      Ae
-      Proj2Utils
-      Fbae
-      Proj2
-      Fbaer
-      Bbaet
-      Do
-      Abe
-      Fbaesr
-      Bae
-      ParserUtils
-      AbeM
-      FbaesM
-      Fbaes
-      Proj3Utils
-      Fbaet
-      FbaeM
-      Fbbaet
+x-ghc-framework-version: 8.0.2-9.6-1
+x-last-ide-version: HfM1.6.0
+
+executable Untitled
+    main-is: Main.hs
+    build-depends:
+        base -any,
+        QuickCheck -any,
+        random -any,
+        parsec -any
+    other-modules:
+        Ae
+        Proj2Utils
+        Fbae
+        Proj2
+        Fbaer
+        Bbaet
+        Do
+        Abe
+        Fbaesr
+        Bae
+        Fbbaets
+        ParserUtils
+        AbeM
+        FbaesM
+        Fbaes
+        Proj3Utils
+        Fbaet
+        FbaeM
+        Fbbaet
+

@@ -176,7 +176,7 @@ ty = buildExpressionParser tyoperators tyTerm
 tyoperators = [ [ binary "->" (:->:) AssocLeft ] ]
 
 tyTerm :: Parser TFBAE
-tyTerm = parens ty <|> tyNat <|> tyBool
+tyTerm = parens ty <|> tyNat <|> tyBool 
 
 tyNat :: Parser TFBAE
 tyNat = do reserved "Nat"

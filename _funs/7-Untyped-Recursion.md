@@ -14,8 +14,8 @@ computer science.  In the simplest sense, a recursive structure refers to itself
 ```text
 bind fact =
   lambda x in
-     if x=0 then 1 else x * (app fact x-1) in
-  app fact 3
+     if x=0 then 1 else x * (fact x-1) in
+  (fact 3)
 ```
 
 We can write recursive functions with no extension to our language with virtually no extensions.  Now we have an iteration capability similar to what is provided by Haskell and Lisp and available in virtually every modern language.
@@ -46,8 +46,8 @@ To understand why recursion works with no extensions using dynamic scoping we ne
 ```text
 bind fact =                                    []
   lambda x in                                  [(x,??)]
-     if x=0 then 1 else x * (app fact x-1) in  [(fact,(Lambda "x" ...))]
-  app fact 3
+     if x=0 then 1 else x * (fact (x-1)) in    [(fact,(Lambda "x" ...))]
+  (fact 3)
 ```
 
 Execution begins with nothing in scope when `bind` begins evaluation. As the `lambda` begins, it's parameter is added to scope.  Thus, the body of the `lambda` can use `x`.  When the `lambda` closes, `x` leaves scope, but as the `bind`'s declaration closes `fact` is added. When `fact 3` evaluates, `fact` is define.
@@ -61,8 +61,8 @@ To understand why recursion fails using static scoping, we need to look carefull
 ```text
 bind fact =                                    []
   lambda x in                                  [(x,??)]
-     if x=0 then 1 else x * (app fact x-1) in  [(fact,(Closure "x" ...))]
-  app fact 3
+     if x=0 then 1 else x * (fact (x-1)) in    [(fact,(Closure "x" ...))]
+  (fact 3)
 ```
 
 This time we need to remember that the `lambda` looks for identifiers in the scope where it is defined rather than where it executes. Looking at `lambda`, the only variable in scope in its body is `x`. It doesn't yet have a value, but it is in scope when it is called on an actual parameter.  In the body of `bind`, where `fact` is applied to `3` its definition is in scope.  Why then do we get an error saying `fact` is not in scope?
@@ -72,8 +72,8 @@ We get a hint if we do the same evaluation, but this time using `0` as the argum
 ```text
 bind fact =                                    []
   lambda x in                                  [(x,??)]
-     if x=0 then 1 else x * (app fact x-1) in  [(fact,(Closure "x" ...))]
-  app fact 0
+     if x=0 then 1 else x * (fact (x-1)) in    [(fact,(Closure "x" ...))]
+  (fact 0)
 == 1
 ```
 
@@ -96,44 +96,44 @@ We will look at three recursive constructs.  The $\Omega$ is a trivial infinitel
 Take a look at the following function application:
 
 ```text
-(app (lambda x in (app x x)) (lambda y in (app y y)))
+((lambda x in (x x)) (lambda y in (y y)))
 ```
 
 What will any of our evaluators this far do with this?  Let's see:
 
 ```text
-eval [] (app (lambda x in (app x x)) (lambda y in (app y y)))
-== app x x                     [(x,(lambda y in (app y y)))]
-== app (lambda y in (app y y)) (lambda y in (app y y))
+eval [] ((lambda x in (x x)) (lambda y in (y y)))
+== (x x)                                          [(x,(lambda y in (y y)))]
+== ((lambda y in (y y)) (lambda y in (y y))
 ```
 
-Interesting.  It would seem that this particular expression evaluates to itself.  It doesn't stop there.  This is an `app`, not a value, so it will in turn be evaluated and again evaluate to itself.  Which will evaluate to itself again and again and again. It does not terminate. Thus far, we've not even seen iteration or recursion and suddenly we have an expression that does not terminate when evaluated.
+Interesting.  It would seem that this particular expression evaluates to itself.  It doesn't stop there.  This is an app, not a value, so it will in turn be evaluated and again evaluate to itself.  Which will evaluate to itself again and again and again. It does not terminate. Thus far, we've not even seen iteration or recursion and suddenly we have an expression that does not terminate when evaluated.
 
 This structure is called the _$\Omega$ combinator_ or simply $\Omega$ and is interesting precisely because when evaluated it does not terminate.  It is the basis for recursion in an untyped language, but obviously not quite the function we want  If you pop $\Omega$ into any of our `FBAE` interpreters you'll see this nontermination in action.
 
 Let's dissect $\Omega$ just a bit more and try to understand what it does.  At its heart it's a simple `lambda` that applies its argument to itself:
 
 ```text
-(lambda x in (app x x))
+(lambda x in (x x))
 ```
 
-`x` serves as both a function and its argument.  We like to think of `app` as simple function application and in one sense that's what it is.  In another sence, `app` can define computational patterns.  In this case a simple pattern that applies a function to itself that gives us _recursion_.
+`x` serves as both a function and its argument.  We like to think of application as simple function application and in one sense that's what it is.  In another sence, an application can define computational patterns.  In this case a simple pattern that applies a function to itself that gives us _recursion_.
 
 Hmmm.  Every recursive function you've ever written makes a call to itself.  Like this:
 
 ```text
-fact x = if x=0 then 1 else x * fact x-1
+fact x = if x=0 then 1 else x * fact (x-1)
 ```
 
 Clearly `fact` calls `fact`.  In the $\Omega$ case no such call
-occurs.  Or does it?  Interestingly neither instance of `lambda` has a name, but they are identical.  The first `lambda` gives the second `lambda` a name when it is instantiated.  Think about it.  When the `app` is evaluated, its argument gets the name `x` and that `x` becomes the same as the function it appears in.  Do you see the recursion?
+occurs.  Or does it?  Interestingly neither instance of `lambda` has a name, but they are identical.  The first `lambda` gives the second `lambda` a name when it is instantiated.  Think about it.  When the application is evaluated, its argument gets the name `x` and that `x` becomes the same as the function it appears in.  Do you see the recursion?
 
-Passing a copy of `lambda x in (app x x)` to itself and using that copy as a function gives us recursion.  `(app x x)` becomes $\Omega$ in side $\Omega$.  What a beautiful construction!
+Passing a copy of `lambda x in (x x)` to itself and using that copy as a function gives us recursion.  `(x x)` becomes $\Omega$ in side $\Omega$.  What a beautiful construction!
 
 If we evaluate this expression:
 
 ```text
-(app (lambda x in (app x x)) (lambda y in y))
+((lambda x in (x x)) (lambda y in y))
 ```
 
 it terminates immediately because the second `lambda` simply returns its argument.  For $\Omega$ to work, the argument `lambda` must be identical to the function `lambda`.
@@ -142,67 +142,67 @@ Now we have $\Omega$ and it's groovy and we can't use it for a darn thing other 
 
 ## Y
 
-Omega showed us how `app` within `lambda` can create patterns.  Let's look at another one that is a touch more useful than omega:
+Omega showed us how application within `lambda` can create patterns.  Let's look at another one that is a touch more useful than omega:
 
 ```text
-bind Y = (lambda f (lambda x in (app f (app x x)))
-                   (lambda x in (app f (app x x))))
+bind Y = (lambda f (lambda x in (f (x x)))
+                   (lambda x in (f (x x))))
   in ...
 ```
 
-This expression that we've named `Y` looks a bit like omega, but with a twist.  The first argument to `Y` is `f` which appears in the body in the function position of an `app`.  So, `f` would be some function that we will input to `Y`.  Let's assume that we have such an `f` we'll call `F` and apply `Y` to it and see what we get:
+This expression that we've named `Y` looks a bit like omega, but with a twist.  The first argument to `Y` is `f` which appears in the body in the function position of an application.  So, `f` would be some function that we will input to `Y`.  Let's assume that we have such an `f` we'll call `F` and apply `Y` to it and see what we get:
 
 ```text
-bind Y = (lambda f (app (lambda x in (app f (app x x)))
-                        (lambda x in (app f (app x x))))
-  in (app Y F)
-== (app (lambda x in (app F (app x x))) (lambda x in (app F (app x x))))
+bind Y = (lambda f ((lambda x in (f (x x)))
+                    (lambda x in (f (x x))))
+  in (Y F)
+== ((lambda x in (F (x x))) (lambda x in (F (x x))))
 ```
 
 Now it looks even more like $\Omega$.  Lets evaluate the expression a few more times and see what we get:
 
 ```text
-bind Y = (lambda f (app (lambda x in (app f (app x x)))
-                        (lambda x in (app f (app x x))))
-  in (app Y F)
-== (app (lambda x in (app F (app x x))) (lambda x in (app F (app x x))))
-== (app F (app x x)) [(x,(lambda x in (app F (app x x))))]
-== (app F (app (lambda x in (app F (app x x))) (lambda x in (app F (app x x)))))
-== (app F (app F (app x x))) [(x,(lambda x in (app F (app x x))))]
-== (app F (app F (app (lambda x in (app F (app x x))) (lambda x in (app F (app x x))))))
+bind Y = (lambda f ((lambda x in (f (x x)))
+                    (lambda x in (f (x x))))
+  in (Y F)
+== ((lambda x in (F (x x))) (lambda x in (F (x x))))
+== (F (x x)) [(x,(lambda x in (F (x x))))]
+== (F ((lambda x in (F (x x))) (lambda x in (F (x x)))))
+== (F (F (x x))) [(x,(lambda x in (F (x x))))]
+== (F (F ((lambda x in (F (x x))) (lambda x in (F (x x))))))
 ...
 ```
 
-It seems that each time we evaluate `(app Y F)`, we get a new copy of `F` out in front of the expression.  Whatever `F` might be it gets called over and over again with something akin to $\Omega$ as one of its arguments.  Regardless, `F` will be called over and over again.
+It seems that each time we evaluate `(Y F)`, we get a new copy of `F` out in front of the expression.  Whatever `F` might be it gets called over and over again with something akin to $\Omega$ as one of its arguments.  Regardless, `F` will be called over and over again.
 
 Having established that, let's think about `F` in two ways.  First, can we program a kind of off switch in `F` that turns off when we've evaluated `F` enough times?  Second, can we grab input data with `F`? In addition to not terminating, $\Omega$ could not accept any input. Let's think about the off switch first.  If we can't turn `Y` off then it will be just as groovy as $\Omega$ and just as useless.
 
 Whatever else is true about `F`, its first argument is the `Y` applied to `F`.  Evaluating that is what causes `F` to be called
-recursively. If we want to turn `(app Y F)` off then we can't make that recursive call.  Thankfully we have an `if` that allows evaluating a condition.  Let's look at a pattern for `F`:
+recursively. If we want to turn `(Y F)` off then we can't make that recursive call.  Thankfully we have an `if` that allows evaluating a condition.  Let's look at a pattern for `F`:
 
 ```text
 F = lambda g in if c then off else g)
 ```
 
-`F`'s first argument is the recursive call.  If `c` is 1, then `g` is not called and `(app Y F)` terminates.  We don't know what `c` is yet, but we can look at what happens when it is not 1:
+`F`'s first argument is the recursive call.  If `c` is 1, then `g` is not called and `(Y F)` terminates.  We don't know what `c` is yet, but we can look at what happens when it is not 1:
 
 ```text
-(app Y (lambda g in if true then off else g))
-== (app (lambda x in (app (lambda g in if true then off else g) (app x x)))
-        (lambda x in (app (lambda g in if true then off else g) (app x x))))
-== (app (lambda x in off)
-        (lambda x in off))
+(Y (lambda g in if true then off else g))
+== ((lambda x in ((lambda g in if true then off else g) (x x)))
+    (lambda x in ((lambda g in if true then off else g) (x x))))
+== ((lambda x in off)
+    (lambda x in off))
 == off
 ```
 
 Bingo.  If `c` is ever 	`false`, the whole thing shuts down and returns a value.  `off` is not really a value in this case, but serves as a placeholder.  What about 1?
 
 ```text
-(app Y (lambda g in if true then off else g))
-== (app (lambda x in (app (lambda g in if true then off else g) (app x x)))
-        (lambda x in (app (lambda g in if true then off else g) (app x x))))
-== (app (lambda x in (app g (app x x)))
-        (lambda x in (app g (app x x))))
+(Y (lambda g in if true then off else g))
+== ((lambda x in ((lambda g in if true then off else g) (x x)))
+    (lambda x in ((lambda g in if true then off else g) (x x))))
+== ((lambda x in (g (x x)))
+    (lambda x in (g (x x))))
 ...
 ```
 
@@ -213,49 +213,49 @@ One last problem.  `1` and `0` are great, but we really need the recursion to te
 Remember that `g` is the function called to cause recursion and is right now the only argument to `F`.  Let's try adding another that will serve as the data input to the calculation performed by `F`. Let's see how that works.  First, let's use a concrete value for `F` and although our interpreter doesn't do it, let's hold it abstract. This particular `F` sums up the values from 0 to its input argument `n`.
 
 ```text
-F = lambda g in (lambda z in if z=0 then z else z + (app g z-1))
+F = lambda g in (lambda z in if z=0 then z else z + (g z-1))
 ```
 
 Now let's set up the `Y` in `bind`.
 
 ```text
-bind F = (lambda g in (lambda z in if z=0 then z else z + (app g z-1))) in
-  bind Y = (lambda f (app (lambda x in (app f (app x x)))
-                          (lambda x in (app f (app x x))))
-    in (app (app Y F) 5)
+bind F = (lambda g in (lambda z in if z=0 then z else z + (g z-1))) in
+  bind Y = (lambda f ((lambda x in (f (x x)))
+                      (lambda x in (f (x x))))
+    in ((Y F) 5)
 ```
 
 The function we apply to `5` is obtained by applying `Y` to `F`.  Then we apply the result to `5`:
 
 ```text
-== (app (app (lambda x in (app F (app x x))) (lambda x in (app F (app x x)))) 5)
-== (app (app F (app x x)) 5) [(x,(lambda x in (app F (app x x))))]
+== (((lambda x in (F (x x))) (lambda x in (F (x x)))) 5)
+== ((F (x x)) 5) [(x,(lambda x in (F (x x))))]
 ```
 
-Let's evaluate the inner `app` first resulting in `x` bound to half of the `Y` combinator application to `F`.  Now lets expand `F` before going forward and evaluate the outermost `app`:
+Let's evaluate the inner application first resulting in `x` bound to half of the `Y` combinator application to `F`.  Now lets expand `F` before going forward and evaluate the outermost application:
 
 ```text
-== (app (app (lambda g in (lambda z in if z=0 then z else z + (app g z-1))) (app x x)) 5) [(x,(lambda x in (app F (app x x))))]
-== (app (lambda z in if z=0 then z else z + (app g z-1))) 5) [(g,(app x x)),(x,(lambda x in (app F (app x x))))]
+== (((lambda g in (lambda z in if z=0 then z else z + (g z-1))) (x x)) 5) [(x,(lambda x in (F (x x))))]
+== ((lambda z in if z=0 then z else z + (g z-1))) 5) [(g,(x x)),(x,(lambda x in (F (x x))))]
 ```
 
-The result is now `g` bound to `(app x x)` in the environment.  That seems a little odd, but look carefully at the environment.  `x` is already bound to half of the `Y` application.  That's perfect!  `g` is really the recursive call we want to make if that substitution is performed.  One more `app` evaluation binds `z` to 5:
+The result is now `g` bound to `(x x)` in the environment.  That seems a little odd, but look carefully at the environment.  `x` is already bound to half of the `Y` application.  That's perfect!  `g` is really the recursive call we want to make if that substitution is performed.  One more application evaluation binds `z` to 5:
 
 ```text
-== if z=0 then z else z + (app g z-1) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]
+== if z=0 then z else z + (g z-1) [(z,5),(g,(x x)),(x,(lambda x in (F (x x))))]
 ```
 
 Now we need to evaluate identifiers by replacing them with their values from the environment.
 
 ```text
-== 5 + (app g 5-1) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]
-== 5 + (app (app x x) 4) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]
+== 5 + (g 5-1) [(z,5),(g,(x x)),(x,(lambda x in (F (x x))))]
+== 5 + ((x x) 4) [(z,5),(g,(x x)),(x,(lambda x in (F (x x))))]
 ```
 
-Now we have `5+(app (app x x) 4)`, but remember what we said about `(app x x)`.  Using the current environment we can replace `x` with the `lambda` giving:
+Now we have `5+((x x) 4)`, but remember what we said about `(x x)`.  Using the current environment we can replace `x` with the `lambda` giving:
 
 ```text
-== 5 + (app (app (lambda x in (app F (app x x))) (lambda x in (app F (app x x)))) 4) [(z,5),(g,(app x x)),(x,(lambda x in (app F (app x x))))]
+== 5 + (((lambda x in (F (x x))) (lambda x in (F (x x)))) 4) [(z,5),(g,(x x)),(x,(lambda x in (F (x x))))]
 ```
 
 This is exactly what we want.  Compare the second term of the sum with our original expression.  The only difference is we're using 4 rather than 5, but that's exactly what we want!  So the `Y` gives us a recursive operation builder that takes a non-recursive function like `F` and makes it recursive.  All this without `F` knowing about itself!
@@ -267,15 +267,15 @@ The Y just discussed is often called the lazy Y because it only works using lazy
 The form of the Z is as follows:
 
 ```text
-bind Z = (lambda f (app (lambda x (app f (lambda v (app (app x x) v)))))
-                   (lambda x (app f (lambda v (app (app x x) v)))))) in
+bind Z = (lambda f ((lambda x (f (lambda v ((x x) v)))))
+                   (lambda x (f (lambda v ((x x) v)))))) in
    ...
 ```
 
 and unfortunately it is more involved than the traditional Y.
 
 ```text
-ff = lambda ie (lambda x (if x=0 then x else x (app ie (x - 1))))
+ff = lambda ie (lambda x (if x=0 then x else x (ie (x - 1))))
 ```
 
 ## Discussion

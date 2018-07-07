@@ -37,10 +37,10 @@ and we now have a final result.  But the function resulting from `plus3 1` is ju
 plus2 = plus3 0
 ```
 
-In `FBAE` and subsequent languages currying works the same way.  We simply use `app` to achieve application of a function to an argument. Given that we had defined `plus3` in `FBAE`, the previous function application would look like this:
+In `FBAE` and subsequent languages currying works the same way.  We simply use  application of a function to an argument. Given that we had defined `plus3` in `FBAE`, the previous function application would look like this:
 
 ```text
-(app (app (app plus3 1) 2) 3)
+(((plus3 1) 2) 3)
 ```
 
 It's a bit messier, but it works just the same an emphasizes the currying that's happening.
@@ -77,16 +77,16 @@ Just what we want.  The `bind` now just needs a body where `plus3` is used.  Let
 
 ```text
 bind plus3 to (lambda x in (lambda y in (lambda z in x + y + z))) in
-  (app (app (app plus3 1) 2) 3)
+  (((plus3 1) 2) 3)
 ```
 
 Now we can walk trough the evaluation of the `bind` body tracking the environment along the way:
 
 ```text
-(app (app (app plus3 1) 2) 3)
-== (app (app (app (lambda x in (lambda y in (lambda z in x + y + z))) 1) 2) 3) []
-== (app (app (lambda y in (lambda z in x + y + z))) 2) 3) [(x,1)]
-== (app (lambda z in x + y + z))) 3) [(x,1),(y,2)]
+(((plus3 1) 2) 3)
+== ((((lambda x in (lambda y in (lambda z in x + y + z))) 1) 2) 3) []
+== (((lambda y in (lambda z in x + y + z))) 2) 3) [(x,1)]
+== ((lambda z in x + y + z))) 3) [(x,1),(y,2)]
 == x + y + z [(x,1),(y,2),(z,3)]
 ...
 == 6

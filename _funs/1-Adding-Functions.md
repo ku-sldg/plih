@@ -140,18 +140,18 @@ $$\begin{align*}
 t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
 	  & \mid \bbind \ID=t\; \iin t \\
 	  & \mid \llambda \ID\; \ID\; t\; t \\
-	  & \mid \aapp \ID \; t \\
+	  & \mid \ID \; t \\
 \end{align*}$$
 
 The $\mathsf{lambda}$ term defines a new function named by its first $\ID$ argument.  The second $\ID$ names the formal parameter and $t$ is the body.  The final $t$ is the scope over where the function is defined.  In this sense, `lambda` behaves like a `bind` defining a function over an expression.
 
-$\aapp$ is the application of a function to an actual parameter.  $\ID$ is the name of the function and $t$ is the argument.
+Function application is the application of a function to an actual parameter.  We use the notation $(\ID\; t)$ to represent the application of $\ID$ to $t$ there $\ID$ is a function name.  There is no concrete syntax operator associated with application.
 
 We would define our old friend `inc` and use it in an expression as follows:
 
 ```haskell
 lambda inc x x+1 in
-  (app inc (app inc 7))
+  (inc (inc 7))
 ```
 
 The result is applying `inc` twice to `7`
@@ -173,7 +173,7 @@ data FBAE where
 
 What does it mean to apply a first-order function?
 
-$$\frac{}{(\aapp (\llambda f\; i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reduction]$$
+$$\frac{}{((\llambda f\; i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reduction]$$
 
 The details of implementing `eval` for first-order functions is left as an exercise.
 
@@ -189,7 +189,7 @@ $$\begin{align*}
 t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
 	  & \mid \bbind \ID=t\; \iin t \\
 	  & \mid \llambda \ID\; \iin t \\
-	  & \mid \aapp t \; t \\
+	  & \mid t \; t \\
 \end{align*}$$
 
 The third and fourth lines introduce the new syntax.  Functions are defined with the $\llambda$ keyword following by an argument and function body.  The value of our `inc` function in `FBAE` becomes:
@@ -204,14 +204,15 @@ and we can give it the name `inc` using a `bind`:
 bind inc = (lambda x in x+1) in ...
 ```
 
-where the ellipsis represents the remainder of the program using `inc`.  Applying inc is done using an `app` as in:
+where the ellipsis represents the remainder of the program using `inc`.  Applying inc is done using function application as in:
 
 ```haskell
 bind inc = lambda x in x+1 in
-  app inc 1
+  inc 1
 ```
+Function application uses the common syntax $(f\; t)$ represent the function $f$ applied to the term $t$.  Parenthesis are frequently ommitted when the application is unambiguous without them.
 
-We can now define a function, give it a name, and apply it to an actual parameter.
+We can now use concrete syntaxc to define a function, give it a name, and apply it to an actual parameter.
 
 Additions to abstract syntax include new fields for `Lambda` and `App`.  The definitions follow immediately from what we defined in the concrete syntax.  The new abstract syntax for `FBAE` becomes:
 
@@ -237,11 +238,11 @@ bind x = 5 in x
 lambda x in x
 ```
 
-`bind` defines a new identifier, binds it to a value, and uses the new identifier in the body of the `bind`.  `lambda` is quite similar in that it defines a new identifier and uses the new identifier in the body of the `lambda`.  However, it does not bind the identifier to a particular value.  That binding is deferred until the `lambda` is applied.  `bind` and `lambda` are cousins in that both define new identifiers.  `bind` and `app` are similarly cousins in that both bind values to identifiers.  Regardless of the relationship, we should be able to use the tools for defining `bind` to similarly defined `app`.
+`bind` defines a new identifier, binds it to a value, and uses the new identifier in the body of the `bind`.  `lambda` is quite similar in that it defines a new identifier and uses the new identifier in the body of the `lambda`.  However, it does not bind the identifier to a particular value.  That binding is deferred until the `lambda` is applied.  `bind` and `lambda` are cousins in that both define new identifiers.  `bind` and apply are similarly cousins in that both bind values to identifiers.  Regardless of the relationship, we should be able to use the tools for defining `bind` to similarly defined apply.
 
 The simplest definition for function application is called $\beta$-reduction and uses substitution to replace an identifier with its value.  In the $\beta$-reduction rule below, $i$ is the identifier defined by the $\mathsf{lambda}$, $b$ is the body of the $\llambda$ and $a$ is the argument the $\mathsf{lambda}$ is applied to:
 
-$$\frac{}{(\aapp (\llambda i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reduction]$$
+$$\frac{}{((\llambda i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reduction]$$
 
 The result of the application is $[i\mapsto a]b$, or replacing $i$ with $a$ in $b$.  This is exactly how we expect functions to behave. When applied, their formal parameter is replaced with an actual parameter and the result becomes the function application's value.
 
@@ -362,7 +363,7 @@ Whether you realize it or not, we have introduced a new kind of value to our int
 
 ```haskell
 bind f = (lambda x in x+1) in
-  app f f
+  f f
 ```
 
 will crash.  `f` can take any argument, but its expression `x+1` will only operate on numbers.
@@ -373,7 +374,7 @@ Let's consider the following code snippet:
 
 ```haskell
 bind f = (lambda x in x + n) in
-  app f 1
+  f 1
 ```
 
 The `bind` defines `f` whose value is the function that returns its input plus `n`.  This looks quite a bit like `inc`, but instead adds `n` to the argument rather than `1`.  Where does `n` come from?  In this case, nowhere.  Both `evalS` and `eval` throw an error when they cannot find the value of `n`.  Let's now add an `n` with `f` in its scope:
@@ -381,7 +382,7 @@ The `bind` defines `f` whose value is the function that returns its input plus `
 ```haskell
 bind n = 1 in
   bind f = (lambda x in x + n) in
-	app f 1
+	  f 1
 ```
 
 The outer `bind` gives `n` the value `1`  while the inner `bind` gives `f` the lambda value that returns its input argument plus `n`.  We just defined `f` in the context of `n`.  When we evaluate the new `bind` bith `evalS` and `eval` give us the value `2` as expected.  So far so good.
@@ -392,7 +393,7 @@ Lets take this one step further by defining multiple, nested values of `n` by ma
 bind n = 1 in
   bind f = (lambda x in x + n) in
     bind n = 2 in
-      app f 1
+      f 1
 ```
 
 What do you expect to get when evaluating this expression?  `evalS` gives us the value `2`.  However, `eval` gives us the value `3`. What's happening here?  Whatever it is, its bad because our two interpreters for the same language are now giving different results with `evalS` and `eval`.  Same language using deferred substitution rather than immediate substitution giving different values.

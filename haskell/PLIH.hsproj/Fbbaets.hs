@@ -309,7 +309,7 @@ ex1 = (Bind "x" (New (Num 3))
          (Set (Id "x") (Plus (Num 1) (Deref (Id "x"))))
          (Deref (Id "x"))))
 
-ex1s = "bind x = (new 3) in x := (1+(!x)) ; (!x)"
+ex1s = "bind x = (new 3) in x := (1 + (!x)) ; !x"
 
 ex2 = (Bind "f" (New (Lambda "x" TNum (Plus (Id "x") (Num 1))))
         (App (Deref (Id "f")) (Num 1)))

@@ -68,7 +68,7 @@ semantics.  Look at this function:
 
 ```text
 bind silly = lambda x in x + x + x + x + x + x + x + x + x + x in
-  (app silly (app silly (app silly 1 + 3 - 7 + (app f 5) + 21)))
+  (silly (silly (silly 1 + 3 - 7 + (f 5) + 21)))
 ```
 
 This really silly function uses `x` over and over again.  Using strict
@@ -84,7 +84,7 @@ On the other hand, this `if` expression does not evaluate `silly` at all:
 
 ```text
 bind silly = lambda x in x + x + x + x + x + x + x + x + x + x in
-  if 0 then (app silly 5) else 5
+  if 0 then (silly 5) else 5
 ```
 
 It's never used in the `if` and thus not evaluated.  Using strict
@@ -132,6 +132,6 @@ pointer value is evaluated without evaluating what it points to.
    evaluation.  Define a new language that implements this feature by
    defining two versions of `App`, - `AppS` and `AppL`.  Do not worry
    about a concrete syntax.  Simply replace `App` in the abstract
-   syntax and define a new `eval` function. 
+   syntax and define a new `eval` function.
 
 ## Notes

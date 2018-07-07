@@ -12,7 +12,7 @@ Before going further, let's take a shot at understanding why the two interpreter
 ```text
 bind n = 1 inv
   bind f = (lambda x in x + n) in
-	app f 1
+	  (f 1)
 ```
 
 First, the immediate substitution interpreter defined by `evals`:
@@ -20,30 +20,30 @@ First, the immediate substitution interpreter defined by `evals`:
 ```text
 bind n = 1 in
   bind f = (lambda x in x + n) in
-    app f 1
+    (f 1)
 ==
 bind f = (lambda x in x + 1) in
-  app f 1
-== app (lambda x in x + 1) 1
+  (f 1)
+== ((lambda x in x + 1) 1)
 == 1 + 1
 == 2
 ```
 
-Each step represents one recursive call to `evals`.  The first step immediately substitutes `1` for `n` throughout the remainder of the expression.  The second does the same for `f`.  Finally, the `app` evaluates substituting `1` for `x` in `x+1`.  The resulting value is `2`.
+Each step represents one recursive call to `evals`.  The first step immediately substitutes `1` for `n` throughout the remainder of the expression.  The second does the same for `f`.  Finally, the application evaluates substituting `1` for `x` in `x+1`.  The resulting value is `2`.
 
 Now let's look at the defered substitution interpreter implemented by `evalM`:
 
 ```text
 bind n = 1 in                     [(n,1)]
   bind f = (lambda x in x + n) in [(f,(lambda...)),(n,1)]
-	app f 1                       [(f,(lambda...)),(n,1)]
-== app (lambda x in x + n) 1
+	  (f 1)                         [(f,(lambda...)),(n,1)]
+== ((lambda x in x + n) 1)
 == x + n                          [(x,1),(f,(lambda...)),(n,1)]
 == 1 + 1
 == 2
 ```
 
-The first `bind` adds a binding from `n` to `1` while the second adds a binding from `f` to the lambda expression.  The term `app f 1` is evaluated in the context of the resulting environment.  `f` is first replaced by the lambda, then $\beta$-reduction adds a binding of `1` to `x` in.  Now the term can be evaluated.  `x` is replaced by `1` and `n` by `1` and we're done.  The result is again `2`.
+The first `bind` adds a binding from `n` to `1` while the second adds a binding from `f` to the lambda expression.  The term `(f 1)` is evaluated in the context of the resulting environment.  `f` is first replaced by the lambda, then $\beta$-reduction adds a binding of `1` to `x` in.  Now the term can be evaluated.  `x` is replaced by `1` and `n` by `1` and we're done.  The result is again `2`.
 
 What happens in the second example using nested binds?  Again, let's look at the immediate substitution interpreter:
 
@@ -51,15 +51,15 @@ What happens in the second example using nested binds?  Again, let's look at the
 bind n = 1 in
   bind f = (lambda x in x + n) in
     bind n = 2 in
-      app f 1
+      (f 1)
 ==
   bind f = (lambda x in x + 1) in
     bind n = 2 in
-      app f 1
+      (f 1)
 ==
   bind n = 2 in
-    app (lambda x in x + 1) 1
-== app (lambda x in x + 1) 1
+    ((lambda x in x + 1) 1)
+== ((lambda x in x + 1) 1)
 == 1 + 1
 == 2
 ```
@@ -72,8 +72,8 @@ Now compare to the deferred substitution evaluator:
 bind n = 1 in                     [(n,1)]
   bind f = (lambda x in x + n) in [(f,(lambda ...)),(n,1)]
     bind n = 2 in                 [(n,2),(f,(lambda ...)),(n,1)]
-      app f 1
-== app (lambda x in x + n) 1
+      (f 1)
+== ((lambda x in x + n) 1)
 == x + n                          [(x,1),(n,2),(f,(lambda ...)),(n,1)]
 == 1 + n
 == 1 + 2
@@ -91,9 +91,10 @@ Clearly dynamic scoping differs from our reference implementation. However, is t
 ```text
 bind n = 1 in                      [(n,1)]
   bind f = (lambda x in x + n) in  [(f,(lambda...)),(n,1)]
-    bind n = app f 1 in            [(n,2),(f,(lambda...)),(n,1)]
-      bind n = app f 1 in          [(n,3),(n,2),(f,(lambda...)),(n,1)]
-        app f 1                    == 4
+    bind n = (f 1) in              [(n,2),(f,(lambda...)),(n,1)]
+      bind n = (f 1) in            [(n,3),(n,2),(f,(lambda...)),(n,1)]
+        (f 1)
+== 4
 ```
 
 In this expression, every time `f 1` is evaluated, the result is different.  Every time `f 1` is evaluted, the current environment must be known to determine the result.  Same function, same arguments, different result.  This is a debugging nightmare and generally, dynamic scoping is to be avoided.
@@ -112,8 +113,8 @@ To understand how a closure will work, lets consider the problematic `bind` eval
 bind n = 1 in                     [(n,1)]
   bind f = (lambda x in x + n) in [(f,(lambda ...)),(n,1)]
     bind n = 2 in                 [(n,2),(f,(lambda ...)),(n,1)]
-      app f 1
-== app (lambda x in x + n) 1
+      (f 1)
+== ((lambda x in x + n) 1)
 == x + n                          [(x,1),(n,2),(f,(lambda ...)),(n,1)]
 == 1 + n
 == 1 + 2
@@ -126,14 +127,14 @@ However, immediate substitution uses the static binding of `n` to `1` where `f` 
 [(x,1),(n,2),(f,(lambda ...)),(n,1)]
 ```
 
-where `f` is called is the _dynamic scope_ of `f`.  In general, the term _static_ refers to definition time while the term _dynamic_ refers to run time.  If we could use the static scope of `f` when evaluation occurs, all instances of `app f 1` generate the same value and the evaluation result matches the immediate substitution result. What we want is the following trace where the static scope gets used for evaluation:
+where `f` is called is the _dynamic scope_ of `f`.  In general, the term _static_ refers to definition time while the term _dynamic_ refers to run time.  If we could use the static scope of `f` when evaluation occurs, all instances of `(f 1)` generate the same value and the evaluation result matches the immediate substitution result. What we want is the following trace where the static scope gets used for evaluation:
 
 ```text
 bind n = 1 in                     [(n,1)]
   bind f = (lambda x in x + n) in [(f,(lambda ...)),(n,1)]
     bind n = 2 in                 [(n,2),(f,(lambda ...)),(n,1)]
-      app f 1
-== app (lambda x in x + n) 1
+      (f 1)
+== ((lambda x in x + n) 1)
 == x + n                          [(n,1)]
 == 1 + n
 == 1 + 1
@@ -283,7 +284,7 @@ To make sure we've implemented our statically scoped interpreter correctly, we c
 bind n = 1 in
   bind f = (lambda x in x + n) in
     bind n = 2 in
-      app f 1
+      (f 1)
 ```
 
 Interpreting this expression with our new inerpreter gives precisely the result hoped for.

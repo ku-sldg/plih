@@ -105,7 +105,7 @@ Note that the name `AEX` is chosen because `AEX` is called the _eXternal_ langua
 Our first derived form is for `bind`.  As it turns out, `bind` can be rewritten in terms of `lambda`.  The derived form of `bind` is expressed formally as:
 
 ```text
-bind x = t1 in t2 == (app (lambda x in t2) t1)
+bind x = t1 in t2 == ((lambda x in t2) t1)
 ```
 
 where `==` is the meta-language notion of equivalence or definition.
@@ -126,16 +126,16 @@ lambda x in x + 1
 
 The identifier `x` is defined over `x+1`, but has no value - the definition half of `bind`.
 
-The value half of `bind` is achieved with `app`.  When we apply a `lambda` to a value, the value is bound to the `lambda`'s formal parameter.  Thus:
+The value half of `bind` is achieved with function application  When we apply a `lambda` to a value, the value is bound to the `lambda`'s formal parameter.  Thus:
 
 ```text
-(app (lambda x in x + 1) 5)
+((lambda x in x + 1) 5)
 ```
 
 causes `x` to have the value `5` in `x+1`.  Furthermore, this works for any `lambda` and any value.  Just like `let`.  From these observations we define the derived form for `bind` as:
 
 ```text
-bind x = t1 in t2 == (app (lambda x in t2) t1)
+bind x = t1 in t2 == ((lambda x in t2) t1)
 ```
 
 ## Pairs as a Derived Form
@@ -165,8 +165,8 @@ We'll skip the concrete syntax as it tends to be uninteresting. Particularly her
 
 ```text
 cons t1 t2 == lambda x in if x then t1 else t1
-car t1 == app t1 true
-cdr t1 == app t1 false
+car t1 == t1 true
+cdr t1 == t1 false
 ```
 
 `cons` is implemented as a `lambda` over 1 argument created using the two pair elments, `t1` and `t2`.  The encapsulated `if` will return `t1` if the `lambda` input is `true` and `t2` if it is false.  `car` and `cdr` apply a pair to `true` and `false` respectively.  `car` will return the first argument to `cons` and `cdr` the second.

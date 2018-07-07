@@ -19,7 +19,7 @@ where `Env` is defined as a list of string, value pairs:
 type Env = [ (string,FBAEVal) ]
 ```
 
-When using `evalM`, an environment is explicitly passed as an argument.  The environment is updated by `bind` and `app`, then passed to subsequent calls to `evalM`.  Even when a term does not require an environment for evaluation, it still appears in the `evalM` signature.  While this works fine, we typically don't pass environments to interpreters to evaluation functions.  For example, one does not pass an environment to the Haskell or Racket evaluator. Instead, the environment exists as an _ephemeral data structure_ the interpreter is aware of implicitly.   It is there in the background, ready to be used when needed.
+When using `evalM`, an environment is explicitly passed as an argument.  The environment is updated by `bind` and application, then passed to subsequent calls to `evalM`.  Even when a term does not require an environment for evaluation, it still appears in the `evalM` signature.  While this works fine, we typically don't pass environments to interpreters to evaluation functions.  For example, one does not pass an environment to the Haskell or Racket evaluator. Instead, the environment exists as an _ephemeral data structure_ the interpreter is aware of implicitly.   It is there in the background, ready to be used when needed.
 
 The `Reader` monad gives us exactly this capability for maintaining an environment during evaluation.  Our next interpreter will use the `Reader` to manage the environment during execution, making it available without explicitly passing it around as a parameter.  It will be there when needed and disappear from most terms in the `evalM` definition.
 
@@ -440,7 +440,7 @@ evalM (App f a) = do { (ClosureV i b e) <- (evalM f) ;
 
 Bingo.  `useClosure` creates a new environment by adding the new binding needed for evaluating `App` to the environment from the closure.  `local` plugs that in and we're now good go go.
 
-Now that we know how to build an environment from `app` and `bind`, it's time to evaluate identifiers by looking them up.  `ask` returns the environment that is in turn bound to `env`.  A `lookup` is performed to find `id` in `env`.  If it's there, return it.  If it's not, throw an error.
+Now that we know how to build an environment from application and `bind`, it's time to evaluate identifiers by looking them up.  `ask` returns the environment that is in turn bound to `env`.  A `lookup` is performed to find `id` in `env`.  If it's there, return it.  If it's not, throw an error.
 
 ```haskell
 evalM (Id id) = do { env <- ask ;
@@ -515,7 +515,7 @@ typeofM (Lambda i t b) = do {
   return (TFun t r') }
 ```
 
-The `App` case uses `typeofM` to get the type of the function and its argument.  The function type provides the domain and range of the associated function.  If the type of the argument is the domain type, then the `app` is the range type.  If they do not match, then `typeofM` throws an error.  The `if` expression is where all the work for this function is performed:
+The `App` case uses `typeofM` to get the type of the function and its argument.  The function type provides the domain and range of the associated function.  If the type of the argument is the domain type, then the application is the range type.  If they do not match, then `typeofM` throws an error.  The `if` expression is where all the work for this function is performed:
 
 ```haskell
 typeofM (App f v) = do }

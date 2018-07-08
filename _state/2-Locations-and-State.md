@@ -81,9 +81,9 @@ bind loc = new 5 in
   (set loc (deref loc) + 1) ; deref loc
 ```
 
-This is a clever implementation of `loc := loc + 1`.  Because the store is emphemeral, it is updated in subsequent statements.  `deref loc` returns the new value.
+This is a clever implementation of `loc := loc + 1`.  Because the store is emphemeral, it is updated in subsequent statements.  `deref loc` returns the new value.  It is also a clever example of why storage is different than an environment.  The environment the `set` term runs in is _the same_ environment the `deref` term runs in.  The store used by the `deref` term is the store _resulting from_ the `set` term.  The interpreter for this language must manage the store differently than the environment.
 
-In this example we create two identifiers that reference the same location, change one and see the impact on the other:
+In the following example we create two identifiers that reference the same location, change one and see the impact on the other:
 
 ```text
 bind m = new 5 in
@@ -119,13 +119,13 @@ One more example before talking about implementation.  Locations can store any v
 
 ```text
 bind inc = new (lambda l in (set l ((deref l) + 1))) in
-  bind f = (lambda l in (lambda n in ((app (deref l) n)))) in
+  bind f = (lambda l in (lambda n in (((deref l) n)))) in
     bind g = new 5 in
-      (app (app f inc) g) ; deref g
+      ((f inc) g) ; deref g
 == ??
 ```
 
-`inc` remains unchanged from the previous definition except the addition of `new`.  There is no magic here.  `inc` is a location containing the same function as before.  Remember, `lambda`’s are values and can be treated as such.  Storing the `lambda` in a location is no big deal.  `f` is a nested lambda and should be thought of as a curry-stle function.  The first parameter must be a location because it is dereferenced.  the result is the first argument to `app` and must be a function.  So, `l` most be a location containing a function.  The second argument to `f` is used as an argument to the dereference function.  It must also be a location.  Thankfully, `g` is just a location containing `5`.
+`inc` remains unchanged from the previous definition except the addition of `new`.  There is no magic here.  `inc` is a location containing the same function as before.  Remember, `lambda`’s are values and can be treated as such.  Storing the `lambda` in a location is no big deal.  `f` is a nested lambda and should be thought of as a curry-stle function.  The first parameter must be a location because it is dereferenced.  The result is the first argument in the application and must be a function.  So, `l` most be a location containing a function.  The second argument to `f` is used as an argument to the dereference function.  It must also be a location.  Thankfully, `g` is just a location containing `5`.
 
 The body of the bind applies `f` to `inc` and the resulting function to `g`.  `(deref l)` in `f`becomes our old `inc` function and is applied to `g`, the location containing `5`.  Because `inc` sets the location passed as `l` the contents of the location bound to `g` are also changed.  Finally, a dereference of `g` results in `6`.  All that work for a`6`.
 

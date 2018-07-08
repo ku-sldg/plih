@@ -172,7 +172,7 @@ This sounds restrictive, but it is true to the concept that a statement need not
 Seq l r == (app (lambda _:unit in r) l)
 ```
 
-## discussion
+## Discussion
 
 We're going to skip the full implementation of sequence for now.  It is quite important in our upcoming discussion of state, but as of right now sequence doesn't do a thing.  Literally.  We can sequence FBAE terms as much as we want and the execution result will never differ from simply executing the last operation in the sequence.  Why is this?  By definition the execution of the first term in a sequence never passes anything to the second.  The `Monad` implementation drops the first term on the floor.  The elaboration implementation makes sure the first result cannot be used in the second computation buy using a wildcard.  So what is sequence for?  When we add global state you will recognize its importance quickly.
 

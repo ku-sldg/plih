@@ -12,29 +12,35 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 -- extended to include mutable store.
 
 -- AST for types
-data TFBAE = TNum | TBool | TFBAE :->: TFBAE | TLoc TFBAE deriving (Show,Eq)
+data TFBAE where
+  TNum :: TFBAE
+  TBool :: TFBAE
+  (:->:) :: TFBAE -> TFBAE -> TFBAE
+  TLoc :: TFBAE -> TFBAE
+  deriving (Show,Eq)
 
 -- AST for terms
-data FBAE = Num Int
-          | Plus FBAE FBAE
-          | Minus FBAE FBAE
-          | Mult FBAE FBAE
-          | Div FBAE FBAE
-          | Bind String FBAE FBAE
-          | Lambda String TFBAE FBAE
-          | App FBAE FBAE
-          | Id String
-          | Boolean Bool
-          | And FBAE FBAE
-          | Or FBAE FBAE
-          | Leq FBAE FBAE
-          | IsZero FBAE
-          | If FBAE FBAE FBAE
-          | New FBAE
-          | Set FBAE FBAE
-          | Deref FBAE
-          | Seq FBAE FBAE
-          deriving (Show,Eq)
+data FBAE where
+  Num :: Int -> FBAE
+  Plus :: FBAE -> FBAE -> FBAE
+  Minus :: FBAE -> FBAE -> FBAE
+  Mult :: FBAE -> FBAE -> FBAE
+  Div :: FBAE -> FBAE -> FBAE
+  Bind :: String -> FBAE -> FBAE -> FBAE
+  Lambda :: String -> TFBAE -> FBAE -> FBAE
+  App :: FBAE -> FBAE -> FBAE
+  Id :: String -> FBAE
+  Boolean :: Bool -> FBAE
+  And :: FBAE -> FBAE -> FBAE
+  Or :: FBAE -> FBAE -> FBAE
+  Leq :: FBAE -> FBAE -> FBAE
+  IsZero :: FBAE -> FBAE
+  If :: FBAE -> FBAE -> FBAE -> FBAE
+  New :: FBAE -> FBAE
+  Set :: FBAE -> FBAE -> FBAE
+  Deref :: FBAE -> FBAE
+  Seq :: FBAE -> FBAE -> FBAE
+  deriving (Show,Eq)
 
 -- Term keywords
 names = [ "lambda"
@@ -212,13 +218,13 @@ parseFile p file =
 
 parseFBAEFile = parseFile expr
 
-type EnvS = [(String,FBAEVal)]
-type ContS = [(String,TFBAE)]
+type Env = [(String,FBAEVal)]
+type Cont = [(String,TFBAE)]
 
 data FBAEVal where
   NumV :: Int -> FBAEVal
   BooleanV :: Bool -> FBAEVal
-  ClosureV :: String -> TFBAE -> FBAE -> EnvS -> FBAEVal
+  ClosureV :: String -> TFBAE -> FBAE -> Env -> FBAEVal
   LocV :: Int -> FBAEVal
   deriving (Show,Eq)
 
@@ -249,7 +255,7 @@ openLoc x (i,m) = m x
 
 type RVal = Maybe (Sto,FBAEVal)
 
-evalM :: EnvS -> Sto -> FBAE -> RVal
+evalM :: Env -> Sto -> FBAE -> RVal
 evalM env sto (Num x) = return (sto,(NumV x))
 evalM env sto (Plus l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
                                 (sto'',(NumV r')) <- (evalM env sto' r) ;
@@ -323,7 +329,7 @@ ex2s = "bind f = (new (lambda (x:Nat) in x+1)) in ((!f) 1)"
 
 -- Type Checker uses a typed location.
 
-typeofM :: ContS -> FBAE -> (Maybe TFBAE)
+typeofM :: Cont -> FBAE -> (Maybe TFBAE)
 typeofM cont (Num x) = return TNum
 typeofM cont (Plus l r) = do { l' <- (typeofM cont l) ;
                                r' <- (typeofM cont r) ;

@@ -232,12 +232,53 @@ As we allocate more locations, `i` grows monotonically ensuring that new memory 
 Update `FBAEVal` to include `location`:
 
 ```haskell
-data FBAEVal where
-  NumV :: Int -> FBAEVal
-  BooleanV :: Bool -> FBAEVal
-  ClosureV :: String -> FBAETy -> FBAE -> Env -> FBAEVal
-  LocV :: Int -> FBAEVal
+data FBAE where
+  Num :: Int -> FBAE
+  Plus :: FBAE -> FBAE -> FBAE
+  Minus :: FBAE -> FBAE -> FBAE
+  Mult :: FBAE -> FBAE -> FBAE
+  Div :: FBAE -> FBAE -> FBAE
+  Bind :: String -> FBAE -> FBAE -> FBAE
+  Lambda :: String -> TFBAE -> FBAE -> FBAE
+  App :: FBAE -> FBAE -> FBAE
+  Id :: String -> FBAE
+  Boolean :: Bool -> FBAE
+  And :: FBAE -> FBAE -> FBAE
+  Or :: FBAE -> FBAE -> FBAE
+  Leq :: FBAE -> FBAE -> FBAE
+  IsZero :: FBAE -> FBAE
+  If :: FBAE -> FBAE -> FBAE -> FBAE
+  New :: FBAE -> FBAE
+  Set :: FBAE -> FBAE -> FBAE
+  Deref :: FBAE -> FBAE
+  Seq :: FBAE -> FBAE -> FBAE
+  deriving (Show,Eq)
 ```
+
+```haskell
+data TFBAE = TNum | TBool
+           | TFBAE :->: TFBAE
+           | TLoc TFBAE
+           deriving (Show,Eq)
+```
+
+
+```haskell
+data TFBAE where
+  TNum :: TFBAE
+  TBool :: TFBAE
+  (:->:) :: TFBAE -> TFBAE -> TFBAE
+  TLoc :: TFBAE -> TFBAE
+  deriving (Show,Eq)
+```
+
+```haskell
+type Env = [(String,FBAEVal)]
+type Cont = [(String,TFBAE)]
+```
+
+
+
 
 ## Discussion
 

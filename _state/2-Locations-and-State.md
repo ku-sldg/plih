@@ -184,46 +184,51 @@ The simplest way to implement `new` is to allocate locations starting with `0` a
 To implement the monotonic counter let’s define a new type, `Store` that is a `Loc`/`Sto` pair:
 
 ```haskell
-type Store = (Int,Sto)
+type Store = (Loc,Sto)
 ```
 
-We now now define all our operations over this new type:
+The `Loc` element represents the next location to allocate and the `Sto` element is the store value mapping locations to `Maybe FBAEVal`.  We now now define all our operations over this new type.
+
+First we define an initial store, `initStore`.  The initial store is initialized with `initSto` as the store value and `0` as the next fresh location.  No locations are allocated in the initial store and when we start allocating we will start with location 0:
 
 ```haskell
 initStore :: Store
 initStore = (0,initSto)
 ```
 
+We could provide a new initial store that loads the store with values we want in memory.  Additionally, we can checkpoint execution by copying the store value during execution and restarting with that value.  For our purposes we will start out by assuming each program execution should start with empty, uninitialized memory.
+
+`derefstore` returns the value stored at a particular location.  For `Store` we simply call `deref` on the `Sto` value and return the result:
+
 ```haskell
-derefStore :: Store -> Maybe FBAEVal
-derefStore (i,s) = deref s
+derefStore :: Store -> Loc -> Maybe FBAEVal
+derefStore (i,s) l = deref s l
 ```
+
+There is no need for range checking on the location value, `l` when calling `deref`.  Any unallocated location will return `Nothing` allowing an interpreter to manage bad location access.
+
+`setStore` is the analog to `derefStore` and implemented in nearly the same way.  Here we want to return a new `Store` with the value at location `l` replaced by a new value:
 
 ```haskell
 setStore :: Store -> Loc -> FBAEVal -> Store
 setStore :: (i,s) l v = (i,(setSto s l v))
 ```
 
-and finally `new` for which we did this work:
+The next fresh location value does not change and the new store  is calculated using `setSto` to update the store value.  Like `derefStore` there is no need to check the location value. Remember there is no concrete syntax for locations.  The only way to generate a location is to call `new` and all results of `new` are set and in range. 
 
-**This is broken**
+Finally `newStore` that updates the store and allocates a fresh location.  Like `setStore`, the `setSto` function is used to update the store an location `i`, where `i` is the next fresh location.  Additionally, the next fresh location is updated by incrementing `i`:
 
 ```haskell
-setSto :: Sto -> Loc -> FBAEVal -> Sto
 newStore :: Store -> Store
 newStore (i,s) = ((i+1),(setSto s i v))
 ```
 
+As we allocate more locations, `i` grows monotonically ensuring that new memory locations do not reuse already allocated locations.
 
 `new :: FBAEVal -> FBAEVal`
 `deref :: FBAEVal -> FBAEVal`
 `set :: FBAEVal -> FBAEVal -> FBAEVal`
 
-Define a new type called `Sto`
-
-```haskell
-type Sto = location -> FBAEVal
-```
 Update `FBAEVal` to include `location`:
 
 ```haskell

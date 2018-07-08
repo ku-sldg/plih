@@ -10,8 +10,10 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 
 -- Calculator language extended with an environment to hold defined variables
 
+-- AST for types
 data TFBAE = TNum | TBool | TFBAE :->: TFBAE | TLoc deriving (Show,Eq)
 
+-- AST for terms
 data FBAE = Num Int
           | Plus FBAE FBAE
           | Minus FBAE FBAE
@@ -33,6 +35,7 @@ data FBAE = Num Int
           | Seq FBAE FBAE
           deriving (Show,Eq)
 
+-- Term keywords
 names = [ "lambda"
         , "bind"
         , "in"
@@ -50,8 +53,10 @@ names = [ "lambda"
         , "Loc"
         ]
 
+-- Operator symbols
 ops = [ "+","-","*","/","&&","||","<=","=",":","->",";",":=","!"]
 
+-- Token lexer definition
 tokenDef =
   emptyDef { Token.commentLine = "--"
            , Token.identStart = letter
@@ -70,7 +75,6 @@ integer = Token.integer lexer
 whiteSpace = Token.whiteSpace lexer
 
 -- Term parser
-
 expr :: Parser FBAE
 expr = buildExpressionParser operators term
 
@@ -82,13 +86,16 @@ appl = Infix space AssocLeft
                 *> notFollowedBy (choice . map reservedOp $ ops)
                 *> return (\x y -> App x y)
 
+-- Shorthand function for defining infix, binary operations
 binary name label assoc = Infix (do { reservedOp name ;
                                       return (\x y -> label x y)
                                     }) assoc
 
+-- Shorthand function for defining prefix, unary operations
 prefix name label = Prefix (reservedOp name *> return (\x -> label x))
 
 
+-- Operations list
 operators = [ [ appl ]
             , [ binary "*" Mult AssocLeft,
                 binary "/" Div AssocLeft ]
@@ -176,7 +183,7 @@ ty = buildExpressionParser tyoperators tyTerm
 tyoperators = [ [ binary "->" (:->:) AssocLeft ] ]
 
 tyTerm :: Parser TFBAE
-tyTerm = parens ty <|> tyNat <|> tyBool 
+tyTerm = parens ty <|> tyNat <|> tyBool <|> tyLoc
 
 tyNat :: Parser TFBAE
 tyNat = do reserved "Nat"

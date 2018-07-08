@@ -409,6 +409,10 @@ The only thing worth noting is the return value resulting from evaluating the le
 
 ## Discussion
 
+As noted earlier, adding mutable state changes the world.  Our interprter becomes significantly more complex due to the miriad of ways effectful computing manifests itself.  However, the world is a stateful place.  Some operations - IO is the best example - simply cannot be easily modeled without introducing store and mutable state.  Ironically, the monad was introduced to handle defining just these sorts of things in functional languages.
+
+We abandoned two things that will reappear in later chapters.  First, we have done no typechecking.  That is coming soon, but is again complicated by the shared, mutable properties of storage.  Second is monadic modeling.  We used the `Reader` monad to specifically represent the local storage computational feature.  Soon we will introduce the `State` monad to represent the mutable store computational feature.  The fun really starts when we combine all these things together into a glorious integrated interpreter!  That will be awhile, but it is coming.
+
 ## Definitions
 
 - Imperative language - An imperative language uses sequencing as the dominant control structure and uses variables to communicate values.  Imperative languages have a mutable store.
@@ -418,3 +422,5 @@ The only thing worth noting is the return value resulting from evaluating the le
 - Dereferencing - Retrieving a value from a location
 - Computational Effect - Changing global state in a persistent way.  Printing and setting variable values are effects.  Side effects are often considered bad programming practice, but an effect is more general.
 - Aliasing - When two or more identifiers are bound to the same location.
+
+## Exercises

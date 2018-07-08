@@ -225,11 +225,9 @@ newStore (i,s) = ((i+1),(setSto s i v))
 
 As we allocate more locations, `i` grows monotonically ensuring that new memory locations do not reuse already allocated locations.
 
-`new :: FBAEVal -> FBAEVal`
-`deref :: FBAEVal -> FBAEVal`
-`set :: FBAEVal -> FBAEVal -> FBAEVal`
+## Store and Environment Passing interpreter
 
-Update `FBAEVal` to include `location`:
+Before diving into using `Reader` and defining a new monad, `State`, for stateful computation we will build an interpreter using `Maybe` and explicitly passing environment and store.  The rationale for this is to see first-hand the difference in how environment and store are managed.  The datatypes `FBAE` and `TFBAE` represent the abstract syntaxe of terms and types respectively.  While we won't be writing a type checker yet, we will include types in the AST for easy integration of a type inference function later.
 
 ```haskell
 data FBAE where
@@ -256,29 +254,158 @@ data FBAE where
 ```
 
 ```haskell
-data TFBAE = TNum | TBool
-           | TFBAE :->: TFBAE
-           | TLoc TFBAE
-           deriving (Show,Eq)
-```
-
-
-```haskell
 data TFBAE where
   TNum :: TFBAE
   TBool :: TFBAE
   (:->:) :: TFBAE -> TFBAE -> TFBAE
-  TLoc :: TFBAE -> TFBAE
+  TLoc :: TFBAE
   deriving (Show,Eq)
 ```
 
+The values in our language with state are the same as before with the addition of a new location value.  Remember that locations result from evaluating `new` and are consumed by `set` and `deref`.  Thus it is necessary to include values for them in our interpreter.
+
+```haskell
+data FBAEVal where
+  NumV :: Int -> FBAEVal
+  BooleanV :: Bool -> FBAEVal
+  ClosureV :: String -> TFBAE -> FBAE -> Env -> FBAEVal
+  LocV :: Int -> FBAEVal
+  deriving (Show,Eq)
+```
+The environment type remains the same - a list of string, value pairs that store bindings of values to identifiers in scope.  Nothing we have done with store has any impact on the environment in this interpreter.  Keep this in mind as we dive into the implementation.
+
 ```haskell
 type Env = [(String,FBAEVal)]
-type Cont = [(String,TFBAE)]
 ```
 
+With AST, values and environment defined we can now define `evalM` using a `Maybe` monad in exactly the way we have before.  Let's try reusing our previous definition for `evalM` with the addition of a store:
 
+```haskell
+evalM :: Env -> Store -> Just FBAEVal
+```
 
+Our new interpreter will take an environment, a store, and produce a value.  Let's start the interpreter by defining constant evaluation cases:
+
+```haskell
+evalM env sto (Num x) = return (NumV x)
+evalM env sto (Lambda i t b) = return (ClosureV i t b env)
+evalM env sto (Boolean b) = return (BooleanV b)
+```
+
+Both `Num` and `Boolean` represent values that are not interpretted further.  Thus the are interpretted to be `NumV` and `BooleanV` as before.  Nothing about `env` or `sto` has any impact on their values.
+
+Next we have binary numerical operations for `+`,`-`,`*`, and `/`.  Each of these operations is structured identically, so it makes sense to present them as one collection as we have in the past.  Let's take the same approach as we've taken for previous interpreters looking only at `+` for the time being:
+
+```haskell
+evalM env sto (Plus l r) = do { (NumV l') <- (evalM env sto l) ;
+                                (NumV r') <- (evalM env sto r) ;
+                                return (NumV (l'+r')) }
+```
+As we have done in the past, each argument to `Plus` is evaluated with `env` and `sto`.  The values are summed and the result returne as a `NumV`.  Our friend `Maybe` makes certain the subterms evaluate to numbers or returns `Nothing` in the backgroun.  Perfect!
+
+Let's look again an earlier example:
+
+```text
+bind loc = new 5 in
+  (set loc (deref loc) + 1) ; deref loc
+```
+
+We haven't yet defined our store related operations, but we do know what they are supposed to do.  In this case, a new location is initialized with `5` and bound to `loc`.  `sto` is updated by `new` as defined earlier and `loc` holds the new location value.  Now we go to the `set` operation.  Now set `loc` to what is currently in `loc` plus `1`.  Looking at our proposed implementation we see `sto` passed as an argument to `evalM` so it will be available when we evaluate `deref` and `+`.  No problem, right?
+
+Big problem.
+
+Assuming `deref` works fine, what happens when `set` is performed?  `deref` gets the stored value, `+` adds `1` and `set` stores the new value in `sto`.  The second `deref` needs to see this new `sto` value, not the original `sto` value.  `env` is local to the scope of an operator and can be dropped when that scope closes.  This is what `Reader` did for us and what our earlier interpreters did manually.  `sto` is updated and those updates are seen by all subsequent operations.  Think of it as memory in a C program.  When you update memory referenced by a pointer, that update is seen by the remaining program.  That's clearly not what our interpreter does.  It makes changes locally and then drops them before moving on.  Somehow we need to keep track of changes to storage.
+
+The manual way to do this is to return storage from all operations.  This seems quite odd and we would never pass storage around in an interpreter, but we can model storage behavior using this technique.  Let's go back and try it.  First, we'll change the definition of `evalM`:
+
+```haskell
+evalM :: Env -> Sto -> FBAE -> Maybe (Sto,FBAEVal)
+```
+
+This update causes `evalM` to return a pair containing the result value as before and a store value representing the state of storage after `evalM` is performed.  Starting our definition again with constant values we don't see much, if any impact:
+
+```haskell
+evalM env sto (Num x) = return (sto,(NumV x))
+evalM env sto (Lambda i t b) = return (sto,(ClosureV i t b env))
+evalM env sto (Boolean b) = return (sto,(BooleanV b))
+```
+Evaluating a constant has no impact on storage, so the result `sto` is the same as the input `sto`.
+
+Things are much more interesting when we look at binary operations.  Let's look again at `Plus`:
+
+```haskell
+evalM env sto (Plus l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
+                                (sto'',(NumV r')) <- (evalM env sto' r) ;
+                                return (sto'',(NumV (l'+r'))) }
+```
+
+Instead of using `sto` repeatedly, `evalM` keeps track of `sto` after each operation and passes it to the next operation.  `sto'` is the store resulting from evaluating the left operand.  It is passed as the store to evaluation of the right operand.  The store resulting from evaluating the right operand is `sto''` and is returned by the term evaluation.  Instead of dropping changes to `sto` after each operand execution, the changes are propagated to the next.  Any changes resulting from evaluating operands are propagated to any operations occuring after the sum.  For completeness, here is the code for all binary numeric operations:
+
+```haskell
+evalM env sto (Plus l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
+                                (sto'',(NumV r')) <- (evalM env sto' r) ;
+                                return (sto'',(NumV (l'+r'))) }
+evalM env sto (Minus l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
+                                 (sto'',(NumV r')) <- (evalM env sto' r) ;
+                                 return (sto'',(NumV (l'-r'))) }
+evalM env sto (Mult l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
+                                (sto'',(NumV r')) <- (evalM env sto' r) ;
+                                return (sto'',(NumV (l'*r'))) }
+evalM env sto (Div l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
+                               (sto'',(NumV r')) <- (evalM env sto' r) ;
+                               return (sto'',(NumV (div l' r'))) }
+```
+Mutable store changes the world. (Pun intended.)  Now we must think carefully about things like operation ordering that did not arise in a pure functional langauge without mutable storage.
+
+Managing store in `Bind` and `App` is handled in roughly the same way as binary operations:
+
+```haskell
+evalM env sto (Bind i v b) = do { (sto',v') <- (evalM env sto v) ;
+                                 evalM ((i,v'):env) sto' b }
+evalM env sto (App f a) = do { (sto',(ClosureV i t b e)) <- (evalM env sto f) ;
+                              (sto'',a') <- (evalM env sto' a) ;
+                              (evalM ((i,a'):e) sto'' b) }
+```
+
+In `Bind` evaluating the bound value may change the store.  Thus the result store becomes the store for the body.  `App` is exactly a binary operation and is handled as such.  Evaluating the function argument results in `sto'` used when evaluating the parameter.  The resulting value `sto''` is used when evaluating the function body.  Note also that handling the environment and managing identifiers does not change in any way.  The addition of storage does not impact identifier management.
+
+As one might suspect, the Boolean operators are handled like the mathematical operations.  Thus we will skip them except for `If`.  As one would expect, evaluating the conditional argument results in a value and a new store, `sto'`.  However, `sto'` is used in both `If` arms:
+
+```haskell
+evalM env sto (If c t e) = do { (sto',(BooleanV c')) <- (evalM env sto c) ;
+                               (if c'
+                                then (evalM env sto' t)
+                                else (evalM env sto' e)) }
+```
+
+Only one arm is evaluated, thus the result of that evaluation is the only result to account for when calculating the final result.  So, `sto'` is passed to `evalM` in both cases.
+
+`If` is interesting for another more subtle reason.  In a lazy language like Haskell that does not evaluate function arguments until they are used, `if` is just a function.  No special sauce needed.  In a strict language like Racket, `if` is a special form.  Strict languages evaluate _all_ parameters before evaluating a function.  Both the `then` and `else` arms are evaluated if we treat `if` as a function.  If that strict language has mutable memory, then evaluating both arguments could change the store even though only one result is used.  Until now we could have written our `if` interpreter to evaluate both `then` and `else` arms then choose the result based on the condition.  With mutable store, this is no more.
+
+Storage manipulation operators, `New`, `Set`, and `Deref` are implemented using utility functions defined earlier.  Once again any store modifications resulting from operand evaluation must be passed along to subsequent evaluation:
+
+```haskell
+evalM env sto (New t) = do { ((i,m),v) <- (evalM env sto t) ;
+                             return ((newLoc (i,m) v),(LocV i)) }
+evalM env sto (Set l v) = do { (sto',(LocV l')) <- (evalM env sto l) ;
+                               (sto'',v') <- (evalM env sto' v) ;
+                               return ((setLoc l' sto'' v'),v') }
+evalM env sto (Deref l) = do { (sto',(LocV l')) <- (evalM env sto l) ;
+                               (case (openLoc l' sto') of
+                                         Just v -> return (sto',v)
+                                         Nothing -> Nothing) } ;
+```
+
+The oddball is `Deref` where `openLoc` uses a `Maybe` that must be coverted into the return type of `evalM`.  There are more elegant ways of doing this.  All that is happening is the `Maybe FBAEVal` that results from `openLoc` is convered to a `Mabye (Sto,FBAEVal)` that is returned by `evalM`.
+
+`Seq` is in many ways the most straightforward of the new operations.  The left operand of `Seq` is evaluated first and the resulting store used as input to the right operand evaluation:
+
+```haskell
+evalM env sto (Seq l r) = do { (sto',_) <- (evalM env sto l) ;
+                               (evalM env sto' r) }
+```
+
+The only thing worth noting is the return value resulting from evaluating the left operand is thrown away.  The `_` wildcard matches any value and cannot be used.  Thus, the only way sequenced operations can interact is via the store.  This is an interesting result.  The only way pure functions can interact is through parameter passing.  The only way impure statements can interact is through the store.  For this reason, sequence is not useful until we have a store.
 
 ## Discussion
 

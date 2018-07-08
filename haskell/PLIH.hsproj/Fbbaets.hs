@@ -259,16 +259,16 @@ evalM :: Env -> Sto -> FBAE -> RVal
 evalM env sto (Num x) = return (sto,(NumV x))
 evalM env sto (Plus l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
                                 (sto'',(NumV r')) <- (evalM env sto' r) ;
-                               return (sto'',(NumV (l'+r'))) }
+                                return (sto'',(NumV (l'+r'))) }
 evalM env sto (Minus l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
                                  (sto'',(NumV r')) <- (evalM env sto' r) ;
-                                return (sto'',(NumV (l'-r'))) }
+                                 return (sto'',(NumV (l'-r'))) }
 evalM env sto (Mult l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
                                 (sto'',(NumV r')) <- (evalM env sto' r) ;
-                               return (sto'',(NumV (l'*r'))) }
+                                return (sto'',(NumV (l'*r'))) }
 evalM env sto (Div l r) = do { (sto',(NumV l')) <- (evalM env sto l) ;
-                                (sto'',(NumV r')) <- (evalM env sto' r) ;
-                              return (sto'',(NumV (div l' r'))) }
+                               (sto'',(NumV r')) <- (evalM env sto' r) ;
+                               return (sto'',(NumV (div l' r'))) }
 evalM env sto (Bind i v b) = do { (sto',v') <- (evalM env sto v) ;
                                  evalM ((i,v'):env) sto' b }
 evalM env sto (Lambda i t b) = return (sto,(ClosureV i t b env))
@@ -300,9 +300,10 @@ evalM env sto (Set l v) = do { (sto',(LocV l')) <- (evalM env sto l) ;
                                (sto'',v') <- (evalM env sto' v) ;
                                return ((setLoc l' sto'' v'),v') }
 evalM env sto (Deref l) = do { (sto',(LocV l')) <- (evalM env sto l) ;
-                               return (case (openLoc l' sto') of
-                                         Just v -> (sto',v)
-                                         Nothing -> error "undefined location" ) } ;
+k
+                               (case (openLoc l' sto') of
+                                         Just v -> return (sto',v)
+                                         Nothing -> Nothing) } ;
 evalM env sto (Seq l r) = do { (sto',_) <- (evalM env sto l) ;
                               (evalM env sto' r) }
 

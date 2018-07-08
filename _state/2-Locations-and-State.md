@@ -11,7 +11,7 @@ In its simplest form, storage is a place to put things so we can go back and get
 
 Storage can be viewed abstractly as a collection of _locations_ that are values for storing other values.  Think of a location as a box and the value at a location as the contents of the box.  The location is a value in the sense that it is constant and does not change, but the contents of a location can change.  We _dereference_ a location when we want the value it stores.  Remember, a location is a value and as such can be calculated and returned without affecting the contained value.  Dereferencing gets the value out and returns it.
 
-Storage is _ephemeral_ in that it it exists in the background and is there to use whenever needed.  When we program we declare variables, pointers and references that all reference storage, but we don’t ever talk about storage as a whole unless we’re systems programmers.
+Storage exists in the background and is there to use whenever needed.  When we program we declare variables, pointers and references that all reference storage, but we don’t ever talk about storage as a whole unless we’re systems programmers.
 
 The languages we’ve defined so far are _pure functional_ languages.  Functional in that every expression is a function returning a value and parameter passing is a the dominant means of communicating values among expressions.  Pure in that all identifiers are _immutable_.  Once created their values cannot be changed.  They can be shadowed, but never permanently changed.  There is literally no notion of a variable in the traditional sense motivating use of the term identifier when referring to symbols.
 
@@ -214,7 +214,7 @@ setStore :: Store -> Loc -> FBAEVal -> Store
 setStore :: (i,s) l v = (i,(setSto s l v))
 ```
 
-The next fresh location value does not change and the new store  is calculated using `setSto` to update the store value.  Like `derefStore` there is no need to check the location value. Remember there is no concrete syntax for locations.  The only way to generate a location is to call `new` and all results of `new` are set and in range. 
+The next fresh location value does not change and the new store  is calculated using `setSto` to update the store value.  Like `derefStore` there is no need to check the location value. Remember there is no concrete syntax for locations.  The only way to generate a location is to call `new` and all results of `new` are set and in range.
 
 Finally `newStore` that updates the store and allocates a fresh location.  Like `setStore`, the `setSto` function is used to update the store an location `i`, where `i` is the next fresh location.  Additionally, the next fresh location is updated by incrementing `i`:
 
@@ -243,8 +243,7 @@ data FBAEVal where
 
 ## Definitions
 
-- Ephemeral - Ephemeral data structures exist in the background and are ever present.
-- Imperative language - An imperative language uses sequencing as the dominant control structure and uses variables to communicate values.  Imperative languages have a mutable ephemeral store.
+- Imperative language - An imperative language uses sequencing as the dominant control structure and uses variables to communicate values.  Imperative languages have a mutable store.
 - Functional language -  A functional language uses function calls and parameters as the dominant control structure and mechanism for communicating values.  Many functional languages have immutable store.
 - Store - A collection of locations
 - Location - A value that contains other values.  A location’s contents are mutable in that they can be changed.

@@ -11,7 +11,7 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 -- Calculator language extended with an environment to hold defined variables
 
 -- AST for types
-data TFBAE = TNum | TBool | TFBAE :->: TFBAE | TLoc deriving (Show,Eq)
+data TFBAE = TNum | TBool | TFBAE :->: TFBAE | TLoc TFBAE deriving (Show,Eq)
 
 -- AST for terms
 data FBAE = Num Int
@@ -180,10 +180,11 @@ term = bindExpr
 
 ty = buildExpressionParser tyoperators tyTerm
 
-tyoperators = [ [ binary "->" (:->:) AssocLeft ] ]
+tyoperators = [ [ prefix "Loc" TLoc ]
+                , [ binary "->" (:->:) AssocLeft ] ]
 
 tyTerm :: Parser TFBAE
-tyTerm = parens ty <|> tyNat <|> tyBool <|> tyLoc
+tyTerm = parens ty <|> tyNat <|> tyBool
 
 tyNat :: Parser TFBAE
 tyNat = do reserved "Nat"
@@ -192,10 +193,6 @@ tyNat = do reserved "Nat"
 tyBool :: Parser TFBAE
 tyBool = do reserved "Bool"
             return TBool
-
-tyLoc :: Parser TFBAE
-tyLoc = do reserved "Loc"
-           return TLoc
 
 -- Parser invocation
 
@@ -383,16 +380,15 @@ typeofM cont (If c t e) = do { c' <- (typeofM cont c) ;
                                if c' == TBool && t' == e'
                                then return t'
                                else Nothing }
-typeofM cont (New t) = return TLoc
-typeofM cont (Set l v) = do { l' <- (typeofM cont l) ;
+typeofM cont (New t) = do { t' <- (typeofM cont t) ;
+                            return (TLoc t') }
+typeofM cont (Set l v) = do { (TLoc l') <- (typeofM cont l) ;
                               v' <- (typeofM cont v) ;
-                              if l'==TLoc
+                              if l'==v'
                               then return v'
                               else Nothing }
-typeofM cont (Deref l) = do { l' <- (typeofM cont l) ;
-                              if l'==TLoc
-                              then return TLoc
-                              else Nothing }
+typeofM cont (Deref l) = do { (TLoc l') <- (typeofM cont l) ;
+                              return l'}
 typeofM cont (Seq l r) = do { (typeofM cont l) ;
                               (typeofM cont r) }
 
@@ -406,8 +402,8 @@ intM e = let p=(parseFBAE e) in
 
 intMi :: String -> Maybe FBAEVal
 intMi e = let p=(parseFBAE e) in
-            let t=(typeofM [] p) in
-              if (t==(Just TNum)) || (t==(Just TBool)) || (t==(Just TLoc))
-              then (evalMi p)
-              else Nothing
+            do { t<-(typeofM [] p) ;
+                 (evalMi p) }
+
+
 

@@ -4,3 +4,5 @@ evalMi ex2
 parseFBAE "f 3 4 6"
 parseFBAE "!l"
 evalMi (parseFBAE ex1s)
+typeofM [] ex1
+typeofM [] (Bind "x" (New (Num 3)) (Set (Id "x") (Num 7)))

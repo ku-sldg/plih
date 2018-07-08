@@ -6,3 +6,5 @@ parseFBAE "!l"
 evalMi (parseFBAE ex1s)
 typeofM [] ex1
 typeofM [] (Bind "x" (New (Num 3)) (Set (Id "x") (Num 7)))
+intMi ex1s
+intMi ex2s

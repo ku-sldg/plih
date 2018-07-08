@@ -8,7 +8,8 @@ import Text.ParserCombinators.Parsec.Language
 import Text.ParserCombinators.Parsec.Expr
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
--- Calculator language extended with an environment to hold defined variables
+-- Expression language with first class functions and static scoping
+-- extended to include mutable store.
 
 -- AST for types
 data TFBAE = TNum | TBool | TFBAE :->: TFBAE | TLoc TFBAE deriving (Show,Eq)
@@ -320,7 +321,7 @@ ex2 = (Bind "f" (New (Lambda "x" TNum (Plus (Id "x") (Num 1))))
 
 ex2s = "bind f = (new (lambda (x:Nat) in x+1)) in ((!f) 1)"
 
--- Type Checker has not been updated to include state.
+-- Type Checker uses a typed location.
 
 typeofM :: ContS -> FBAE -> (Maybe TFBAE)
 typeofM cont (Num x) = return TNum

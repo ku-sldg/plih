@@ -300,7 +300,6 @@ evalM env sto (Set l v) = do { (sto',(LocV l')) <- (evalM env sto l) ;
                                (sto'',v') <- (evalM env sto' v) ;
                                return ((setLoc l' sto'' v'),v') }
 evalM env sto (Deref l) = do { (sto',(LocV l')) <- (evalM env sto l) ;
-k
                                (case (openLoc l' sto') of
                                          Just v -> return (sto',v)
                                          Nothing -> Nothing) } ;
@@ -332,26 +331,18 @@ ex2s = "bind f = (new (lambda (x:Nat) in x+1)) in ((!f) 1)"
 
 typeofM :: Cont -> FBAE -> (Maybe TFBAE)
 typeofM cont (Num x) = return TNum
-typeofM cont (Plus l r) = do { l' <- (typeofM cont l) ;
-                               r' <- (typeofM cont r) ;
-                               if l'==TNum && r'==TNum
-                               then return TNum
-                               else Nothing }
-typeofM cont (Minus l r) = do { l' <- (typeofM cont l) ;
-                                r' <- (typeofM cont r) ;
-                                if l'==TNum && r'==TNum
-                                then return TNum
-                                else Nothing }
-typeofM cont (Mult l r) = do { l' <- (typeofM cont l) ;
-                               r' <- (typeofM cont r) ;
-                               if l'==TNum && r'==TNum
-                               then return TNum
-                               else Nothing }
-typeofM cont (Div l r) = do { l' <- (typeofM cont l) ;
-                              r' <- (typeofM cont r) ;
-                              if l'==TNum && r'==TNum
-                              then return TNum
-                              else Nothing }
+typeofM cont (Plus l r) = do { TNum <- (typeofM cont l) ;
+                               TNum <- (typeofM cont r) ;
+                               return TNum }
+typeofM cont (Minus l r) = do { TNum <- (typeofM cont l) ;
+                                TNum <- (typeofM cont r) ;
+                                return TNum }
+typeofM cont (Mult l r) = do { TNum <- (typeofM cont l) ;
+                               TNum <- (typeofM cont r) ;
+                               return TNum }
+typeofM cont (Div l r) = do { TNum <- (typeofM cont l) ;
+                              TNum <- (typeofM cont r) ;
+                              return TNum }
 typeofM cont (Bind i v b) = do { v' <- typeofM cont v ;
                                  typeofM ((i,v'):cont) b }
 typeofM cont (Id id) = (lookup id cont) 
@@ -363,29 +354,21 @@ typeofM cont (App x y) = do { tyXd :->: tyXr <- typeofM cont x ;
                               then return tyXr
                               else Nothing }
 typeofM cont (Boolean b) = return TBool                   
-typeofM cont (And l r) = do { l' <- (typeofM cont l) ;
-                              r' <- (typeofM cont r) ;
-                              if l' == TBool && r' == TBool
-                              then return TBool
-                              else Nothing }
-typeofM cont (Or l r) = do { l' <- (typeofM cont l) ;
-                             r' <- (typeofM cont r);
-                             if l' == TBool && r' == TBool
-                             then return TBool
-                             else Nothing }
-typeofM cont (Leq l r) = do { l' <- (typeofM cont l) ;
-                              r' <- (typeofM cont r) ;
-                              if l' == TNum && r' == TNum
-                              then return TBool
-                              else Nothing }
-typeofM cont (IsZero v) = do { v' <- (typeofM cont v) ;
-                               if v' == TNum
-                               then return TBool
-                               else Nothing }
-typeofM cont (If c t e) = do { c' <- (typeofM cont c) ;
+typeofM cont (And l r) = do { TBool <- (typeofM cont l) ;
+                              TBool <- (typeofM cont r) ;
+                              return TBool }
+typeofM cont (Or l r) = do { TBool <- (typeofM cont l) ;
+                             TBool <- (typeofM cont r);
+                             return TBool }
+typeofM cont (Leq l r) = do { TNum <- (typeofM cont l) ;
+                              TNum <- (typeofM cont r) ;
+                              return TBool }
+typeofM cont (IsZero v) = do { TNum <- (typeofM cont v) ;
+                               return TBool }
+typeofM cont (If c t e) = do { TBool <- (typeofM cont c) ;
                                t' <- (typeofM cont t) ;
                                e' <- (typeofM cont e) ;
-                               if c' == TBool && t' == e'
+                               if t' == e'
                                then return t'
                                else Nothing }
 typeofM cont (New t) = do { t' <- (typeofM cont t) ;

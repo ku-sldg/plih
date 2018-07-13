@@ -8,3 +8,7 @@ x = do { (put 3) ;
           put (z+2) ;
           (return 3) }
 runS x 1
+z = do { put initMem ;
+         gets (\s->(s 0))}
+let (v,m) = runS z initMem in show (show v)
+let (v,m) = runS (evalM [] (Num 3)) initSto in v==(NumV 3)

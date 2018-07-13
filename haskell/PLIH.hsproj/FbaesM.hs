@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs,FlexibleContexts #-}
 
 module FbaesM where
 
@@ -12,10 +12,6 @@ import Test.QuickCheck.Monadic
 -- Imports for Parser
 import Control.Monad
 import Control.Applicative
-import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Language
-import Text.ParserCombinators.Parsec.Expr
-import Text.ParserCombinators.Parsec.Token
 
 -- Imports for PLIH
 import ParserUtils
@@ -41,6 +37,28 @@ data FBAE where
   Id :: String -> FBAE
   If :: FBAE -> FBAE -> FBAE -> FBAE
   deriving (Show,Eq)
+
+-- State encapsulates a function from some state to an output and
+-- a new state.
+
+newtype State s a = State { runS :: s -> (a , s) }
+
+instance Monad (State s) where
+  return x = State $ \s -> (x,s)
+  p >>= k = State $ \s0 ->
+    let (x,s1) = runS p s0 in
+      runS (k x) s1
+
+instance Functor (State s) where
+  fmap = Control.Monad.liftM
+  
+instance Applicative (State s) where
+  pure = return
+  (<*>) = Control.Monad.ap
+  
+put s = State $ \x -> (x,s)
+
+get = State $ \s -> (s,s)
 
 -- Reader encapsulats a function from some e to some a in a constructor.  Reader
 -- is an instance of Functor, Applicative, and Monad. 

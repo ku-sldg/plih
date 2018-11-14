@@ -288,13 +288,6 @@ evalM env (Fix f) = do { (ClosureV i b e) <- (evalM env f) ;
                         evalM e (subst i (Fix (Lambda i b)) b) }
 ```
 
-```haskell
-evalM env (Fix f) = do { (ClosureV i b e) <- (evalM env f) ;
-	                    g <- evalM env (Fix f) ;
-                        evalM e (i,g):env b) }
-```
-
-
 To better understand how the `fix` operation works, let's evaluate
 factorial of `3` using our new operation.  First, let's define `f`,
 the function we will use to implement factorial:

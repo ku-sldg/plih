@@ -268,7 +268,7 @@ The values in our language with state are the same as before with the addition o
 data FBAEVal where
   NumV :: Int -> FBAEVal
   BooleanV :: Bool -> FBAEVal
-  ClosureV :: String -> TFBAE -> FBAE -> Env -> FBAEVal
+  ClosureV :: String -> FBAE -> Env -> FBAEVal
   LocV :: Int -> FBAEVal
   deriving (Show,Eq)
 ```
@@ -288,7 +288,7 @@ Our new interpreter will take an environment, a store, and produce a value.  Let
 
 ```haskell
 evalM env sto (Num x) = return (NumV x)
-evalM env sto (Lambda i t b) = return (ClosureV i t b env)
+evalM env sto (Lambda i t b) = return (ClosureV i b env)
 evalM env sto (Boolean b) = return (BooleanV b)
 ```
 
@@ -301,6 +301,7 @@ evalM env sto (Plus l r) = do { (NumV l') <- (evalM env sto l) ;
                                 (NumV r') <- (evalM env sto r) ;
                                 return (NumV (l'+r')) }
 ```
+
 As we have done in the past, each argument to `Plus` is evaluated with `env` and `sto`.  The values are summed and the result returne as a `NumV`.  Our friend `Maybe` makes certain the subterms evaluate to numbers or returns `Nothing` in the backgroun.  Perfect!
 
 Let's look again an earlier example:
@@ -326,7 +327,7 @@ This update causes `evalM` to return a pair containing the result value as befor
 
 ```haskell
 evalM env sto (Num x) = return (sto,(NumV x))
-evalM env sto (Lambda i t b) = return (sto,(ClosureV i t b env))
+evalM env sto (Lambda i t b) = return (sto,(ClosureV i b env))
 evalM env sto (Boolean b) = return (sto,(BooleanV b))
 ```
 Evaluating a constant has no impact on storage, so the result `sto` is the same as the input `sto`.
@@ -362,7 +363,7 @@ Managing store in `Bind` and `App` is handled in roughly the same way as binary 
 ```haskell
 evalM env sto (Bind i v b) = do { (sto',v') <- (evalM env sto v) ;
                                  evalM ((i,v'):env) sto' b }
-evalM env sto (App f a) = do { (sto',(ClosureV i t b e)) <- (evalM env sto f) ;
+evalM env sto (App f a) = do { (sto',(ClosureV i b e)) <- (evalM env sto f) ;
                               (sto'',a') <- (evalM env sto' a) ;
                               (evalM ((i,a'):e) sto'' b) }
 ```

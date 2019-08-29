@@ -86,7 +86,9 @@ Now we can say $A\wedge B \vdash B\wedge A$.  We can also prove the inverse:
 
 $$\cfrac{\cfrac{B\wedge A}{A}\;\;\;\; \cfrac{B\wedge A}{B}}{A\wedge B}$$
 
-Now we can say $B\wedge A \vdash A\wedge B$.
+Of course this is kind of silly if $A$ and $B$ are just names or variables.  We are effectively doing the same derivation again.
+
+Now we can say $B\wedge A \vdash A\wedge B$, or  $B\wedge A$ _derives_ $A\wedge B$.  The $X\vdash Y$ operator indicates there is a derivation from $X$ to $Y$ and we can skip the details in other derivations.  If $X$ is empty, we say that $\vdash Y$ is a _theorem_.  Because it assumes nothing to start with, a theorem can be used anywhere.  
 
 The elimination rule for $\neg$ is the double negative rule from classical logic:
 

@@ -22,7 +22,7 @@ One way to think about the world of languages (or the world in general) is in te
 
 ## Syntax
 
-The _syntax_ of a formal system defines the form of _terms_ in that system.  Syntax is frequently defined using a _grammar_ as defined in Chapter 1.
+The _syntax_ of a formal system defines the form of _terms_ in that system.  Syntax is frequently defined using a _grammar_ as defined in Chapter 1.  We're not going to do much with syntax, so little needs to be said other than providing a basic definition.
 
 The _alphabet_ of a grammar is a set of atomic symbols representing syntax elements that cannot be decomposed further.  The _rules_ of a grammar define legal orderings of symbols.  The set of strings that are in the closure of the alphabet with respect to application of grammar rules is defined as the formal language described by the grammar.
 
@@ -37,7 +37,7 @@ v ::=\; & \ttrue \mid \ffalse \\
 \end{align*}
 $$
 
-This format should be familiar the previous chapter.  The alphabet includes terminal symbols including $\ttrue$ and $\ffalse$, but also symbols such as $\wedge$ and $\vee$.  The $\ID$ term is a shorthand for all identifiers representing propositions.  Grammar rules define $\Rightarrow$, $\Leftrightarrow$, $\vee$, and $\wedge$ as binary operations and $\neg$ as a unary operator.  The recursive nature of grammar rules over $t$ allows arbitrary nesting of terms.
+This format should be familiar from the previous chapter and from earlier studies.  The alphabet includes terminal symbols including $\ttrue$ and $\ffalse$, but also symbols such as $\wedge$ and $\vee$.  The $\ID$ term is a shorthand for all identifiers representing propositions.  Grammar rules define $\Rightarrow$, $\Leftrightarrow$, $\vee$, and $\wedge$ as binary operations and $\neg$ as a unary operator.  The recursive nature of grammar rules over $t$ allows arbitrary nesting of terms.
 
 ## Inference System
 
@@ -49,13 +49,23 @@ or an equivalence:
 
 $$(x+y)^2 == x^2+2xy+y^2$$
 
-The classical notation for inference rules was defined in the previous chapter with axioms simply defined as inference rules with no antecedents.  Looking at propositional logic we start with one axiom that $\ttrue$ is always true:
+The classical notation for inference rules was defined in the previous chapter.  The inference rule:
+
+$$\frac{A_0,A_1,\ldots,A_n}{C}$$
+
+states that when $A_0$ through $A_n$ are true, then $C$ is also true.  The $A_k$'s are often referred to as _antecedents_ while $C$ is the _consequent_.  The set of antecedents may be arbitrarily large, but there is only one consequent associated with a rule.  The special case when the set of antecedents is empty:
+
+$$\frac{}{A}$$
+
+defines an axiom.  Nothing need be true for $A$ to be true, therefore it is always true.
+
+As an example inference system we'll look at _propositional logic_, the logic of true and false propositions that defines the heart of classical logic.  We'll start with one axiom that $\ttrue$ is always true:
 
 $$\frac{}{true}$$
 
-Nothing need be known to assert $\ttrue$ in a proof.
+Nothing need be known to assert $\ttrue$ is trivially true.  It turns out that $\ttrue$ doesn't tell us much, but it does serve as a value in our logic.  The other value $\ffalse$.  Consider what axioms or inference rules might have $\ffalse$ as a consequent.  Are there any?
 
-Other inference rules define introduction and elmination rules for various operators.  Introduction rules introduce their associated operation in an expression.  The introduction rule for $X\wedge Y$ is:
+Other inference rules define introduction and elimination rules for various operators.  Introduction rules introduce their associated operation in an expression.  The introduction rule for $X\wedge Y$ is:
 
 $$\frac{X,Y}{X\wedge Y}$$
 
@@ -65,13 +75,17 @@ Elimination rules are the inverse of introduction rules.  There are two for $X\w
 
 $$\frac{X\wedge Y}{X}\;\;\;\;\frac{X\wedge Y}{Y}$$
 
-Each rule allows one conjunct to be inferred from the conjunction.  The first giving the left conjunct and the second the right.
+Each rule allows one conjunct to be inferred from the conjunction.  The first giving the left conjunct and the second the right.  Note that introduction rules make larger terms from smaller term while elimination rules make smaller terms from larger terms.  This will have important consequences when we talk about proofs.
 
-The elimination rule for $\neg$ is the double negative rule that should be intuitive:
+The elimination rule for $\neg$ is the double negative rule from classical logic:
 
 $$\frac{\neg\neg X}{X}$$
 
-The introduction rule for $\neg$ is more interesting as a derivation is one of the antecedents.  The notation $X\vdash Y$ says that $Y$ is derivable from $X$.  The antecedent of the elimination rule says that assuming $X$ gives $Y$ and $\neg Y$ is also known.  This is a contradiction because $X$ and $\neg X$ cannot be simultaneously true.  Thus, $X$ must be false:
+This rule is frequently call the double negation rule and simply says that the negation of the negation of any term is the term.
+
+The introduction rule for $\neg$ is more interesting as a derivation is one of the antecedents.  The notation $X\vdash Y$ says that $Y$ is _derivable_ from $X$.
+
+The antecedent of the elimination rule says that assuming $X$ gives $Y$ and $\neg Y$ is also known.  This is a contradiction because $X$ and $\neg X$ cannot be simultaneously true.  Thus, $X$ must be false:
 
 $$\frac{X\vdash Y, \neg Y}{\neg X}$$
 

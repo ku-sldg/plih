@@ -22,9 +22,7 @@ One way to think about the world of languages (or the world in general) is in te
 
 ## Syntax
 
-The _syntax_ of a formal system is 
-
-Syntax is frequently defined using a _grammar_ as defined in Chapter 1.
+The _syntax_ of a formal system defines the form of _terms_ in that system.  Syntax is frequently defined using a _grammar_ as defined in Chapter 1.
 
 The _alphabet_ of a grammar is a set of atomic symbols representing syntax elements that cannot be decomposed further.  The _rules_ of a grammar define legal orderings of symbols.  The set of strings that are in the closure of the alphabet with respect to application of grammar rules is defined as the formal language described by the grammar.
 
@@ -39,7 +37,7 @@ v ::=\; & \ttrue \mid \ffalse \\
 \end{align*}
 $$
 
-This format should be familiar the previous chapter.  The alphabet includes terminal symbols including $\ttrue$ and $\ffalse$, but also symbols such as $\wedge$ and $\vee$.  The $\ID$ term is a shorthand for all identifiers representign propsitions.  Grammar rules define $\Rightarrow$, $\Leftrightarrow$, $\vee$, and \$wedge$ as binary operations and $\neg$ as a unary operator.  The recursive nature of grammar rules over $t$ allows arbitrary nesting of terms.
+This format should be familiar the previous chapter.  The alphabet includes terminal symbols including $\ttrue$ and $\ffalse$, but also symbols such as $\wedge$ and $\vee$.  The $\ID$ term is a shorthand for all identifiers representign propsitions.  Grammar rules define $\Rightarrow$, $\Leftrightarrow$, $\vee$, and $\wedge$ as binary operations and $\neg$ as a unary operator.  The recursive nature of grammar rules over $t$ allows arbitrary nesting of terms.
 
 ## Inference System
 

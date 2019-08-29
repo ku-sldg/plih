@@ -37,7 +37,7 @@ v ::=\; & \ttrue \mid \ffalse \\
 \end{align*}
 $$
 
-This format should be familiar the previous chapter.  The alphabet includes terminal symbols including $\ttrue$ and $\ffalse$, but also symbols such as $\wedge$ and $\vee$.  The $\ID$ term is a shorthand for all identifiers representign propsitions.  Grammar rules define $\Rightarrow$, $\Leftrightarrow$, $\vee$, and $\wedge$ as binary operations and $\neg$ as a unary operator.  The recursive nature of grammar rules over $t$ allows arbitrary nesting of terms.
+This format should be familiar the previous chapter.  The alphabet includes terminal symbols including $\ttrue$ and $\ffalse$, but also symbols such as $\wedge$ and $\vee$.  The $\ID$ term is a shorthand for all identifiers representing propositions.  Grammar rules define $\Rightarrow$, $\Leftrightarrow$, $\vee$, and $\wedge$ as binary operations and $\neg$ as a unary operator.  The recursive nature of grammar rules over $t$ allows arbitrary nesting of terms.
 
 ## Inference System
 
@@ -65,13 +65,13 @@ Elimination rules are the inverse of introduction rules.  There are two for $X\w
 
 $$\frac{X\wedge Y}{X}\;\;\;\;\frac{X\wedge Y}{Y}$$
 
-Each rule allows one conjunct to be infered from the conjunction.  The first giving the left conjunct and the second the right.
+Each rule allows one conjunct to be inferred from the conjunction.  The first giving the left conjunct and the second the right.
 
 The elimination rule for $\neg$ is the double negative rule that should be intuitive:
 
 $$\frac{\neg\neg X}{X}$$
 
-The introduction rule for $\neg$ is more interesting as a derivation is one of the antecents.  The notation $X\vdash Y$ says that $Y$ is derivable from $X$.  The antecedent of the elimination rule says that assuming $X$ gives $Y$ and $\neg Y$ is also known.  This is a contradiction because $X$ and $\not X$ cannot be simultaneously true.  Thus, $X$ must be false:
+The introduction rule for $\neg$ is more interesting as a derivation is one of the antecedents.  The notation $X\vdash Y$ says that $Y$ is derivable from $X$.  The antecedent of the elimination rule says that assuming $X$ gives $Y$ and $\neg Y$ is also known.  This is a contradiction because $X$ and $\neg X$ cannot be simultaneously true.  Thus, $X$ must be false:
 
 $$\frac{X\vdash Y, \neg Y}{\neg X}$$
 
@@ -107,7 +107,7 @@ There is much more we can do with inference rules and systems, but this brief de
 
 ## Semantics
 
-A language's semantics gives it's structures meaning.  When we used inference rules to define how we reason about propositional logic, we provided a reasoning mechanism without regard to meaning.  We could have changed the inference rules in a very simple way and gotten something that is not at all propositional logic.  Let's say we defined a completely wrong rule for implication like this:
+A language's semantics gives its structures meaning.  When we used inference rules to define how we reason about propositional logic, we provided a reasoning mechanism without regard to meaning.  We could have changed the inference rules in a very simple way and gotten something that is not at all propositional logic.  Let's say we defined a completely wrong rule for implication like this:
 
 $$\frac{Y,X\Rightarrow Y}{X}$$
 

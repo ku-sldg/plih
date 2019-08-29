@@ -77,6 +77,17 @@ $$\frac{X\wedge Y}{X}\;\;\;\;\frac{X\wedge Y}{Y}$$
 
 Each rule allows one conjunct to be inferred from the conjunction.  The first giving the left conjunct and the second the right.  Note that introduction rules make larger terms from smaller term while elimination rules make smaller terms from larger terms.  This will have important consequences when we talk about proofs.
 
+Speaking of proofs, we now have a tiny subset of the inference rules defining propositional logic.  How do we use them?  Let's do a quick derivation that
+combines inference rules:
+
+$$\cfrac{\cfrac{A\wedge B}{B}\;\;\;\; \cfrac{A\wedge B}{A}}{B\wedge A}$$
+
+Now we can say $A\wedge B \vdash B\wedge A$.  We can also prove the inverse:
+
+$$\cfrac{\cfrac{B\wedge A}{A}\;\;\;\; \cfrac{B\wedge A}{B}}{A\wedge B}$$
+
+Now we can say $B\wedge A \vdash A\wedge B$.
+
 The elimination rule for $\neg$ is the double negative rule from classical logic:
 
 $$\frac{\neg\neg X}{X}$$
@@ -105,15 +116,7 @@ $$\frac{X\Rightarrow Y\;\;\; Y\Rightarrow X}{X\Leftrightarrow Y}$$
 
 $$\frac{X\Leftrightarrow Y}{X\Rightarrow Y}\;\;\;\;\frac{X\Leftrightarrow Y}{Y\Rightarrow X}$$
 
-Now we have a subset of the inference rules for propositional logic.  How do we use them?  Let's do a quick proof:
-
-$$\cfrac{\cfrac{A\wedge B}{B}\;\;\;\; \cfrac{A\wedge B}{A}}{B\wedge A}$$
-
-Now we can say $A\wedge B \vdash B\wedge A$.  We can also prove the inverse:
-
-$$\cfrac{\cfrac{B\wedge A}{A}\;\;\;\; \cfrac{B\wedge A}{B}}{A\wedge B}$$
-
-Now we can say $B\wedge A \vdash A\wedge B$.  Using the implication introduction rule we can go a step farther and prove logical equivalence:
+Using the implication introduction rule we can go a step farther and prove logical equivalence:
 
 $$\cfrac{\cfrac{A\wedge B \vdash B\wedge A}{A\wedge B \Rightarrow B\wedge A}\;\;\;\; \cfrac{B\wedge A \vdash A\wedge B}{B\wedge A \Rightarrow A\wedge B}}{A\wedge B \Leftrightarrow B\wedge A}$$
 

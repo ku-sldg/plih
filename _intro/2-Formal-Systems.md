@@ -78,39 +78,37 @@ $$\frac{X\wedge Y}{X}\;\;\;\;\frac{X\wedge Y}{Y}$$
 Each rule allows one conjunct to be inferred from the conjunction.  The first giving the left conjunct and the second the right.  Note that introduction rules make larger terms from smaller term while elimination rules make smaller terms from larger terms.  This will have important consequences when we talk about proofs.
 
 Speaking of proofs, we now have a tiny subset of the inference rules defining propositional logic.  How do we use them?  Let's do a quick derivation that
-combines inference rules:
+combines inference rules.  Specifically, let's prove the commutative property of conjunction, $A\wedge B \vdash B \wedge A$.  We start by assuming $A\wedge B$ and using derivation rules to make inferences:
 
 $$\cfrac{\cfrac{A\wedge B}{B}\;\;\;\; \cfrac{A\wedge B}{A}}{B\wedge A}$$
 
-Now we can say $A\wedge B \vdash B\wedge A$.  We can also prove the inverse:
+Note how the inference rules click together like Legos.  Consequents of rules plug into the antecedents of others.  With a derivation from antecedents to consequents we can say $A\wedge B \vdash B\wedge A$ or  $A\wedge B$ _derives_ $B\wedge A$.  The $X\vdash Y$ operator indicates there is a derivation from $X$ to $Y$ and we can skip the details in other derivations.  If $X$ is empty, we say that $\vdash Y$ is a _theorem_.  Because it assumes nothing to start with, a theorem can be used anywhere.
+
+We can also derive the inverse:
 
 $$\cfrac{\cfrac{B\wedge A}{A}\;\;\;\; \cfrac{B\wedge A}{B}}{A\wedge B}$$
 
-Of course this is kind of silly if $A$ and $B$ are just names or variables.  We are effectively doing the same derivation again.
+Of course this is kind of silly if $A$ and $B$ are just names or variables.  We are effectively doing the same derivation again.  
 
-Now we can say $B\wedge A \vdash A\wedge B$, or  $B\wedge A$ _derives_ $A\wedge B$.  The $X\vdash Y$ operator indicates there is a derivation from $X$ to $Y$ and we can skip the details in other derivations.  If $X$ is empty, we say that $\vdash Y$ is a _theorem_.  Because it assumes nothing to start with, a theorem can be used anywhere.  
-
-The elimination rule for $\neg$ is the double negative rule from classical logic:
+We can add other inference rules for remaining logical operations.  The elimination rule for $\neg$ is the double negative rule from classical logic:
 
 $$\frac{\neg\neg X}{X}$$
 
-This rule is frequently call the double negation rule and simply says that the negation of the negation of any term is the term.
-
-The introduction rule for $\neg$ is more interesting as a derivation is one of the antecedents.  The notation $X\vdash Y$ says that $Y$ is _derivable_ from $X$.
-
-The antecedent of the elimination rule says that assuming $X$ gives $Y$ and $\neg Y$ is also known.  This is a contradiction because $X$ and $\neg X$ cannot be simultaneously true.  Thus, $X$ must be false:
+The introduction rule for $\neg$ is more interesting as a derivation is one of the antecedents.  The antecedent of the elimination rule says that assuming $X$ gives $Y$ and $\neg Y$ is also known.  This is a contradiction because $X$ and $\neg X$ cannot be simultaneously true.  Thus, $X$ must be false:
 
 $$\frac{X\vdash Y, \neg Y}{\neg X}$$
 
 This is the classic proof by contradiction.  It also suggests that if $\ffalse$ is ever true, we have big problems because we can derive anything.
 
-The rules for implication again eliminate and introduction $X\Rightarrow Y$.  The elimination rule is known as _modus ponens_ and says that if $X$ and $X\Rightarrow Y$ are known, then $Y$ is also known:
+The rules for implication again perform eliminate and introduction of $X\Rightarrow Y$.  The elimination rule is known as _modus ponens_ and says that if $X$ and $X\Rightarrow Y$ are known, then $Y$ is also known:
 
 $$\frac{X,X\Rightarrow Y}{Y}$$
 
-The introduction rule again has a derivation in the antecedent.  If assuming $X$ allows us to derive $Y$, then we also know that $X\Rightarrow Y$:
+The introduction rule has a derivation in the antecedent.  It says that if we can derived $Y$ from $X$, then $X$ implies $Y$ or $X\Rightarrow Y$:
 
 $$\frac{X\vdash Y}{X\Rightarrow Y}$$
+
+If assuming $X$ allows us to derive $Y$, then we also know that $X\Rightarrow Y$.
 
 Finally, we have introduction and elimination rules for logical equivalence.
 

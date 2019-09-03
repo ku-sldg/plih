@@ -75,7 +75,7 @@ Knowing what `AE` looks like, let's now define how terms in `AE` are interpreted
 
 The first tells us how to interpret numbers:
 
-$$\frac{}{\eval \underline{v} = v}\; [NumE]$$
+$$\frac{}{\underline{v} \Downarrow v}\; [NumE]$$
 
 $\eval$ is the name of the interpretation function and this rule says calling $\eval$ on a value results in the value.  Remember that $v$ is a number and as such cannot be evaluated further.  What we're saying is that interpreting a constant number value gives back the constant number value.
 

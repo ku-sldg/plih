@@ -101,7 +101,10 @@ recursive interpreter.  The first antecedent states that $t_1
 $v_1$ is a variable whose value is the result of evaluating $t_1$.  In
 effect, this antecedent says that $v_1$ must be the result of that evaluation.  The second antecedent behaves similarly for $t_2$ and $v_2$.  Both antecedents name the results of interpreting $t_1$ and $t_2$ as $v_1$ and $v_2$ respectively.
 
-Now that we know the results of evaluating $t_1$ and $t_2$, defining their sum is simple.  Values in `AE` are numbers, so we simply use Haskell's notion of addition to define the sum.  Thus the consequent is $\eval t_1 \underline{+} t_2 = v_1 + v_2$.
+Now that we know the results of evaluating $t_1$ and $t_2$, defining
+their sum is simple.  Values in `AE` are numbers, so we simply use
+Haskell's notion of addition to define the sum.  Thus the consequent
+is $t_1 \underline{+} t_2 \Downarrow v_1 + v_2$.
 
 We define subtraction similarly in the $MinusE$ rule:
 
@@ -113,7 +116,7 @@ should. However, $1\underline{-}2$ evaluates to $-1$. As $\NUM$ values
 are defined to be positive, this is a problem. It's easy enough to fix
 the $MinusE$ rule to only generate positin values:
 
-$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2\; v_1\gte v_2}{t_1 \underline{-}
+$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2\; v_1\geq v_2}{t_1 \underline{-}
 t_2 \Downarrow v_1-v_2}\; [MinusE+]$$
 
 Understanding the structure of these rules before moving forward is vital.  They both define antecedents that effectively name the results of other calculations.  More specifically, other _recursive_ calculations.  When writing and defining interpreters, recursion is your best friend.  We needn't think now about calculating the values of $t_1$ and $t_2$, only that their values are calculated the same way all other values are calculated.

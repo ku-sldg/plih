@@ -101,7 +101,7 @@ recursive interpreter.  The first antecedent states that $t_1
 $v_1$ is a variable whose value is the result of evaluating $t_1$.  In
 effect, this antecedent says that $v_1$ must be the result of that evaluation.  The second antecedent behaves similarly for $t_2$ and $v_2$.  Both antecedents name the results of interpreting $t_1$ and $t_2$ as $v_1$ and $v_2$ respectively.
 
-Now that we know the results of evaluating $t_1$ and $t_2$, defining their sum is simple.  Values in `AE` are numbers, so we simply use Haskell's notion of addition to define the sum.  Thus the consequent is $\eval t_1 \unerline{+} t_2 = v_1 + v_2$.
+Now that we know the results of evaluating $t_1$ and $t_2$, defining their sum is simple.  Values in `AE` are numbers, so we simply use Haskell's notion of addition to define the sum.  Thus the consequent is $\eval t_1 \underline{+} t_2 = v_1 + v_2$.
 
 We define subtraction similarly in the $MinusE$ rule:
 

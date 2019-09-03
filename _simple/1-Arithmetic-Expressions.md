@@ -116,8 +116,13 @@ should. However, $1\underline{-}2$ evaluates to $-1$. As $\NUM$ values
 are defined to be positive, this is a problem. It's easy enough to fix
 the $MinusE$ rule to only generate positin values:
 
-$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2\; v_1\geq v_2}{t_1 \underline{-}
+$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2,\; v_1\geq v_2}{t_1 \underline{-}
 t_2 \Downarrow v_1-v_2}\; [MinusE+]$$
+
+The new ruile $MinusE+$ adds a third antecedent that specifies $v_1$
+must be greater than or equal to $v_2$ The $MinusE+$ only applies when
+$v_1\geq v_2$ thus $v_1 - v_2$ will always be non-negative as
+required.
 
 Understanding the structure of these rules before moving forward is vital.  They both define antecedents that effectively name the results of other calculations.  More specifically, other _recursive_ calculations.  When writing and defining interpreters, recursion is your best friend.  We needn't think now about calculating the values of $t_1$ and $t_2$, only that their values are calculated the same way all other values are calculated.
 

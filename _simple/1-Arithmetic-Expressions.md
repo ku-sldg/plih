@@ -75,13 +75,13 @@ Knowing what `AE` looks like, let's now define how terms in `AE` are interpreted
 
 The first tells us how to interpret numbers:
 
-$$\frac{}{\underline{v} \Downarrow v}\; [NumE]$$
+$$\frac{}{\underline{v} \Downarrow v}\; [Num]$$
 
 $\eval$ is the name of the interpretation function and this rule says calling $\eval$ on a value results in the value.  Remember that $v$ is a number and as such cannot be evaluated further.  What we're saying is that interpreting a constant number value gives back the constant number value.
 
 Addition and subtraction are more interesting and hint at how all our interpreters will be structured.  The rule, $PlusE$ defines the interpretation of terms of the form $t_1+t_2$:
 
-$$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1+v_2}\; [PlusE]$$
+$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2}{t_1 \underline{+} t_2 \Downarrow v_1+v_2}\; [PlusE]$$
 
 $PlusE$'s antecedents and consequent work together to define a recursive interpreter.  The first antecedent states that $\eval t_1 = v_1$ must be true before the consequent can be true.  But $v_1$ is a variable whose value is the result of calling $\eval$ on $t_1$.  In effect, this antecedent says that $v_1$ must be the result of $\eval t_1$.  The second antecedent behaves similarly for $t_2$ and $v_2$.  Both antecedents name the results of interpreting $t_1$ and $t_2$ as $v_1$ and $v_2$ respectively.
 

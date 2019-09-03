@@ -382,6 +382,13 @@ We said earlier that `eval` is complete, deterministic and normalizing.  Complet
 
 Unfortunately, these nice properties result from `AE` being such a trivial language.  Completeness and deterministic are properties we will seek to preserve as we add features.  However, normalizing will prove problematic when we add recursion and looping.
 
+### Correctness
+Another important question, one might say the most important question is whether `eval` is correct.  How do we define correctness?  We have the evaluation relation, $t\Downarrow v$ that relates terms to values and we have `eval :: AE -> AE` that is a function from terms to values.  The simplest correctness definition is:
+
+$$\forall t:AE, t \Downarrow (eval t)$$
+
+This states that evaluating any $t$ results in a value that is related to $t$ by the evaluation relation, $t\Downarrow v$.  By this definition, is our interpreter correct?
+
 ### Induction and Extensionality
 
 There is one property of `AE` structures that underlies most of our discussion.  The `AE` abstract syntax specifically and algebraic types generally have both inductive and extensionality principles.  The inductive principle allows us to prove properties over `AE` and the extensionality principle allows us to determine if two `AE` structures are equivalent.  We won't use either principle yet, so let's define them informally for now.

@@ -124,6 +124,13 @@ must be greater than or equal to $v_2$ The $MinusE+$ only applies when
 $v_1\geq v_2$ thus $v_1 - v_2$ will always be non-negative as
 required.
 
+What does happen when $v_2 > v_1$? The new $MinusE+$ does not apply
+nor does any other evaluation rule.  Subtraction when
+$v_2 > v_1$ is _undefined_.  Specifically, there is no rule than
+applies and thus no evaluation is performed.  When evaluation is not
+complete and the result is not a value, we say that
+interpretation is _stuck_.
+
 Understanding the structure of these rules before moving forward is vital.  They both define antecedents that effectively name the results of other calculations.  More specifically, other _recursive_ calculations.  When writing and defining interpreters, recursion is your best friend.  We needn't think now about calculating the values of $t_1$ and $t_2$, only that their values are calculated the same way all other values are calculated.
 
 ## Abstract Syntax

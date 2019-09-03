@@ -105,7 +105,8 @@ Now that we know the results of evaluating $t_1$ and $t_2$, defining their sum i
 
 We define subtraction similarly in the $MinusE$ rule:
 
-$$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 - t_2 = v_1-v_2}\; [MinusE]$$
+$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2}{t_1 \underline{-}
+t_2 \Downarrow v_1-v_2}\; [MinusE]$$
 
 Understanding the structure of these rules before moving forward is vital.  They both define antecedents that effectively name the results of other calculations.  More specifically, other _recursive_ calculations.  When writing and defining interpreters, recursion is your best friend.  We needn't think now about calculating the values of $t_1$ and $t_2$, only that their values are calculated the same way all other values are calculated.
 

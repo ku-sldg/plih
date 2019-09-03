@@ -71,21 +71,37 @@ Hopefully this discussion is review of your formal language theory or theory of 
 
 ## Inference Rules and Axioms
 
-Knowing what `AE` looks like, let's now define how terms in `AE` are interpreted.  Before writing a Haskell interpreter, we should define formally the meaning of terms.  We will use inference rules for this purpose.
+Knowing what `AE` looks like, let's now define how terms in `AE` are
+interpreted.  Before writing a Haskell interpreter, we should define
+formally the meaning of terms.  We will use inference rules for this
+purpose. $\Downarrow$ is the _evaluation relation_ and $x \Downarrow y$ is read
+_x evaluates to y_.  As the name implies the relation states that
+evaluating $x$ results in $y$.
 
-The first tells us how to interpret numbers:
+Our first inference rule tells us how to interpret numbers buy
+defining $\Downarrow$ for $v$:
 
-$$\frac{}{\underline{v} \Downarrow v}\; [Num]$$
+$$\frac{}{\underline{v} \Downarrow v}\; [NumE]$$
 
-$\eval$ is the name of the interpretation function and this rule says calling $\eval$ on a value results in the value.  Remember that $v$ is a number and as such cannot be evaluated further.  What we're saying is that interpreting a constant number value gives back the constant number value.
+The $NumE$ rule says evaluating numeral syntax in gives us the
+corresponding number.  Remember that $v$ is a number and as such
+cannot be evaluated further.  What we're saying is that interpreting a
+constant number value gives back the constant number value.  Note that
+when an ambiguity exists between syntax and terms used to define
+meaning, the underscore notation indicates syntax. For example,
+$\underline{v}$ is number syntax while $v$ is number value.
 
 Addition and subtraction are more interesting and hint at how all our interpreters will be structured.  The rule, $PlusE$ defines the interpretation of terms of the form $t_1+t_2$:
 
 $$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2}{t_1 \underline{+} t_2 \Downarrow v_1+v_2}\; [PlusE]$$
 
-$PlusE$'s antecedents and consequent work together to define a recursive interpreter.  The first antecedent states that $\eval t_1 = v_1$ must be true before the consequent can be true.  But $v_1$ is a variable whose value is the result of calling $\eval$ on $t_1$.  In effect, this antecedent says that $v_1$ must be the result of $\eval t_1$.  The second antecedent behaves similarly for $t_2$ and $v_2$.  Both antecedents name the results of interpreting $t_1$ and $t_2$ as $v_1$ and $v_2$ respectively.
+$PlusE$'s antecedents and consequent work together to define a
+recursive interpreter.  The first antecedent states that $t_1
+\Downarrow v_1$ must be true before the consequent can be true.  But
+$v_1$ is a variable whose value is the result of evaluating $t_1$.  In
+effect, this antecedent says that $v_1$ must be the result of that evaluation.  The second antecedent behaves similarly for $t_2$ and $v_2$.  Both antecedents name the results of interpreting $t_1$ and $t_2$ as $v_1$ and $v_2$ respectively.
 
-Now that we know the results of evaluating $t_1$ and $t_2$, defining their sum is simple.  Values in `AE` are numbers, so we simply use Haskell's notion of addition to define the sum.  Thus the consequent is $\eval t_1 + t_2 = v_1 + v_2$.
+Now that we know the results of evaluating $t_1$ and $t_2$, defining their sum is simple.  Values in `AE` are numbers, so we simply use Haskell's notion of addition to define the sum.  Thus the consequent is $\eval t_1 \unerline{+} t_2 = v_1 + v_2$.
 
 We define subtraction similarly in the $MinusE$ rule:
 

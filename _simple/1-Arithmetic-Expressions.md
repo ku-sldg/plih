@@ -387,7 +387,7 @@ Another important question, one might say the most important question is whether
 
 $$\forall t:AE, t \Downarrow (eval t)$$
 
-This states that evaluating any $t$ results in a value that is related to $t$ by the evaluation relation, $t\Downarrow v$.  By this definition, is our interpreter correct?
+This states that evaluating any $t$ results in a value that is related to $t$ by the evaluation relation, $t\Downarrow v$.  By this definition, is our interpreter correct?  How would you go about proving this condition?
 
 ### Induction and Extensionality
 
@@ -434,8 +434,8 @@ Lots of definitions to get us started:
 * Termination - Halting
 * Deterministic - Every invocation with the same inputs generates the same outputs
 * Normalization - Every invocation halts
-- Induction - Proof principle commonly used for countably infinite structures
-- Extensionality - Proof principle used to show two structures are equal.
+* Induction - Proof principle commonly used for countably infinite structures
+* Extensionality - Proof principle used to show two structures are equal.
 
 ## Exercises
 

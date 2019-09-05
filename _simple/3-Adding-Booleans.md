@@ -77,37 +77,37 @@ Let's start with our inference rules for `AE` and extend them to
 include new rules for `ABE` constructs.  Here are the original
 evaluation rules for `AE`: 
 
-$$\frac{}{\underline{v} \Downarrow v}\; [NumE]$$
+$$\frac{}{\underline{v} \eval v}\; [NumE]$$
 
-$$\frac{t_1\Downarrow v_1,\; t_2\Downarrow v_2}{t_1 \underline{+} t_2\Downarrow v_1+v_2}\; [PlusE]$$
+$$\frac{t_1\eval v_1,\; t_2\eval v_2}{t_1 \underline{+} t_2\eval v_1+v_2}\; [PlusE]$$
 
-$$\frac{t_1\Downarrow v_1,\; t_2\Downarrow v_2}{t_1 \underline{-} t_2 \Downarrow v_1-v_2}\; [MinusE]$$
+$$\frac{t_1\eval v_1,\; t_2\eval v_2}{t_1 \underline{-} t_2 \eval v_1-v_2}\; [MinusE]$$
 
 Boolean values are just like numerical values.  So much so that we do
 no not need another rule for values.  However, we will rename the
 $NumE$ rule to reflect that it now covers all values: 
 
-$$\frac{}{\underline{v} \Downarrow v}\; [ValueE]$$
+$$\frac{}{\underline{v} \eval v}\; [ValueE]$$
 
 Rules for $\aand$ and $\lleq$ follow the same pattern as rules for $+$
 and $-$: 
 
-$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2}{t_1 \aand t_2 \Downarrow v_1 \wedge v_2}\; [AndE]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 \aand t_2 \eval v_1 \wedge v_2}\; [AndE]$$
 
-$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2}{t_1 \lleq t_2 \Downarrow v_1\leq v_2}\; [LeqE]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 \lleq t_2 \eval v_1\leq v_2}\; [LeqE]$$
 
 The rule for $\iisZero$ is only modestly different because it is a
 unary operation.  Unsurprisingly it has only one antecedent: 
 
-$$\frac{t \Downarrow v}{\iisZero t\Downarrow v==0}\; [isZeroE]$$
+$$\frac{t \eval v}{\iisZero t\eval v==0}\; [isZeroE]$$
 
 Finally, lets deal with $\iif$.  Thinking of $\iif$ as simply an
 operation with three arguments, we can follow our previous pattern
 giving us this rule: 
 
-$$\frac{t_0 \Downarrow \ttrue\; t_1 \Downarrow v_1}{\iif t_0 \tthen t_1 \eelse t_2 \Downarrow v_1}\;[IfTrueE]$$
+$$\frac{t_0 \eval \ttrue\; t_1 \eval v_1}{\iif t_0 \tthen t_1 \eelse t_2 \eval v_1}\;[IfTrueE]$$
 
-$$\frac{t_0 \Downarrow \ffalse\; t_2 \Downarrow v_2}{\iif t_0 \tthen t_1 \eelse t_2 \Downarrow v_2}\;[IfFalseE]$$
+$$\frac{t_0 \eval \ffalse\; t_2 \eval v_2}{\iif t_0 \tthen t_1 \eelse t_2 \eval v_2}\;[IfFalseE]$$
 
 The first rule only applies when $t_0$ evaluates to $\ttrue$
 while the second applies when $t_0$ evaluates to $\ffalse$. 

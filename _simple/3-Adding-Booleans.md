@@ -10,7 +10,7 @@ $$
 \newcommand\parse{\mathsf{parse}\;}
 \newcommand\typeof{\mathsf{typeof}\;}
 \newcommand\interp{\mathsf{interp}\;}
-\newcommand\eval{\mathsf{eval}\;}
+\newcommand\eval{\;\Downarrow\;}
 \newcommand\NUM{\mathsf{NUM}\;}
 \newcommand\iif{\mathsf{if}\;}
 \newcommand\tthen{\;\mathsf{then}\;}
@@ -57,7 +57,6 @@ matter of adding Boolean constant representations and representations
 for the various operations.  The new concrete syntax for a language we
 will call `ABE` (*Arithmetic and Boolean Expressions*) is
 
-
 $$\begin{align*}
 t ::= & \NUM \mid t + t \mid t - t \\
       & \mid \ttrue \mid \ffalse \mid \iif t \tthen t \eelse t \\
@@ -78,40 +77,40 @@ Let's start with our inference rules for `AE` and extend them to
 include new rules for `ABE` constructs.  Here are the original
 evaluation rules for `AE`: 
 
-$$\frac{}{\eval v = v}\; [NumE]$$
+$$\frac{}{\underline{v} \Downarrow v}\; [NumE]$$
 
-$$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1+v_2}\; [PlusE]$$
+$$\frac{t_1\Downarrow v_1,\; t_2\Downarrow v_2}{t_1 \underline{+} t_2\Downarrow v_1+v_2}\; [PlusE]$$
 
-$$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1-v_2}\; [MinusE]$$
+$$\frac{t_1\Downarrow v_1,\; t_2\Downarrow v_2}{t_1 \underline{-} t_2 \Downarrow v_1-v_2}\; [MinusE]$$
 
 Boolean values are just like numerical values.  So much so that we do
 no not need another rule for values.  However, we will rename the
 $NumE$ rule to reflect that it now covers all values: 
 
-$$\frac{}{\eval v = v}\; [ValueE]$$
+$$\frac{}{\underline{v} \Downarrow v}\; [ValueE]$$
 
 Rules for $\aand$ and $\lleq$ follow the same pattern as rules for $+$
 and $-$: 
 
-$$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 \aand t_2 = v_1 \wedge v_2}\; [AndE]$$
+$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2}{t_1 \aand t_2 \Downarrow v_1 \wedge v_2}\; [AndE]$$
 
-$$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 \lleq t_2 = v_1\leq v_2}\; [LeqE]$$
+$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2}{t_1 \lleq t_2 \Downarrow v_1\leq v_2}\; [LeqE]$$
 
 The rule for $\iisZero$ is only modestly different because it is a
 unary operation.  Unsurprisingly it has only one antecedent: 
 
-$$\frac{\eval t = v}{\eval \iisZero t = v==0}\; [isZeroE]$$
+$$\frac{t \Downarrow v}{\iisZero t\Downarrow v==0}\; [isZeroE]$$
 
 Finally, lets deal with $\iif$.  Thinking of $\iif$ as simply an
 operation with three arguments, we can follow our previous pattern
 giving us this rule: 
 
-$$\frac{\eval t_0 = \ttrue\;\eval t_1 = v_1}{\eval \iif t_0 \tthen t_1 \eelse t_2 = v_1}\;[IfTrueE]$$
+$$\frac{t_0 \Downarrow \ttrue\; t_1 \Downarrow v_1}{\iif t_0 \tthen t_1 \eelse t_2 \Downarrow v_1}\;[IfTrueE]$$
 
-$$\frac{\eval t_0 = \ffalse\;\eval t_2 = v_2}{\eval \iif t_0 \tthen t_1 \eelse t_2 = v_2}\;[IfFalseE]$$
+$$\frac{t_0 \Downarrow \ffalse\; t_2 \Downarrow v_2}{\iif t_0 \tthen t_1 \eelse t_2 \Downarrow v_2}\;[IfFalseE]$$
 
-The first rule only applies when $\eval t_0$ evaluates to $\ttrue$
-while the second applies when $\eval t_0$ evaluates to $\ffalse$. 
+The first rule only applies when $t_0$ evaluates to $\ttrue$
+while the second applies when $t_0$ evaluates to $\ffalse$. 
 
 ## Abstract Syntax
 
@@ -124,7 +123,7 @@ lifted into our AST using the constructor `Boolean`:
 
 
 ```haskell
-  Boolean :: Bool -> ABE
+Boolean :: Bool -> ABE
 ```
 
 While `True` and `False` are values in Haskell, `(Boolean True)` and `(Boolean False)` are values in our language.

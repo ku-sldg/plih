@@ -12,6 +12,7 @@ $$
 \newcommand\interp{\mathsf{interp}\;}
 \newcommand\eval{\mathsf{eval}\;}
 \newcommand\NUM{\mathsf{NUM}\;}
+\newcommand\eval{ \Downarrow }
 $$
 
 # Simple Expression Interpreters
@@ -74,14 +75,14 @@ Hopefully this discussion is review of your formal language theory or theory of 
 Knowing what `AE` looks like, let's now define how terms in `AE` are
 interpreted.  Before writing a Haskell interpreter, we should define
 formally the meaning of terms.  We will use inference rules for this
-purpose. $\Downarrow$ is the _evaluation relation_ and $x \Downarrow y$ is read
+purpose. $\eval$ is the _evaluation relation_ and $x \eval y$ is read
 _x evaluates to y_.  As the name implies the relation states that
 evaluating $x$ results in $y$.
 
 Our first inference rule tells us how to interpret numbers buy
-defining $\Downarrow$ for $v$:
+defining $\eval$ for $v$:
 
-$$\frac{}{\underline{v} \Downarrow v}\; [NumE]$$
+$$\frac{}{\underline{v} \eval v}\; [NumE]$$
 
 The $NumE$ rule says evaluating numeral syntax in gives us the
 corresponding number.  Remember that $v$ is a number and as such
@@ -93,31 +94,31 @@ $\underline{v}$ is number syntax while $v$ is number value.
 
 Addition and subtraction are more interesting and hint at how all our interpreters will be structured.  The rule, $PlusE$ defines the interpretation of terms of the form $t_1+t_2$:
 
-$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2}{t_1 \underline{+} t_2 \Downarrow v_1+v_2}\; [PlusE]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 \underline{+} t_2 \eval v_1+v_2}\; [PlusE]$$
 
 $PlusE$'s antecedents and consequent work together to define a
 recursive interpreter.  The first antecedent states that $t_1
-\Downarrow v_1$ must be true before the consequent can be true.  But
+\eval v_1$ must be true before the consequent can be true.  But
 $v_1$ is a variable whose value is the result of evaluating $t_1$.  In
 effect, this antecedent says that $v_1$ must be the result of that evaluation.  The second antecedent behaves similarly for $t_2$ and $v_2$.  Both antecedents name the results of interpreting $t_1$ and $t_2$ as $v_1$ and $v_2$ respectively.
 
 Now that we know the results of evaluating $t_1$ and $t_2$, defining
 their sum is simple.  Values in `AE` are numbers, so we simply use
 Haskell's notion of addition to define the sum.  Thus the consequent
-is $t_1 \underline{+} t_2 \Downarrow v_1 + v_2$.
+is $t_1 \underline{+} t_2 \eval v_1 + v_2$.
 
 We define subtraction similarly in the $MinusE$ rule:
 
-$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2}{t_1 \underline{-}
-t_2 \Downarrow v_1-v_2}\; [MinusE]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 \underline{-}
+t_2 \eval v_1-v_2}\; [MinusE]$$
 
 According to this rule $2\underline{-}1$ evaluates to $1$ as it
 should. However, $1\underline{-}2$ evaluates to $-1$. As $\NUM$ values
 are defined to be non-negative, this is a problem. It's easy enough to fix
 the $MinusE$ rule to only generate positin values:
 
-$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2,\; v_1\geq v_2}{t_1 \underline{-}
-t_2 \Downarrow v_1-v_2}\; [MinusE+]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1\geq v_2}{t_1 \underline{-}
+t_2 \eval v_1-v_2}\; [MinusE+]$$
 
 The new ruile $MinusE+$ adds a third antecedent that specifies $v_1$
 must be greater than or equal to $v_2$ The $MinusE+$ only applies when
@@ -130,21 +131,21 @@ $v_2 > v_1$ is _undefined_.  Specifically, there is no rule that
 applies and thus no evaluation results.  When evaluation is not
 complete in this way and the term being evaluated is not a value, we say that
 interpretation is _stuck_ and the evaluation relation defined by
-$\Downarrow$ is _not total_.
+$\eval$ is _not total_.
 
 One way to fix this problem is to simply return $0$ when the result
 would be negative.  This fix is captured with the rule $MinusEZero$:
 
-$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2,\; v_1 < v_2}{t_1 \underline{-}
-t_2 \Downarrow 0}\; [MinusEZero]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1 < v_2}{t_1 \underline{-}
+t_2 \eval 0}\; [MinusEZero]$$
 
 Evaluation is now total, but subtraction in $AE$ has properties that
 might prove problematic.  $0$ could be a legitimate subtraction result
 or it could indicate a problem.  We call these designated values "magic values" and they often prove problematic.  An alternative is returning an
 error value:
 
-$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2,\; v_1 < v_2}{t_1 \underline{-}
-t_2 \Downarrow \bot}\; [MinusEBottom]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1 < v_2}{t_1 \underline{-}
+t_2 \eval \bot}\; [MinusEBottom]$$
 
 This introduces a new value, $\bot$, called bottom that represents
 an error value.  As a result, $\bot$ must be included in all other
@@ -229,7 +230,7 @@ eval :: AE -> Maybe AE
 
 We now define `eval`'s cases, one for each `AE` constructor starting with the `Num` constructor.  `(Num 3)`, for example, represents a constant `3` in the `AE` abstract syntax.  Without much thought it should be clear that as a constant, `(Num 3)` evaluates to `(Num 3)`.  Numbers are values in `AE`, thus they should not be evaluated further making this consistent with our formal definition.  Thankfully, this is exactly what our inference rule for evaluating numbers says if we remember that $v$ represents $\NUM$:
 
-$$\frac{}{\underline{v} \Downarrow v}\; [NumE]$$
+$$\frac{}{\underline{v} \eval v}\; [NumE]$$
 
 The value associated with an `AE` number is the Haskell equivalent.
 Thus, the `eval` case for `(Num n)` just returns its argument: 
@@ -245,7 +246,7 @@ We now have an evaluator for literal numbers, but nothing more.
 The next constructor, `Plus` represents a more interesting case.  We
 have a rule named $PlusE$ that defines evaluation of `t1+t2`:
 
-$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2}{\eval t_1 \underline{+} t_2 = v_1+v_2}\; [PlusE]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{\eval t_1 \underline{+} t_2 = v_1+v_2}\; [PlusE]$$
 
 The inference rule is defined in terms of concrete rather than abstract syntax, so we have to do a bit of translation work. $t_1\underline{+}t_2$ translates quickly into `(Plus t1 t2)`. If `t1` evaluates to `(Num v1)` and `t2` evaluates to `(Num v2)` then `(Plus t1 t2)` evalautes to `(Num v1)+(Num v2)`.  There is no `+` operation in Haskell for `(Num n)` constructions, this we need to write one to define addition in `AE`.  We can define addition in `AE` in terms of addition in Haskell.  Specifically:
 
@@ -336,9 +337,9 @@ v ::= & \NUM \\
 
 Then we defined basic inference rules formally defining how `AE` is interpreted:
 
-$$\frac{}{\underline{v} \Downarrow v}\; [NumE]$$
+$$\frac{}{\underline{v} \eval v}\; [NumE]$$
 
-$$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2}{\eval t_1 \underline{+} t_2 = v_1+v_2}\; [PlusE]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{\eval t_1 \underline{+} t_2 = v_1+v_2}\; [PlusE]$$
 
 $$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2,\;v_1\geq v_2}{\eval t_1 \underline{-} t_2 = v_1-v_2}\; [MinusE]$$
 
@@ -383,11 +384,11 @@ We said earlier that `eval` is complete, deterministic and normalizing.  Complet
 Unfortunately, these nice properties result from `AE` being such a trivial language.  Completeness and deterministic are properties we will seek to preserve as we add features.  However, normalizing will prove problematic when we add recursion and looping.
 
 ### Correctness
-Another important question, one might say the most important question is whether `eval` is correct.  How do we define correctness?  We have the evaluation relation, $t\Downarrow v$ that relates terms to values and we have `eval :: AE -> AE` that is a function from terms to values.  The simplest correctness definition is:
+Another important question, one might say the most important question is whether `eval` is correct.  How do we define correctness?  We have the evaluation relation, $t\eval v$ that relates terms to values and we have `eval :: AE -> AE` that is a function from terms to values.  The simplest correctness definition is:
 
-$$\forall t:AE, t \Downarrow (eval t)$$
+$$\forall t:AE, t \eval (eval t)$$
 
-This states that evaluating any $t$ results in a value that is related to $t$ by the evaluation relation, $t\Downarrow v$.  By this definition, is our interpreter correct?  How would you go about proving this condition?
+This states that evaluating any $t$ results in a value that is related to $t$ by the evaluation relation, $t\eval v$.  By this definition, is our interpreter correct?  How would you go about proving this condition?
 
 ### Induction and Extensionality
 

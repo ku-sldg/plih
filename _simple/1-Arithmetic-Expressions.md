@@ -144,12 +144,12 @@ or it could indicate a problem.  We call these designated values "magic values" 
 error value:
 
 $$\frac{t_1 \Downarrow v_1,\; t_2 \Downarrow v_2,\; v_1 < v_2}{t_1 \underline{-}
-t_2 \Downarrow \bottom}\; [MinusEBottom]$$
+t_2 \Downarrow \bot}\; [MinusEBottom]$$
 
-This introduces a new value, $\bottom$, called bottom that represents
-an error value.  As a result, $\bottom$ must be included in all other
-inference rules.  What is $5+\bottom$?  Simply defining the result
-of any expression involving $\bottom$ as $\bottom$ requires new rules
+This introduces a new value, $\bot$, called bottom that represents
+an error value.  As a result, $\bot$ must be included in all other
+inference rules.  What is $5+\bot$?  Simply defining the result
+of any expression involving $\bot$ as $\bot$ requires new rules
 for each operator.
 
 Often the best approach is to simply leave the relation as is and wait

@@ -10,7 +10,7 @@ $$
 \newcommand\parse{\mathsf{parse}\;}
 \newcommand\typeof{\mathsf{typeof}\;}
 \newcommand\interp{\mathsf{interp}\;}
-\newcommand\eval{\;\Downarrow\;}
+\newcommand\eval{ \Downarrow }
 \newcommand\NUM{\mathsf{NUM}\;}
 \newcommand\iif{\mathsf{if}\;}
 \newcommand\tthen{\;\mathsf{then}\;}

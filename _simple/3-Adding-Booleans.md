@@ -101,25 +101,19 @@ unary operation.  Unsurprisingly it has only one antecedent:
 
 $$\frac{t \eval v}{\iisZero t\eval v==0}\; [isZeroE]$$
 
-Finally, lets deal with $\iif$.  Thinking of $\iif$ as simply an
+Finally, let's deal with $\iif$.  Thinking of $\iif$ as simply an
 operation with three arguments, we can follow our previous pattern
-giving us this rule: 
+giving us this pair of rules: 
 
 $$\frac{t_0 \eval \ttrue\; t_1 \eval v_1}{\iif t_0 \tthen t_1 \eelse t_2 \eval v_1}\;[IfTrueE]$$
 
 $$\frac{t_0 \eval \ffalse\; t_2 \eval v_2}{\iif t_0 \tthen t_1 \eelse t_2 \eval v_2}\;[IfFalseE]$$
 
-The first rule only applies when $t_0$ evaluates to $\ttrue$
-while the second applies when $t_0$ evaluates to $\ffalse$. 
+The $IfTrueE$ only applies when $t_0$ evaluates to $\ttrue$ while $IfFalseE$ applies when $t_0$ evaluates to $\ffalse$.  Note that only one arm of the if expression is evaluated in each rule.  In $IfTrueE$ the expression associated with true is evaluated while in $IfFalseE$ only the expression associated with false.
 
 ## Abstract Syntax
 
-Before we extend our `AE` parser to `ABE`, we need to extend our
-abstract syntax for `AE` to handle new constructs.  We will start with
-`true` and `false`, the Boolean constant values.  To represent these
-values in the abstract syntax, we will use a technique similar to
-numbers.  Specifically, the Haskell `True` and `False` values will be
-lifted into our AST using the constructor `Boolean`: 
+We need to extend our abstract syntax for `AE` to handle new constructs.  We will start with `true` and `false`, the Boolean constant values.  To represent these values in the abstract syntax, we will use a technique similar to numbers.  Specifically, the Haskell `True` and `False` values will be lifted into our AST using the constructor `Boolean`: 
 
 
 ```haskell
@@ -128,7 +122,7 @@ Boolean :: Bool -> ABE
 
 While `True` and `False` are values in Haskell, `(Boolean True)` and `(Boolean False)` are values in our language.
 
-Next we will add unary and binary operations over Boolean values.  These operations are no different than the binary and unary operations over integers:
+Next we will add unary and binary operations over Boolean values.  These operations are no different than binary and unary operations over integers:
 
 ```haskell
   And :: ABE -> ABE -> ABE
@@ -136,7 +130,7 @@ Next we will add unary and binary operations over Boolean values.  These operati
   IsZero :: ABE -> ABE
 ```
 
-Finally, we add an `if` construct in the canonical fashion as if it were simply a three-argument function.
+Finally, we add an `if` construct in the canonical fashion as if it were simply a three-argument function:
 
 ```haskell
   If :: ABE -> ABE -> ABE -> ABE
@@ -159,7 +153,7 @@ data ABE where
 
 ## Interpreter
 
-Finally.  We have abstract syntax generated from concrete syntax and can now write our interpreter.  This involves extending the `AE` `eval` function to include new cases for the new Boolean operations.  The initial definition is:
+Finally.  We have abstract syntax defined from concrete syntax and can now write our interpreter.  This involves extending the `AE` `eval` function to include new cases for the new Boolean operations.  The initial definition is:
 
 ```haskell
 eval :: ABE -> Maybe ABE
@@ -194,13 +188,13 @@ eval (And t1 t2) = do { r1 <- (eval t1) ;
 eval (Leq t1 t2) = do { r1 <- (eval t1) ;
                         r2 <- (eval t2) ;
                         return (liftNum2Bool (<=) r1 r2) }
-eval (IsZero t) = do { r <- (eval t)
+eval (IsZero t) = do { r <- (eval t) ;
                        return (liftNum2Bool (==) r (Num 0)) }
-eval (If t1 t2 t3) = do { (Boolean v) <- (eval t1)
+eval (If t1 t2 t3) = do { (Boolean v) <- (eval t1) ;
                           (if v then (eval t2) else (eval t3)) }
 ```
 
-Finally, we'll combine the `eval` and `parseABE` functions into a single `interp` function just like we did before:
+We'll combine the `eval` and `parseABE` functions into a single `interp` function just like we did before:
 
 ```haskell
 interp = eval . parseABE
@@ -219,7 +213,7 @@ interp 5<=3
 == (Just (Boolean false))
 ```
 
-all work as anticiapted, calculating the correct value and returning it as abstract syntax embedded in a `Maybe` monad.
+all work as anticipated, calculating the correct value and returning it as abstract syntax embedded in a `Maybe` monad.
 
 The big change is this interpreter crashes.  Our `AE` interpreter did not crash.  No well-formed term would cause the interpreter to belly up.  For `ABE` there are many cases that crash.  For example:
 

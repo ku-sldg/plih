@@ -28,17 +28,17 @@ $$
 
 # Failure Is an Option
 
-We've established that `ABE` fails for test cases that attempt to use Boolean values where numbers should be used or numbers where Boolean values should be used.  Before addressing that specific problem, let's look at how failure should be handled generally.
+We've established that `ABE` fails for test cases that attempt to use `Boolean` values where numbers should be used or numbers where Boolean values should be used.  Before addressing that specific problem, let's look at how failure should be handled generally.  But first, a bit of new terminology.
 
-First a bit of new terminology.  We are defining a new language called `ABE` using Haskell to build parsers and interpreters.  We will refer to `ABE` as the *external language* or *domain specific language*.  We refer to Haskell as the *host language* or *implementation language*.  The distinction is we are building tools for `ABE` and using Haskell to build them.
+We are defining a new language called `ABE` using Haskell to build parsers and interpreters.  We will refer to `ABE` as the *external language* or *domain specific language*.  We refer to Haskell as the *host language* or *implementation language*.  The distinction is we are building tools for `ABE` and using Haskell to build them.
 
-When the current `ABE` interpreter fails, it fails in the host language.  When we call the Haskell `error` function we jump out of our interpreter and generate a Haskell error message.  This approach works, but has several problems.
+When the current `ABE` interpreter fails, it fails in the host language.  When we call the Haskell `error` function we jump out of our interpreter and generate a Haskell error message.  This approach works, but we cannot control errors and our only choice is hard failure.
 
-First, we have no control over errors.  They happen and our control of execution ends.  Java uses an innovative approach where exceptions are Java data structures that allow us to write Java programs to process them.  This is how systems like Eclipse can allow new tools that generate error messages to simply be plugged into the infrastructure.  Right now, we can't do this.
+We have no control over errors.  They happen and our control of execution ends.  Java uses an innovative approach where exceptions are Java data structures that allow us to write Java programs to process them.  This is how systems like Eclipse can allow new tools that generate error messages to simply be plugged into the infrastructure.  Right now, we can't do this.
 
-Second, our only choice is to fail.  What if our interpreters can avoid failures?  What if we can predict failures during or before execution?  This results in systems that are more robust and code that we can better control.
+Our only choice is to fail completely.  What if our interpreters can avoid failures?  What if we can predict failures during or before execution?  This results in systems that are more robust and code that we can better control.
 
-Let's look at two approaches to handling errors.  The first will handle them *dynamically* or at run-time.  Our interpreter will generate error messages as data structures that we can process how we choose.  The second will handle them *statically* by predicting runtime failure before execution.  We will still have run-time errors, but substantially fewer.
+Let's look at two approaches to handling errors.  The first will handle them *dynamically or at run-time.  Our interpreter will generate error messages as data structures that we can process how we choose.  The second will handle them *statically* by predicting runtime failure before execution.  We will still have run-time errors, but substantially fewer.
 
 ## Runtime Error Prediction
 
@@ -71,9 +71,9 @@ evalErr (IsZero t) =
        _ -> Nothing
 ```
 
-First the argument to `IsZero` is evaluated and bound to `v` using the `do` notation.  If `eval t` returns `Just x` then `r` is bound to `x`.  When building `eval`, we were pretty much done.  Compare the result to zero and return result using `return` and `Right` and crash if somehow the comparison fails.  Here we catch that failure using the `case` operation over `r`.  If `r` is a `Num`, then we return exactly what we returned before.  The construction is a bit different as we use pattern maching to project `v` from `Num v` to perform the comparison with `0`
+First the argument to `IsZero` is evaluated and bound to `v` using the `do` notation.  If `eval t` returns `Just x` then `r` is bound to `x`.  When building `eval`, we were pretty much done.  Compare the result to zero and return result using `return` and `Right` and crash if somehow the comparison fails.  Here we catch that failure using the `case` operation over `r`.  If `r` is a `Num`, then we return exactly what we returned before.  The construction is a bit different as we use pattern matching to project `v` from `Num v` to perform the comparison with `0`
 
-If `r` is anythnig but a number, we immediately return `Nothing`.  `Nothing` represents an error in this implementation.  Remember that `return = Just`, so `return Nothin` is not well typed and not what we want.  Simply returning `Nothing` directly indicates an error.  Note that any operation consuming the error result will simply pass it through due to the use of the `Maybe` monad.  So, we don't need to implement all kinds of error checking.
+If `r` is anything but a number, we immediately return `Nothing`.  `Nothing` represents an error in this implementation.  Remember that `return = Just`, so `return Nothin` is not well typed and not what we want.  Simply returning `Nothing` directly indicates an error.  Note that any operation consuming the error result will simply pass it through due to the use of the `Maybe` monad.  So, we don't need to implement all kinds of error checking.
 
 The remaining binary operations are virtually the same except we have two arguments to evaluate and need to nest handling argument results.  Look first at `Plus`:
 
@@ -100,7 +100,7 @@ evalErr (If t1 t2 t3) =
                 _ -> Nothing
 ```
 
-`If` follows the same pattern as `isZero`.  The condition is evaluated first and bound to `r` if no error is generarted.  If `Nothin` results from evaluating the condition, then `Nothing` falls through.  (See the monadic patter at work?)  `r` is then used to determine which arm of the `If` to evaluate and `evalErr` called as appropriate.  Note that we do not use `return` here as the `evalErr` result will be of the right type without lifting with `Just`.
+`If` follows the same pattern as `isZero`.  The condition is evaluated first and bound to `r` if no error is generated.  If `Nothin` results from evaluating the condition, then `Nothing` falls through.  (See the monadic patter at work?)  `r` is then used to determine which arm of the `If` to evaluate and `evalErr` called as appropriate.  Note that we do not use `return` here as the `evalErr` result will be of the right type without lifting with `Just`.
 
 Once the interpreter is completed, we can define an interpreter function in a manner similar to the original interpreter function for `eval`:
 
@@ -137,7 +137,7 @@ because the return type of `eval` is different than the return type of `evalErr`
             (Left v) -> True))
 ```
 
-The `case` performs exactly the check we need.  `Right` compares the value generated with the results of `eval` on `t`.  `Left` just returns  `True`.  Why?  QuickCheck checks to see if the conjunction of all tests succeed.  `True` causes QuickCheck to, in essense, ignore the case.  Exactly what we want.  Here's the QuickCheck function:
+The `case` performs exactly the check we need.  `Right` compares the value generated with the results of `eval` on `t`.  `Left` just returns  `True`.  Why?  QuickCheck checks to see if the conjunction of all tests succeed.  `True` causes QuickCheck to ignore the case.  Exactly what we want.  Here's the QuickCheck function:
 
 ```haskell
 testEvals :: Int -> IO ()
@@ -158,13 +158,13 @@ If you get anything out of this missive, it should be that programs are simply d
 
 In that spirit, let's look at our first example of such an application that predicts failure before evaluating a program.  The specific failure we will look for is the same failure we caught dynamically in the previous example.  Specifically, we will predict when arguments to an operator do not match what the operator expects before execution.  Instead of running code and watching for errors, we will predict errors before running the code.  This is an example of *static analysis* where we want to say something about a program without actually running it.
 
-To understand where we're headed think about the oeprations `2+3` and `false+3`.  If we interpret `2+3` we will get a value where interpreting `false+3` throws an error.  The problem is that `+` is not defined for `false`. We saw this earlier when our interpreter crashed and when we caught the error at run-time.
+To understand where we're headed think about the operations `2+3` and `false+3`.  If we interpret `2+3` we will get a value where interpreting `false+3` throws an error.  The problem is that `+` is not defined for `false`. We saw this earlier when our interpreter crashed and when we caught the error at run-time.
 
 We caught the error by looking at the argument evaluation result's constructors.  Evaluating `2` and `3` before adding gives two results that are instances of `Num`.  The interpreter sees the `Num` constructor and can infer both arguments have evaluated to numbers.  Evaluated `false` does not give a number, but instead gives a Boolean constructed with `Boolean`.
 
 What we've discovered is that `+` will only operate on number values and that number values are always constructed with `Num`.  Similarly, `&&` only operates on Boolean values and all Boolean values are constructed with `Boolean`.  Again similarly, `<=` only operates on number values and number values are always constructed with `Num`.  It should be clear we are looking at sets of values constructed with a specific constructor.
 
-If we want to predict failure, we need to predict constructors.  `t1 + t1` will execute corectly if evaluating `t1` and `t2` results in something constructed with `Num`.  Said mathematically:
+If we want to predict failure, we need to predict constructors.  `t1 + t1` will execute correctly if evaluating `t1` and `t2` results in something constructed with `Num`.  Said mathematically:
 
 $$\eval t_1 \in \{(\nnum x) \mid x\in Int\}$$
 $$\eval t_2 \in \{(\nnum x) \mid x\in Int\}$$
@@ -173,7 +173,7 @@ where $Int$ is the Haskell `Int` type.  Note that both $t_1$ and $t_2$ must belo
 
 $$\tnum == \{(\nnum x) \mid x\in Int\}$$
 
-Now the question becomes whether we can predict $\tnum$ from $t_1$ and $t_2$ without executing either.  `eval` is defined by including one case for each language constructor in itts definition.  Can we do the same here?  Let's try by defining a function we'll never implement called `predict`.  First, let's take care of our values:
+Now the question becomes whether we can predict $\tnum$ from $t_1$ and $t_2$ without executing either.  `eval` is defined by including one case for each language constructor in its definition.  Can we do the same here?  Let's try by defining a function we'll never implement called `predict`.  First, let's take care of our values:
 
 ```haskell
 predict (Num _) = TNum
@@ -200,7 +200,7 @@ One can imagine doing the same thing for other constructions in `ABE`.  Which co
 
 What is going on here is a simple form of *type inference*.  If we treat `TNum` and `TBool` is the names of types, then `predict` is a function that returns the type of an expression that we will call `typeof`.  It predicts what set - or *type* - an expression's associated value is in.
 
-The `typeof` function is simply another inteprpreter for the `ABE` language.  `typeof` takes an expression in `ABE` and evaluates it just like `eval`, except the values associated with `typeof` are `TNum` and `TBool`.  Programs are just data strucutres and can be interpreted in many ways.  `typeof` is one such alternate interpretation.
+The `typeof` function is simply another interpreter for the `ABE` language.  `typeof` takes an expression in `ABE` and evaluates it just like `eval`, except the values associated with `typeof` are `TNum` and `TBool`.  Programs are just data structures and can be interpreted in many ways.  `typeof` is one such alternate interpretation.
 
 ### Type Rules
 
@@ -214,7 +214,7 @@ $$\frac{}{\typeof \ttrue = \tbool}\; [TrueT]$$
 
 $$\frac{}{\typeof \ffalse = \tbool}\; [FalseT]$$
 
-Here we simply define axioms that give numbers, `true` and `false` their appropriate types.  It is important that each `ABE` expression have exactly one type, thus there is preceisely one axiom for each value.
+Here we simply define axioms that give numbers, `true`, and `false` their appropriate types.  It is important that each `ABE` expression have exactly one type, thus there is precisely one axiom for each value.
 
 Next we'll define types for numerical operations from `AE`:
 
@@ -241,9 +241,9 @@ $$\frac{\typeof t_0 = \tbool,\;\typeof t_1 = T,\;\typeof t_2 = T
 
 The condition is required to be `TBool` as expected.  However, the then and else cases are both required to be of unknown type $T$.  $T$ in this context is a *type variable* that can take any type value.  Thus, the arms of an `if` expression can be either Boolean or numbers as long as they are the same.  Unlike all other terms, all instances of `if` do not have the same type.  Is this a problem?
 
-The $IfT$ rule ensures that any specific `if` expression has only one type.  If the two cases were allowed to have different types, then  the `if`'s type cannot be predicted without knowing the value of the conditional.  This will only be known *dynamically* and we are trying to predict errors *statically*.  By requiring true and false cases to have the same type, we know that the $\iif$ expression will have that single type.
+The $IfT$ rule ensures that any specific `if` expression has only one type.  If the two cases were allowed to have different types, the `if`'s type cannot be predicted without knowing the value of the conditional.  This will only be known *dynamically* and we are trying to predict errors *statically*.  By requiring true and false cases to have the same type, we know that the $\iif$ expression will have that single type.
 
-As noted, the $\typeof$ fucntion implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function `typecheck` would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if `typeof t` is defined or `typecheck e t` is true for some type `t` and `e`.
+As noted, the $\typeof$ function implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function `typecheck` would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if `typeof t` is defined or `typecheck e t` is true for some type `t` and `e`.
 
 Back to comparison with `eval`.  Do you see the parallel between $\eval$ rules and $\typeof$ rules?  There is a one-to-one correspondence between the rules.  They are structured the same way and as we'll see soon, they will be implemented in roughly the same way.  This is not always true, but the similarity is something we'll revisit in later discussions.
 
@@ -300,7 +300,7 @@ Before moving on, take note of the similarity between the code for `Plus` and it
 
 $$\frac{\typeof t_1 = \tnum,\; \typeof t_2 = \tnum}{\typeof t_1 + t_2 = TNum}\; [PlusT]$$
 
-The antedent types are found and compared with `TNum` just as specified in the rule.  One could easily imagine an automatic transformation from rules like this to Haskell code.
+The antecedent types are found and compared with `TNum` just as specified in the rule.  One could easily imagine an automatic transformation from rules like this to Haskell code.
 
 It's more of the same for `And`, `Leq` and `IsZero` except they require different argument types and produce different types.  `And` requires Boolean arguments and produces a Boolean type.  `Leq` requires numerical arguments and produces a Boolean type.  Finally, `isZero` requires a numerical argument and produces a Boolean type:
 
@@ -496,7 +496,7 @@ The concrete syntax for the counterexample is:
 if false then true else 59
 ```
 
-This term does not have a static type because its two outcomes have different types. The first term is Boolean as required, but the second two terms do not have the same type.  Thus, `typeof` throws an error.  However, according to the implementation of `interpErr`, this term evaluates to 59.  The condition is `false`, thus the `else` expressin is evaluated.
+This term does not have a static type because its two outcomes have different types. The first term is Boolean as required, but the second two terms do not have the same type.  Thus, `typeof` throws an error.  However, according to the implementation of `interpErr`, this term evaluates to 59.  The condition is `false`, thus the `else` expression is evaluated.
 
 What gives?  Which is correct?
 
@@ -538,7 +538,7 @@ Which interpreter is correct?  As it turns out, both are correct for two reasons
 
 Second, `ABE` and `ABE` with types are two different languages.  `ABE` with types (`ABET`[^2]) uses the same definition for evaluation, but implicitly says that only languages satisfying its associated `typeof` function should be interpreted.  The `typeof` definition becomes a part of the `ABET` language.  We'll discuss this further in later chapters.
 
-An interesting question is whether the `ABE` interpreters can be made equivalent.  The issue is in the `if` statement where the original interpreter does not require the true and false cases to have the same type while the typed interpreter does.  The simple answer is no.  Making the `ABE` interpreter with dynamic error handling catch cases where the true and false cases are not the same type requires having the interpreter predict types or execute both arms.  Making the type checker allow cases where the types are different, but the interpreter does not crash requires predicting how the result of the `if` will be used.  In essense, each interpreter would be required to implement the other.
+An interesting question is whether the `ABE` interpreters can be made equivalent.  The issue is in the `if` statement where the original interpreter does not require the true and false cases to have the same type while the typed interpreter does.  The simple answer is no.  Making the `ABE` interpreter with dynamic error handling catch cases where the true and false cases are not the same type requires having the interpreter predict types or execute both arms.  Making the type checker allow cases where the types are different, but the interpreter does not crash requires predicting how the result of the `if` will be used.  In essence, each interpreter would be required to implement the other.
 
 ## Definitions
 
@@ -566,6 +566,6 @@ An interesting question is whether the `ABE` interpreters can be made equivalent
 
 [^1]:Modulo error messages implies the values are the same except for differences in the specific message.  (Left "Error message 1") and (Left "Different error message") are equivalent modulo error message.
 
-[^2]:The `ABET` is a tribute to my friend and colleague Nancy Kinnersley who passed away this past summer.  She was committed to service through the ABET accreditation organization.  Seems only fitting.
+[^2]:The `ABET` is a tribute to my friend and colleague Nancy Kinnersley who passed away unexpectedly.  She was committed to service through the ABET accreditation organization.  Seems only fitting.
 
 [^3]:https://hackage.haskell.org/package/base-4.9.0.0/docs/Data-Either.html "Either Monad"

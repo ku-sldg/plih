@@ -65,6 +65,7 @@ deref (new l 5)
 The result will be the stored value `5`.
 
 Create a new location and store `5` in it.  Then set the new location to `6` and dereference:
+
 ```text
 deref (set (new 5) 6)
 == 6

@@ -60,7 +60,7 @@ $$\bbind i = a\; \iin s$$
 
 defines a new identifier $i$ with the value of $a$ defined in scope $s$.
 
-A _bound instance_ of an identifier is use of the identifier in the scope if its binding.  A _free instance_ of an identifier is use of an identifier outside the scope of its binding.  In the example above, `x` is bound in the body `x+y-4` while `y` is free.  There is a binding instance for `x` following the `bind` keyword, but none for `y`.
+A _bound instance_ of an identifier is use of the identifier in the scope of its binding.  A _free instance_ of an identifier is used of an identifier outside the scope of its binding.  In the example above, `x` is bound in the body `x+y-4` while `y` is free.  There is a binding instance for `x` following the `bind` keyword, but none for `y`.
 
 ## Nesting bind
 

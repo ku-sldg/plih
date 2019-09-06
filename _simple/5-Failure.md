@@ -184,7 +184,7 @@ Because `TNum` is defined as everything created using the `Num` constructor, the
 
 $$\tbool == \{(\bbool x) \mid x \in Bool\}$$
 
-Next let's look at one of our binary operations, `+`.  We decided earlier than `+` operats on `TNum` values, so we need to check that its arguments are in `TNum`.  If they are, then `+` produces a number value in `TNum`.  Again writing a definition for `predict` over the abstract syntax for `+` gives:
+Next let's look at one of our binary operations, `+`.  We decided earlier than `+` operates on `TNum` values, so we need to check that its arguments are in `TNum`.  If they are, then `+` produces a number value in `TNum`.  Again writing a definition for `predict` over the abstract syntax for `+` gives:
 
 ```haskell
 predict Plus t1 t2 = if predict t1==TNum && predict t2==TNum then TNum else error
@@ -204,46 +204,46 @@ The `typeof` function is simply another interpreter for the `ABE` language.  `ty
 
 ### Type Rules
 
-Like `eval` earlier, let's define a set of rules for our new `typeof` function before implementing it.  The same notation defining antecedents and consequents can be used to define each rule.
+Like `eval` earlier, let's define a set of rules for our new `typeof` function before implementing it.  These rules will define the relation $t:T$ that is read _t of type T_. The same notation defining antecedents and consequents can be used to define each rule.
 
 First the constant values:
 
-$$\frac{}{\typeof \NUM = \tnum}\; [NumT]$$
+$$\frac{}{\NUM : \tnum}\; [NumT]$$
 
-$$\frac{}{\typeof \ttrue = \tbool}\; [TrueT]$$
+$$\frac{}{\ttrue : \tbool}\; [TrueT]$$
 
-$$\frac{}{\typeof \ffalse = \tbool}\; [FalseT]$$
+$$\frac{}{\ffalse : \tbool}\; [FalseT]$$
 
-Here we simply define axioms that give numbers, `true`, and `false` their appropriate types.  It is important that each `ABE` expression have exactly one type, thus there is precisely one axiom for each value.
+Here we simply define axioms that give numbers, `true`, and `false` their associated types.  It is important that each `ABE` expression have exactly one type, thus there is precisely one axiom for each value.
 
 Next we'll define types for numerical operations from `AE`:
 
-$$\frac{\typeof t_1 = \tnum,\; \typeof t_2 = \tnum}{\typeof t_1 + t_2 = TNum}\; [PlusT]$$
+$$\frac{t_1 : \tnum,\; t_2 : \tnum}{t_1 + t_2 : \tnum}\; [PlusT]$$
 
-$$\frac{\typeof t_1 = \tnum,\; \typeof t_2 = \tnum}{\typeof t_1 + t_2 = \tnum}\; [MinusT]$$
+$$\frac{t_1 : \tnum,\; t_2 : \tnum}{t_1 + t_2 : \tnum}\; [MinusT]$$
 
 In both rules the antecedents place requirements on the types of the operation's arguments.  Addition is a number if its arguments are numbers.  Similarly for subtraction.  Both addition and subtraction have no defined type if their arguments are not numbers.
 
 Compare these rules with the rules for `eval`.  Notice anything interesting? Let's keep going with the next three `ABE` operations for `&&`, `<=`, and `isZero`:
 
-$$\frac{\typeof t_1 = \tbool,\; \typeof t_2 = \tbool}{\typeof t_1 \aand t_2 = \tbool}\; [AndT]$$
+$$\frac{t_1 : \tbool,\; t_2 : \tbool}{t_1 \aand t_2 : \tbool}\; [AndT]$$
 
-$$\frac{\typeof t_1 = \tnum,\; \typeof t_2 = \tnum}{\eval t_1 \lleq t_2 = \tbool}\; [LeqT]$$
+$$\frac{t_1 : \tnum,\; t_2 : \tnum}{t_1 \lleq t_2 : \tbool}\; [LeqT]$$
 
-$$\frac{\typeof t = \tnum}{\typeof \iisZero t = \tbool}\; [isZeroT]$$
+$$\frac{t : \tnum}{\iisZero t : \tbool}\; [isZeroT]$$
 
 These operations are almost identical to the addition and subtraction operations.  Requirements are placed on the argument types and if those requirements are met, the specified term is given a type.  Once again there is only one rule for each expression assuring that each expression will have only one type.
 
 The `if` expression is a bit more interesting:
 
-$$\frac{\typeof t_0 = \tbool,\;\typeof t_1 = T,\;\typeof t_2 = T
-}{\typeof \iif t_0 \tthen t_1 \eelse t_2 = T}\;[IfT]$$
+$$\frac{t_0 : \tbool,\; t_1 : T,\; t_2 : T
+}{\iif t_0 \tthen t_1 \eelse t_2 : T}\;[IfT]$$
 
 The condition is required to be `TBool` as expected.  However, the then and else cases are both required to be of unknown type $T$.  $T$ in this context is a *type variable* that can take any type value.  Thus, the arms of an `if` expression can be either Boolean or numbers as long as they are the same.  Unlike all other terms, all instances of `if` do not have the same type.  Is this a problem?
 
 The $IfT$ rule ensures that any specific `if` expression has only one type.  If the two cases were allowed to have different types, the `if`'s type cannot be predicted without knowing the value of the conditional.  This will only be known *dynamically* and we are trying to predict errors *statically*.  By requiring true and false cases to have the same type, we know that the $\iif$ expression will have that single type.
 
-As noted, the $\typeof$ function implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function `typecheck` would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if `typeof t` is defined or `typecheck e t` is true for some type `t` and `e`.
+The $\typeof$ function implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function `typecheck` would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if `typeof t` is defined or `typecheck e t` is true for some type `t` and `e`.
 
 Back to comparison with `eval`.  Do you see the parallel between $\eval$ rules and $\typeof$ rules?  There is a one-to-one correspondence between the rules.  They are structured the same way and as we'll see soon, they will be implemented in roughly the same way.  This is not always true, but the similarity is something we'll revisit in later discussions.
 
@@ -298,7 +298,7 @@ If either argument type is not `TNum`, then  `Nothing` is returned indicating an
 
 Before moving on, take note of the similarity between the code for `Plus` and its associated inference rule:
 
-$$\frac{\typeof t_1 = \tnum,\; \typeof t_2 = \tnum}{\typeof t_1 + t_2 = TNum}\; [PlusT]$$
+$$\frac{t_1 : \tnum,\; t_2 : \tnum}{\typeof t_1 + t_2 : \tnum}\; [PlusT]$$
 
 The antecedent types are found and compared with `TNum` just as specified in the rule.  One could easily imagine an automatic transformation from rules like this to Haskell code.
 
@@ -355,7 +355,7 @@ typeof (If c t e) = do c' <- (typeof c)
                          else Nothing
 ```
 
-If the condition is not Boolean or the result types are not the same, then `typeof` returns an error message using `Left`.
+If the condition is not Boolean or the result types are not the same, then `typeof` returns an error message using `Nothing`.
 
 Putting everything together for all expressions, the result is the following `typeof` definition:
 
@@ -542,8 +542,6 @@ An interesting question is whether the `ABE` interpreters can be made equivalent
 
 ## Definitions
 
-- Host Language - The language used to implement tools for another language.
-- Domain Specific Language - The new language for which we're building tools.
 - Static - Before execution
 - Dynamic - During execution
 - Well-typed - An expression is well-typed if its type can be calculated

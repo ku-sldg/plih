@@ -1,7 +1,7 @@
 ---
 layout: frontpage
 title: Adding Identifiers
-use_math: true
+use\_math: true
 categories: chapter ch1
 ---
 
@@ -71,7 +71,7 @@ First, `bind` expressions can be be nested in simple ways with expected results:
 {% highlight text %}
 bind x = 4 in
   bind y = 5 in
-	x+y-4
+	  x+y-4
 {% endhighlight %}
 
 Here the scope of `y` is the expression following `in`, `x+y-4`.  The scope of `x` is the expression following `in`, the nested `bind` expression.  Thus, `x` and `y` are in scope in `x+y-4`.
@@ -119,7 +119,7 @@ The concrete syntax for this new language is a simple extension of
 `AE` without Booleans:
 
 $$\begin{align\*}
-t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
+t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\\\
 	  & \mid \bbind \ID=t\; \iin t \\
 \end{align\*}$$
 
@@ -128,11 +128,11 @@ the abstract syntax:
 
 {% highlight haskell %}
 data BAE where
-  Num :: Int -> BAE
-  Plus :: BAE -> BAE -> BAE
-  Minus :: BAE -> BAE -> BAE
-  Bind :: String -> BAE -> BAE -> BAE
-  Id :: String -> BAE
+  Num :: Int -\> BAE
+  Plus :: BAE -\> BAE -\> BAE
+  Minus :: BAE -\> BAE -\> BAE
+  Bind :: String -\> BAE -\> BAE -\> BAE
+  Id :: String -\> BAE
 {% endhighlight %}
 
 The additions to `AE` that give us `BAE` are the `Bind` constructor
@@ -148,7 +148,7 @@ need only add parsers for the and `id` and `bind` cases:
 
 {% highlight haskell %}
 identExpr :: Parser BAE
-identExpr = do i <- identifier lexer
+identExpr = do i \<- identifier lexer
 	           return (Id i)
 
 bindExpr :: Parser BAE
@@ -198,7 +198,7 @@ rules.  To define `bind` evaluation we will add one new inference
 rule:
 
 $$
-\frac{a \eval v}{(\bbind\; i\; \eval a\;\iin s) = [i\mapsto v]s}\;[BindE]
+\frac{a \eval v}{(\bbind\; i\; = a\;\iin s) \eval [i\mapsto v]s}\;[BindE]
 $$
 
 $BindE$ is not significantly different from earlier evaluation rules
@@ -219,7 +219,7 @@ value of `bind x=5 in x+7` works like this:
 
 {% highlight text %}
 eval bind x=5 in x+7
-== eval [x->5]x+7 [BindE]
+== eval [x-\>5]x+7 [BindE]
 == eval 5+7 [Substitution]
 == 12 [PlusE]
 {% endhighlight %}
@@ -235,11 +235,12 @@ Let's try another example with a nested `bind`:
 
 {% highlight text %}
 eval bind x=5 in
-	   x + bind x=7 in x
-== eval [x->5]x + bind x=7 in x [BindE]
+  x + bind x = 7 in x
+	
+== eval [x-\>5]x + bind x=7 in x [BindE]
 == eval 5 + bind x=7 in x [Substitution]
 == eval 5 + eval bind x=7 in x [PlusE]
-== eval 5 + eval [x->7]x [BindE]
+== eval 5 + eval [x-\>7]x [BindE]
 == eval 5 + eval 7 [substitution]
 == 5 + 7 [NumE]
 == 12 [PlusE]
@@ -258,9 +259,9 @@ nested identifier:
 {% highlight text %}
 eval bind x=5 in
 	   x + bind y=7+x in y
-== [x->5]x + bind y=7+x in y
+== [x-\>5]x + bind y=7+x in y
 == 5 + bind y=7+5 in y
-== 5 + [y->12]y
+== 5 + [y-\>12]y
 == 5 + 12
 == 17
 {% endhighlight %}
@@ -277,8 +278,8 @@ $[x\mapsto v]s$.  Once again we treat our program as a data structure
 and define `subst` over the `BAE` data type.
 
 {% highlight haskell %}
-subst :: String -> BAE -> BAE -> BAE
-subst _ _ (Num x) = (Num x)
+subst :: String -\> BAE -\> BAE -\> BAE
+subst \_ \_ (Num x) = (Num x)
 subst i v (Plus l r) = (Plus (subst i v l) (subst i v r))
 subst i v (Minus l r) = (Minus (subst i v l) (subst i v r))
 subst i v (Bind i' v' b') = if i==i'
@@ -338,15 +339,15 @@ performs substitution is specified by inference rules.  Cases for
 identifier is replaced by the value expression in the `bind` body.
 
 {% highlight haskell %}
-evals :: BAE -> Maybe BAE
+evals :: BAE -\> Maybe BAE
 evals (Num x) = return (Num x)
-evals (Plus l r) = do { l' <- (evals l) ;
-                        r' <- (evals r) ;
-                        return (liftNum (+) l' r') }
-evals (Minus l r) = do { l' <- (evals l) ;
-                         r' <- (evals r) ;
-                         return (liftNum (-) l' r') }
-evals (Bind i v b) = do { v' <- (evals v) ;
+evals (Plus l r) = do { l' \<- (evals l) ;
+	                    r' <- (evals r) ;
+	                    return (liftNum (+) l' r') }
+evals (Minus l r) = do { l' \<- (evals l) ;
+	                     r' <- (evals r) ;
+	                     return (liftNum (-) l' r') }
+evals (Bind i v b) = do { v' \<- (evals v) ;
 						  (evals (subst i v' b)) }
 evals (Id id) = Nothing
 {% endhighlight %}
@@ -373,7 +374,7 @@ character converted to a string:
 
 {% highlight haskell %}
 genName =
-  do i <- choose ('a','z')
+  do i \<- choose ('a','z')
 	 return [i]
 {% endhighlight %}
 
@@ -384,7 +385,7 @@ numbers from integers.  Simply take a string, `n` and return `(Id n)`:
 
 {% highlight haskell %}
 genId e =
-  do n <- choose ('a')
+  do n \<- choose ('a')
 	 return (Id n)
 
 `genID` now generates completely arbitrary identifier names.
@@ -410,7 +411,7 @@ Now for a QuickCheck test:
 
 {% highlight haskell %}
 testEvals n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> (interps $ pprint t) == (evals t))
+  (\t -\> (interps $ pprint t) == (evals t))
 {% endhighlight %}
 
 What happens is an almost immediate testing failure resulting from an
@@ -431,15 +432,15 @@ Thankfully this is not a difficult feature to add.  What we will do is
 input a list of bound identifiers to the `BAE` term generator:
 
 {% highlight haskell %}
-genBAE :: Int -> [String] -> Gen BAE
+genBAE :: Int -\> [String] -\> Gen BAE
 genBAE 0 e =
-  do term <- oneof (case e of
+  do term \<- oneof (case e of
 	                  [] -> [genNum]
 	                  _ -> [genNum
 	                       , (genId e)])
 	 return term
 genBAE n e =
-  do term <- oneof [genNum
+  do term \<- oneof [genNum
 	               , (genPlus (n-1) e)
 	               , (genMinus (n-1) e)
 	               , (genBind (n-1) e)]
@@ -453,7 +454,7 @@ identifiers.
 
 {% highlight haskell %}
 genBind n e =
-  do i <- genName
+  do i \<- genName
 	 v <- genBAE n e
 	 b <- genBAE n (i:e)
 	 return (Bind i v b)
@@ -466,7 +467,7 @@ identifier list:
 
 {% highlight haskell %}
 genId e =
-  do n <- elements e
+  do n \<- elements e
 	 return (Id n)
 {% endhighlight %}
 
@@ -475,9 +476,9 @@ bound identifiers.  We can QuickCheck `evals` to determine if it
 crashes as we did earlier versions of `eval`:
 
 {% highlight haskell %}
-testEvals :: Int -> IO ()
+testEvals :: Int -\> IO ()
 testEvals n = quickCheckWith stdArgs {maxSuccess=n}
-  (\t -> (interps $ pprint t) == (evals t))
+  (\t -\> (interps $ pprint t) == (evals t))
 {% endhighlight %}
 
 ## Discussion
@@ -558,4 +559,6 @@ interpreters.
 
 ## Source
 
-Download [source](http://ku-sldg.github.io/plih/haskell/bae.hs) for all interpreter code from this chapter.
+Download [source][1] for all interpreter code from this chapter.
+
+[1]:	http://ku-sldg.github.io/plih/haskell/bae.hs

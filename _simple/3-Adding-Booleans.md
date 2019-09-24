@@ -105,9 +105,9 @@ Finally, let's deal with $\iif$.  Thinking of $\iif$ as simply an
 operation with three arguments, we can follow our previous pattern
 giving us this pair of rules: 
 
-$$\frac{t_0 \eval \ttrue\; t_1 \eval v_1}{\iif t_0 \tthen t_1 \eelse t_2 \eval v_1}\;[IfTrueE]$$
+$$\frac{t_0 \eval \ttrue,\; t_1 \eval v_1}{\iif t_0 \tthen t_1 \eelse t_2 \eval v_1}\;[IfTrueE]$$
 
-$$\frac{t_0 \eval \ffalse\; t_2 \eval v_2}{\iif t_0 \tthen t_1 \eelse t_2 \eval v_2}\;[IfFalseE]$$
+$$\frac{t_0 \eval \ffalse,\; t_2 \eval v_2}{\iif t_0 \tthen t_1 \eelse t_2 \eval v_2}\;[IfFalseE]$$
 
 The $IfTrueE$ only applies when $t_0$ evaluates to $\ttrue$ while $IfFalseE$ applies when $t_0$ evaluates to $\ffalse$.  Note that only one arm of the if expression is evaluated in each rule.  In $IfTrueE$ the expression associated with true is evaluated while in $IfFalseE$ only the expression associated with false.
 

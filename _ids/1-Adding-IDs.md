@@ -10,7 +10,7 @@ $$
 \newcommand\parse{\mathsf{parse}\;}
 \newcommand\typeof{\mathsf{typeof}\;}
 \newcommand\interp{\mathsf{interp}\;}
-\newcommand\eval{\mathsf{eval}\;}
+\newcommand\eval{ \Downarrow }
 \newcommand\NUM{\mathsf{NUM}\;}
 \newcommand\ID{\mathsf{ID}\;}
 \newcommand\iif{\mathsf{if}\;}
@@ -198,7 +198,7 @@ rules.  To define `bind` evaluation we will add one new inference
 rule:
 
 $$
-\frac{\eval a = v}{\eval (\bbind\; i\; = a\;\iin s) = \eval [i\mapsto v]s}\;[BindE]
+\frac{a \eval v}{(\bbind\; i\; \eval a\;\iin s) = [i\mapsto v]s}\;[BindE]
 $$
 
 $BindE$ is not significantly different from earlier evaluation rules

@@ -1,7 +1,7 @@
 ---
 layout: frontpage
 title: Adding Identifiers
-use\_math: true
+use_math: true
 categories: chapter ch1
 ---
 

@@ -387,6 +387,7 @@ numbers from integers.  Simply take a string, `n` and return `(Id n)`:
 genId e =
   do n <- choose ('a')
 	 return (Id n)
+{% endhighlight %}
 
 `genID` now generates completely arbitrary identifier names.
 
@@ -396,6 +397,7 @@ bound id, an expression for the bound id value, and an expression for
 the body.  The `Bind` constructor puts the elements together to
 generate an arbitrary `Bind` construction:
 
+{% highlight haskell %}
 genBind n e =
   do i <- genName
 	 v <- genBAE n

@@ -198,10 +198,8 @@ rules.  To define `bind` evaluation we will add one new inference
 rule:
 
 $$
-\frac{a {\eval} v_1\; [i\mapsto v_1]s {\eval} v}{(\bbind\; i\; = a\;\iin s) {\eval} v}\;[BindE]
+\frac{a {\eval} v\; [i\mapsto v]s {\eval} v}{(\bbind\; i\; = a\;\iin s) {\eval} v}\;[BindE]
 $$
-
-loaded
 
 $BindE$ is not significantly different from earlier evaluation rules
 with the exception of a new notation for substitution.  The antecedent

@@ -118,10 +118,10 @@ The concrete syntax for this new language is a simple extension of
 `AE` that includes identifiers and `bind`.  Note that we are back to
 `AE` without Booleans:
 
-$$\begin{align\*}
-t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\\\
+$$\begin{align*}
+t ::=\; & \NUM \mid \ID \mid t + t \mid t - t \\
 	  & \mid \bbind \ID=t\; \iin t \\
-\end{align\*}$$
+\end{align*}$$
 
 From the concrete syntax we can quickly define a Haskell data type for
 the abstract syntax:

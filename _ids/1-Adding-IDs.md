@@ -342,13 +342,13 @@ identifier is replaced by the value expression in the `bind` body.
 evals :: BAE -> Maybe BAE
 evals (Num x) = return (Num x)
 evals (Plus l r) = do { l' <- (evals l) ;
-	                    r' <- (evals r) ;
-	                    return (liftNum (+) l' r') }
+                    r' <- (evals r) ;
+                    return (liftNum (+) l' r') }
 evals (Minus l r) = do { l' <- (evals l) ;
-	                     r' <- (evals r) ;
-	                     return (liftNum (-) l' r') }
+                     r' <- (evals r) ;
+                     return (liftNum (-) l' r') }
 evals (Bind i v b) = do { v' <- (evals v) ;
-						  (evals (subst i v' b)) }
+                     (evals (subst i v' b)) }
 evals (Id id) = Nothing
 {% endhighlight %}
 

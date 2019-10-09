@@ -10,7 +10,7 @@ $$
 \newcommand\parse{\mathsf{parse}\;}
 \newcommand\typeof{\mathsf{typeof}\;}
 \newcommand\interp{\mathsf{interp}\;}
-\newcommand\eval{\mathsf{eval}\;}
+\newcommand\eval{ \Downarrow }
 \newcommand\NUM{\mathsf{NUM}\;}
 \newcommand\ID{\mathsf{ID}\;}
 \newcommand\iif{\mathsf{if}\;}
@@ -99,20 +99,22 @@ from `ABE` and `BAE`.  Literally nothing changes:
 
 $$\frac{}{\eval v = v}\; [NumE]$$
 
-$$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1+v_2}\; [PlusE]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 + t_2 \eval v_1+v_2}\; [PlusE]$$
 
-$$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 + t_2 = v_1-v_2}\; [MinusE]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 - t_2 \eval v_1-v_2}\; [MinusE]$$
 
-$$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 \aand t_2 = v_1 \wedge v_2}\; [AndE]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 \aand t_2 \eval v_1 \wedge v_2}\; [AndE]$$
 
-$$\frac{\eval t_1 = v_1,\; \eval t_2 = v_2}{\eval t_1 \lleq t_2 = v_1\leq v_2}\; [LeqE]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 \lleq t_2 \eval v_1\leq v_2}\; [LeqE]$$
 
-$$\frac{\eval t = v}{\eval \iisZero t = v==0}\; [isZeroE]$$
+$$\frac{t \eval v}{\iisZero t \eval v==0}\; [isZeroE]$$
 
-$$\frac{\eval t_0 = v_0,\;\eval t_1 = v_1,\;\eval t_2 = v_2}{\eval \iif t_0 \tthen t_1 \eelse t_2 = \iif v_0 \tthen v_1 \eelse v_2}\;[IfE]$$
+$$\frac{t_0 \eval true,\; t_1 \eval v_1}{\iif t_0 \tthen t_1 \eelse t_2 \eval v_1}\;[IfTrueE]$$
+
+$$\frac{t_0 \eval false,\; t_2 \eval v_2}{\iif t_0 \tthen t_1 \eelse t_2 \eval v_2}\;[IfFalseE]$$
 
 $$
-\frac{\eval a = v}{\eval (\bbind\; i\; = a\;\iin s) = \eval [i\mapsto v]s}\;[BindE]
+\frac{a \eval v,\; [i\mapsto v]s \eval v'}{(\bbind\; i\; = a\;\iin s) \eval v'}\;[BindE]
 $$
 
 How does this work?  We've combined two languages with their own
@@ -207,7 +209,7 @@ eval env (If c t e) = do { (Boolean c') <- (eval env c) ;
                            (if c' then (eval env t) else (eval env e)) }
 {% endhighlight %}
 
-Interestingly, `eval` will only retiurn `Nothing` when variable lookup
+Interestingly, `eval` will only return `Nothing` when variable lookup
 fails.  `Nothing` doesn't even appear directly in the code.  Even more
 interesting is type checking will assure that all variables are bound
 and `lookup` will never retrn `Nothing`. We use the monad simply for
@@ -241,29 +243,27 @@ statically determine if a `BBAE` expression will execute.
 
 ## Type Rules
 
-Type rules for `BAE` and `ABE` expressions remain unchanged in `BBAE`.
-Numbers remain of type $\tnum$ and Booleans $\tbool$: 
+Type rules for `BAE` and `ABE` expressions remain largely unchanged in `BBAE` until we get to identifiers.  Numbers remain of type $\tnum$ and Booleans $\tbool$: 
 
-$$\frac{}{\typeof \NUM = \tnum}\; [NumT]$$
+$$\frac{}{\NUM : \tnum}\; [NumT]$$
 
-$$\frac{}{\typeof \ttrue = \tbool}\; [TrueT]$$
+$$\frac{}{\ttrue : \tbool}\; [TrueT]$$
 
-$$\frac{}{\typeof \ffalse = \tbool}\; [FalseT]$$
+$$\frac{}{\ffalse : \tbool}\; [FalseT]$$
 
 Unary and binary operations similarly remain the same:
 
-$$\frac{\typeof t_1 = \tnum,\; \eval t_2 = \tnum}{\typeof t_1 + t_2 = \tnum}\; [PlusT]$$
+$$\frac{t_1 : \tnum,\; t_2 : \tnum}{t_1 + t_2 : \tnum}\; [PlusT]$$
 
-$$\frac{\typeof t_1 = \tnum,\; \eval t_2 = \tnum}{\typeof t_1 + t_2 = \tnum}\; [MinusT]$$
+$$\frac{t_1 : \tnum,\; t_2 : \tnum}{t_1 - t_2 : \tnum}\; [MinusT]$$
 
-$$\frac{\typeof t_1 = \tbool,\; \typeof t_2 = \tbool}{\typeof t_1 \aand t_2 = \tbool}\; [AndT]$$
+$$\frac{t_1 : \tbool,\; t_2 : \tbool}{t_1 \aand t_2 : \tbool}\; [AndT]$$
 
-$$\frac{\typeof t_1 = \tnum,\; \typeof t_2 = \tnum}{\eval t_1 \lleq t_2 = \tbool}\; [LeqT]$$
+$$\frac{t_1 : \tnum,\; t_2 : \tnum}{t_1 \lleq t_2 : \tbool}\; [LeqT]$$
 
-$$\frac{\typeof t = \tnum}{\typeof \iisZero t = \tbool}\; [isZeroT]$$
+$$\frac{t : \tnum}{\iisZero t : \tbool}\; [isZeroT]$$
 
-$$\frac{\typeof t_0 = \tbool,\;\typeof t_1 = T,\;\typeof t_2 = T
-}{\typeof \iif t_0 \tthen t_1 \eelse t_2 = T}\;[IfT]$$
+$$\frac{t_0 : \tbool,\; t_1 : T,\; t_2 : T}{\iif t_0 \tthen t_1 \eelse t_2 : T}\;[IfT]$$
 
 The new concept in this language is identifiers introduced by `bind`
 and used anywhere in expressions.  How do we determine the type of
@@ -288,17 +288,14 @@ type rather than identifier and value.
 
 We will use the notation $(x,T)$ to represent the binding of a
 variable to some type and the Haskell list append $(x,T):\Gamma$ to
-represent addition of new binding to a context.  Finally,
-$(x,T)\in\Gamma$ represents finding the first instance of $(x,T)$ in
-$\Gamma$. 
+represent addition of new binding to a context.  $(x,T)\in\Gamma$ represents finding the first instance of $(x,T)$ in $\Gamma$.  Finally, $\Gamma$ is included in type inference rules using the notation $\Gamma\vdash t : T$.  This notation is read "$\Gamma$ derives $t$ is of type $T$."  It is interpreted as using $\Gamma$ to define the types of identifiers in term $t$.  
 
-The rule for `bind` adds the newly bound identifier with its type to
-the context and finds the type of the `bind` body: 
+Using this new machinery the rule for `bind` adds the newly bound identifier with its type to the context and finds the type of the `bind` body: 
 
-$$\frac{\typeof v=T}{\typeof \bbind i=v \iin b = \typeof (i,T):\Gamma b}\;[BindT]$$
+$$\frac{\Gamma\vdash v : T_1, ((i,T_1):\Gamma)\vdash b : T_2}{\Gamma\vdash\bbind i=v \iin b : T_2}\;[BindT]$$
 
 The type of the body becomes the type of the `bind`.  This makes sense
-as the body is what gets evaluated when the `bind` is evaluated.  It's
+as the body is what gets evaluated when the `bind` is evaluated.  It is
 also interesting to think of `bind` as a special expression that
 simply adds to the environment or context. 
 
@@ -306,11 +303,31 @@ One more type rule for identifiers is needed to finish the definition.
 It simply looks up a type binding $(v,T)$ in $\Gamma$ and asserts that
 $v:T$ is true when the type binding is found: 
 
-$$\frac{(i,T)\in \Gamma}{\typeof i = T}\;[IdT]$$
+$$\frac{(i,T)\in \Gamma}{\Gamma\vdash i : T}\;[IdT]$$
 
 This lookup is quite similar to the lookup used when the environment
-is used.  In fact, functions for manipulating the environment and
-context are identical. 
+is used.  In fact, the functions for manipulating the environment and
+context are identical.
+
+To integrate our new type rules for `bind` and identifiers we need to include the context in all type rules. Thus, the previous rules for terms become:
+
+$$\frac{}{\Gamma\vdash\NUM : \tnum}\; [NumT]$$
+
+$$\frac{}{\Gamma\vdash\ttrue : \tbool}\; [TrueT]$$
+
+$$\frac{}{\Gamma\vdash\ffalse : \tbool}\; [FalseT]$$
+
+$$\frac{\Gamma\vdash t_1 : \tnum,\; \Gamma\vdash t_2 : \tnum}{\Gamma\vdash t_1 + t_2 : \tnum}\; [PlusT]$$
+
+$$\frac{\Gamma\vdash t_1 : \tnum,\; \Gamma\vdash t_2 : \tnum}{\Gamma\vdash t_1 - t_2 : \tnum}\; [MinusT]$$
+
+$$\frac{\Gamma\vdash t_1 : \tbool,\; \Gamma\vdash t_2 : \tbool}{\Gamma\vdash t_1 \aand t_2 : \tbool}\; [AndT]$$
+
+$$\frac{\Gamma\vdash t_1 : \tnum,\; \Gamma\vdash t_2 : \tnum}{\Gamma\vdash t_1 \lleq t_2 : \tbool}\; [LeqT]$$
+	
+$$\frac{\Gamma\vdash t : \tnum}{\Gamma\vdash \iisZero t : \tbool}\; [isZeroT]$$
+
+$$\frac{\Gamma\vdash t_0 : \tbool,\; \Gamma\vdash t_1 : T,\; \Gamma\vdash t_2 : T}{\Gamma\vdash \iif t_0 \tthen t_1 \eelse t_2 : T}\;[IfT]$$
 
 ## Typeof Definition
 

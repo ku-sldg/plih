@@ -10,7 +10,7 @@ $$
 \newcommand\parse{\mathsf{parse}\;}
 \newcommand\typeof{\mathsf{typeof}\;}
 \newcommand\interp{\mathsf{interp}\;}
-\newcommand\eval{\mathsf{eval}\;}
+\newcommand\eval{ \Downarrow }
 \newcommand\NUM{\mathsf{NUM}\;}
 \newcommand\ID{\mathsf{ID}\;}
 \newcommand\iif{\mathsf{if}\;}
@@ -173,7 +173,7 @@ data FBAE where
 
 What does it mean to apply a first-order function?
 
-$$\frac{}{((\llambda f\; i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reduction]$$
+$$\frac{}{((\llambda f\; i\; b) \; a) \eval [i\mapsto a]b}[\beta-reduction]$$
 
 The details of implementing `eval` for first-order functions is left as an exercise.
 
@@ -200,7 +200,7 @@ lambda x in x+1
 
 and we can give it the name `inc` using a `bind`:
 
-```haskell
+```Haskell
 bind inc = (lambda x in x+1) in ...
 ```
 
@@ -216,7 +216,7 @@ We can now use concrete syntaxc to define a function, give it a name, and apply 
 
 Additions to abstract syntax include new fields for `Lambda` and `App`.  The definitions follow immediately from what we defined in the concrete syntax.  The new abstract syntax for `FBAE` becomes:
 
-```haskell
+```Haskell
 data FBAE where
   Num :: Int -> FBAE
   Plus :: FBAE -> FBAE -> FBAE
@@ -233,18 +233,18 @@ The most basic definition for functions and their application to arguments comes
 
 A hint for our direction is the similarity between the concrete syntax for `bind` and `lambda`:
 
-```haskell
+```Haskell
 bind x = 5 in x
 lambda x in x
 ```
 
 `bind` defines a new identifier, binds it to a value, and uses the new identifier in the body of the `bind`.  `lambda` is quite similar in that it defines a new identifier and uses the new identifier in the body of the `lambda`.  However, it does not bind the identifier to a particular value.  That binding is deferred until the `lambda` is applied.  `bind` and `lambda` are cousins in that both define new identifiers.  `bind` and apply are similarly cousins in that both bind values to identifiers.  Regardless of the relationship, we should be able to use the tools for defining `bind` to similarly defined apply.
 
-The simplest definition for function application is called $\beta$-reduction and uses substitution to replace an identifier with its value.  In the $\beta$-reduction rule below, $i$ is the identifier defined by the $\mathsf{lambda}$, $b$ is the body of the $\llambda$ and $a$ is the argument the $\mathsf{lambda}$ is applied to:
+The simplest definition for function application is called $\beta$-reduction and uses substitution to replace an identifier with its value.  In the $\beta$-reduction rule below, $i$ is the identifier defined by the $\mathsf{lambda}$, $b$ is the body of the $\llambda$ and $a$ is the argument the $\mathsf{lambda}$ is applied to.  If $a$ evaluates to some value $v$ then then a function applied to $a$ results in substituting $v$ for the function's formal parameter.  The rule for this is:
 
-$$\frac{}{((\llambda i\; b) \; a) \rightarrow [i\mapsto a]b}[\beta-reduction]$$
+$$\frac{a\eval v}{((\llambda i\; b) \; a) \rightarrow [i\mapsto v]b}[\beta-reduction]$$
 
-The result of the application is $[i\mapsto a]b$, or replacing $i$ with $a$ in $b$.  This is exactly how we expect functions to behave. When applied, their formal parameter is replaced with an actual parameter and the result becomes the function application's value.
+The result of the application is $[i\mapsto v]b$, or replacing $i$ with $a$'s value in $b$.  This is exactly how we expect functions to behave. When applied, their formal parameter is replaced with an actual parameter and the result becomes the function application's value.
 
 ### Implementation
 
@@ -252,7 +252,7 @@ Let's think about how to implement evaluating `App` and `Lambda` using the subst
 
 ```haskell
 evalS (Bind i v b) = do { v' <- evalS v ;
-                          (evalS (subst i v' b)) }
+                           (evalS (subst i v' b)) }
 ```
 
 The `subst` function gets is identifier from the `bind` syntax as well as the value it is substituting, `v`.  The body, `b`, is also found in the `bind` expression.  Thus, the `subst` application is simple.  We can understand the evaluation of `App` by looking for the arguments to `subst` in the `lambda` and its actual parameter.
@@ -261,22 +261,22 @@ Before evaluating `App`, lets evaluate both its arguments. Specifically, `f` to 
 
 ```haskell
 evalS (App f a) = do { (Lambda i b) <- (evalS f) ;
-                       a' <- (evalS a) ;
-                       evalS (subst i a' b) }
+                       v <- (evalS a) ;
+                       evalS (subst i v b) }
 ```
 
-Now we have the pieces needed to apply `subst`.  `i` is the identifier defined by the `Lambda`.  The argument to the substitution is provided by the `App` as `a'`.  We evaluate it first before passing it into the substitution.  Finally, the body of the function, `b`, is the expression substituted into.  The result is the following application of `subst`:
+Now we have the pieces needed to apply `subst`.  `i` is the identifier defined by the `Lambda`.  The argument to the substitution is provided by the `App` as `v`.  We evaluate it first before passing it into the substitution.  Finally, the body of the function, `b`, is the expression substituted into.  The result is the following application of `subst`:
 
 ```haskell
-evalS (subst i a' b) }
+evalS (subst i v b)
 ```
 
 and embedding the substitution into the case for `App` gives us the following:
 
 ```haskell
 evalS (App f a) = do { (Lambda i b) <- (evalS f) ;
-                       a' <- (evalS a) ;
-                       evalS (subst i a' b) }
+                       v <- (evalS a) ;
+                       evalS (subst i v b) }
 ```
 
 And there we have it.  Substitute the argument in for the identifier in the body of the function.
@@ -359,7 +359,7 @@ We now have two interpreters for what we hope is the same untyped system with fu
 
 ### Function Values
 
-Whether you realize it or not, we have introduced a new kind of value to our interpreter.  Clearly when we added Booleans to our first interpreter, there were new values to deal with. It's less obvious how we have new values in this language, but remember that `lambda` creates a function value.  `lambda` expressions are values just like `1` or `true`.  What this means is expression like this one:
+We have introduced a new kind of value to our interpreter.  Clearly when we added Booleans to our first interpreter there were new values to deal with. It's less obvious how we have new values in this language, but remember that `lambda` creates a function value.  `lambda` expressions are values just like `1` or `true`.  What this means is expression like this one:
 
 ```haskell
 bind f = (lambda x in x+1) in

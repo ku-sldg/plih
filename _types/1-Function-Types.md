@@ -43,7 +43,7 @@ bind inc = lambda x in x + 1 in
   (inc inc)
 ```
 
-This expression simply applys `inc` to itself, something that made
+This expression simply applies `inc` to itself, something that made
 sense when we discussed untyped recursion.  However, in this context
 trying to increment an increment function makes little sense.  The
 value of `inc` is a lambda specifying an increment function over
@@ -107,10 +107,10 @@ bind x = 1 in     [(x,1)]
 
 Following the `x = 1` binding instance the environment contains a
 binding of `x` to `1`.  When `x` appears in the `bind` body, it is
-looked up in the enviornment when evaluated.  A _context_ will serve
+looked up in the environment when evaluated.  A _context_ will serve
 the same role, but for types rather than values.  In the same way an
 environment stores identifiers and values during evaluation, a context
-will store identifiers an types during type checking.
+will store identifiers and types during type checking.
 
 The context is maintained exactly like an environment.  When an
 identifier is bound, the type of the bound value is associated with
@@ -155,14 +155,13 @@ we're generating types rather than values.  Hold that thought.
 
 Now the formal rules.  First for identifiers:
 
-$$\frac{(i,T)\in c}{(\typeof c\; i)=T}$$
+$$\frac{(i,T)\in \Gamma}{(\Gamma\vdash i:T}$$
 
 If $(i,T)$ is in the current context, then type of $i$ is $T$.  This
 is a trivial definition, but necessary for completeness.  Now the rule
 for `bind`:
 
-$$\frac{(\typeof c\; v)=D\;\;\;(\typeof (i,D):c\; b)=R}{(\typeof c\;
-(\bbind i=a\;\iin\; b))=D\rightarrow R}$$
+$$\frac{(\Gamma\vdash v:D\;\;\;(i,D):\Gamma\vdash b)=R}{\Gamma\vdash (\bbind i=v\;\iin\; b) =R}$$
 
 Finding the type of `bind` gives us all the tools needed to talk about
 the type of `lambda` and application.  We've defined what a context is and

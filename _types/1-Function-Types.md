@@ -307,7 +307,7 @@ type of the `lambda` is `D->R`.
 
 The formal type rule can be written:
 
-$$\frac{\typeof(t,(t:D):c)=R}{\typeof((\llambda (x:D)\;\ t),c)=T_d\rightarrow R}$$
+$$\frac{(x,D):\Gamma\vdash b:R}{\Gamma\vdash (\llambda (x:D)\;\ b)=D\rightarrow R}$$
 
 ## Typing Applications
 

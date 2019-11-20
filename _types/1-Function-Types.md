@@ -155,13 +155,13 @@ we're generating types rather than values.  Hold that thought.
 
 Now the formal rules.  First for identifiers:
 
-$$\frac{(i,T)\in \Gamma}{(\Gamma\vdash i:T}$$
+$$\frac{(i,T)\in \Gamma}{\Gamma\vdash i:T}$$
 
 If $(i,T)$ is in the current context, then type of $i$ is $T$.  This
 is a trivial definition, but necessary for completeness.  Now the rule
 for `bind`:
 
-$$\frac{(\Gamma\vdash v:D\;\;\;(i,D):\Gamma\vdash b)=R}{\Gamma\vdash (\bbind i=v\;\iin\; b) =R}$$
+$$\frac{\Gamma\vdash v:D\;\;\;(i,D):\Gamma\vdash b=R}{\Gamma\vdash \bbind i=v\;\iin\; b=R}$$
 
 Finding the type of `bind` gives us all the tools needed to talk about
 the type of `lambda` and application.  We've defined what a context is and

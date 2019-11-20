@@ -336,7 +336,7 @@ Let's make this way simpler.  Given some `f:D->R` and `a:D`, then
 `(f a):R`.  Simple as that.  Here's the type rule that captures
 this:
 
-$$\frac{\typeof(f,c)=D \rightarrow R, \typeof(a,c)=D}{\typeof((f\; a),c) = R}$$
+$$\frac{\Gamma\vdash f:D \rightarrow R, \Gamma\vdash a:D}{\Gamma\vdash(f\; a):R}$$
 
 What does this say about the problem that motivated the chapter?
 Specifically, what is the type of:

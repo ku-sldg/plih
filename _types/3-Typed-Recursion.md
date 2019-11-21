@@ -282,7 +282,7 @@ will replace the recursive call.  `fix` is not recursive at all.
 
 ```haskell
 evalM env (Fix f) = do { (ClosureV i b e) <- (evalM env f) ;
-                        evalM e (subst i (Fix (Lambda i b)) b) }
+                         evalM e (subst i (Fix (Lambda i b)) b) }
 ```
 
 To better understand how the `fix` operation works, let's evaluate

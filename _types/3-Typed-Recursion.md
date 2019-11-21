@@ -63,8 +63,7 @@ Remember $\Omega$, a simple recursive function that does not
 terminate:
 
 ```text
-((lambda x in (x x))
-	 (lambda x in (x x)))
+((lambda x in (x x)) (lambda x in (x x)))
 ```
 
 Let's add a type placeholder, call it `T->T`, to the `lambda` and
@@ -76,18 +75,16 @@ determine what a typed version of the $\Omega$ would look like:
 ```
 
 Will this work?  Remember that to determine the type of an `f a`
-we fine the type of `f` which must be a function type.  Then if `a`
+we find the type of `f`. First, `f` must be a function type. Then if `a`
 has the same type as the domain of `f`, `f a` has the same type as
-the range of the type of `f`.  However, we will never find a type for
-`x x` because the type of `x` must be the domain type of `x`.  If
+the range of `f`.
+
+Unfortunately, we will never find a type for `x x` be the type of `x` must be the domain type of `x`.  Do you see the problem?  If
 `x` has type `T->T`, then for `x x` to have type `T`, `x` must
 also have type `T`.  This will never work as `x` would need to have
-both type `T` and `T->T`.  The only way this will happen is when `T` =
-`T->T`, something that is not possible in our current type system.
+both type `T` and `T->T`.  `T = T->T`, something that is not possible in our type system and would break the datatype representation if it were.
 
-$\Omega$ cannot have a type.  Using the same argument, `Y` cannot have
-a type.  Thus, neither can be written in our new language that
-includes function types.
+What this means is $\Omega$ cannot have a type.  By the same argument, `Y` cannot have a type and neither can be written in our new language that includes function types.  Worse yet, _no recursive function_ can be directly written in our language with function types.
 
 ## Normalization
 
@@ -98,9 +95,9 @@ x + 1` are normal forms because `evalM` simply returns their values
 without reduction.  We also define these normal forms to be _values_
 representing acceptable evaluation results.
 
-In all the languages we have written so far, the set of values and
+In all the languages we have written so far, values and
 normal forms are the same.  What if we removed the evaluation case for
-`+` implying that `1+1` would not evaluate further.  Now terms
+`+` implying that `1+1` would not evaluate further?  Now terms
 involving `+` join values as normal forms.  Unlike values, `+` terms
 should reduce.  Normal forms that are not values are referred to as
 _stuck_ values and represent errors in a language definition.  It is
@@ -113,37 +110,38 @@ and no stuck terms.  Evaluation always halts with a value.
 
 As it turns out, normalization and typing are strongly related.  In
 our latest language, function types ensure termination.  We saw this
-when failing to find a type for $\Omega$, but did not generalize to
+when failing to find a type for $\Omega$, let's generalize it to
 all function applications.  Look at the types involved in this simple
 evaluation:
 
 ```text
-((lambda x in x+1) 3)
+((lambda (x:TNum) in x+1) 3)
 ```
 
-The type resulting from the application is smaller than the type of `lambda`.
-This is always true because of the way application types are defined.
+The type of the `lambda` is `TNum -> TNum` because the type of `x` is `TNum` and the type of `x+1` assuming `x:TNum` is also `TNum`.  The type of `3` is `TNum`.  The type of the application is therefore `TNum` - the domain of `TNum -> TNum` that is smaller than the function type.
+
+The type resulting from the application is always smaller than the type of `lambda`. This is true because of the way application types are defined.
 Specifically, given `f:D->R` and `(f d)` where `d:D`, the result
 will always be `R`.  The base types for numbers and booleans are the
 smallest possible types.  Like number and Boolean values, there is no
 way to reduce them - they are the base cases for types.  Thus, application
 aways makes a type smaller and eventually will get to a base type.
-Just like subtracting 1 repeatedly from a number will eventually
+Like subtracting 1 repeatedly from a number will eventually
 result in 0.  Given that's the case, if we do repeatedly execute we
 will always get to that smallest type which is always associated with
 a value.
 
 There are ins and outs to this normalization property.  It is great to
-know that programs termindate in many cases.  But it is not great to
-have to know how many times any iterative construct executes when
+know that programs terminate in many cases.  But it is not great to
+need to know how many times any iterative construct executes when
 writing programs.  Furthermore, there are many programs we do not want
-to terminate.  Think operating systems or controllers as two examples.
+to terminate.  Think about operating systems or controllers as two examples.
 Clearly languages with function types allow this, we just need to
 figure out how.
 
 ## Manipulating Closures
 
-Lets revisit our original problem by going back and revisit the most
+Lets revisit our original problem by going back and revisiting our most
 famous of all recursive function, factorial:
 
 ```text
@@ -159,13 +157,9 @@ statically scoped:
 bind fact = (lambda (x:TNum) in (if (isZero x) then 1 else x * (fact x-1)))
 ```
 
-Because `fact` is not in scope, technically there is no type for this
-expression either.  If we can get `fact` in scope, maybe this will
-work.  Is there a way to do recursion in a typed, statically scoped
-language?  Our techniques for untyped recursion do not work.  What can
-we do?
-
-We need `fact` to be in its closure's environment.  That's a fancy way
+Because `fact` is not in scope, technically there is also no type for this
+expression.  If we can get `fact` in scope, maybe this will
+work. We need `fact` to be in its closure's environment.  That's a fancy way
 of saying `fact` needs to know about itself.  Let's look at the
 closure resulting from evaluating  the `lambda` defining `fact`:
 
@@ -177,16 +171,16 @@ Let's see if it works by applying the closure to 0:
 
 ```text
 ((ClosureV "x" TNum (if (isZero x) then 1 else x * (fact x-1)) []) 0)   []
-== (if (isZero 0) then 1 else x * (fact x-1))                               []
+== (if (isZero 0) then 1 else x * (fact x-1))                           []
 == 1
 ```
 
 Remember that when we execute an application, the environment from the
-closure replaces the local environment. That enviornment here is
+closure replaces the local environment. That environment here is
 empty, thus the recursive reference to `fact` is not in the closure's
 environment.  `fact 0` works only because the recursive call to
 `fact` never occurs.  `fact 0` is the base case and its value can be
-calculated directly.  Still can't fined a type for `fact`, but we'll
+calculated directly.  Still can't find a type for `fact`, but we'll
 worry about that later.
 
 Unfortunately, any value other that `0` triggers the recursive call
@@ -194,9 +188,9 @@ where `fact` must be found in the environment.  Looking at `fact 1`
 demonstrates the problem immediately:
 
 ```text
-((ClosureV "x" TNum (if (isZero x) then 1 else x * (fact x-1)) []) 1)  env
-== evalM (if (isZero 1) then 1 else 1 * (fact 0))                           []
-== 1 * (fact 0)                                                            []
+((ClosureV "x" TNum (if (isZero x) then 1 else x * (fact x-1)) []) 1)     env
+== evalM (if (isZero 1) then 1 else 1 * (fact 0))                         []
+== 1 * (fact 0)                                                           []
 == error on lookup of fact in []
 ```
 
@@ -215,18 +209,19 @@ lookup of `fact` will find it.  Let's give it a try:
 ```
 
 There are two closures here.  The outer closure is what we will
-evaluate with application and the inner closure defines the value of `fact`
-in the outer closure's environment.  Now `fact` will work for `0` as
+evaluate during the initial application and the inner closure defines the value of `fact` in the outer closure's environment.  Now `fact` will work for `0` as
 it did before and should work for other values as well.  Let's give it
 a shot for `1`:
 
 ```text
-((ClosureV "x" TNum (if (isZero x) then 1 else x * (fact x-1)) []) 1) []
-== (if (isZero x) then 1 else x * (fact x-1)         [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
-== (if (isZero 1) then 1 else 1 * (fact 0))          [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
-== evalM 1 * (fact 0)                                 [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
-== 1 * ((lambda x in (if (isZero x) then 1 else x * (fact x-1)) [])  0 [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
-== 1 * (if (isZero x) then 1 else x * (fact x-1)     [(x,0)]
+((ClosureV "x" TNum (if (isZero x) then 1 else x * (fact x-1))
+           [(fact,(ClosureV "x" TNum (if ...) []))]) 1) env
+== (if (isZero x) then 1 else x * (fact x-1)  [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
+== (if (isZero 1) then 1 else 1 * (fact 0))   [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
+== evalM 1 * (fact 0)                         [(x,1),(fact,(ClosureV "x" TNum (if ...) []))]
+== 1 * ((lambda x in (if (isZero x) then 1 else x * (fact x-1)) []) 0)
+           [(fact,(ClosureV "x" TNum (if ...) []))]
+== 1 * (if (isZero x) then 1 else x * (fact x-1))     [(x,0)]
 == 1 * 1
 ```
 

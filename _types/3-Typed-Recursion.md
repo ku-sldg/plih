@@ -240,18 +240,20 @@ environment:  (Say that fast 5 times)
 ```
 
 Bingo.  Now the closure in the environment for the closure knows about
-the closure.  Now we can call `fact` on 0, 1, and 2.  But not 3.  Do
-you see why?  The innermost closure can never have `fact` in its
+the closure.  Now we can call `fact` on 0, 1, and 2. But not 3. Bummer Do
+you see why?
+
+The innermost closure can never have `fact` in its
 environment because it is, in effect, the base case.  Any number of
 nested closures you choose can always be exceeded by 1.  Build 10 and
 `fact` will fail for 11, build 100 and it fails for 101 and so forth.
 No matter how deep the nesting, eventually the recurse call to `fact`
-fails.
+fails.  We cannot pre-seed a closure's environment to contain copies of itself.
 
-What can we do to solve this?  In the immortal words of Dr. Seuss, no
+In the immortal words of Dr. Seuss, "turtles all the way down". No
 matter how many turtles we add there is always one at the bottom we
-can try to jump under.  We cannot write $\Omega$ thus we cannot write
-Y.  We cannot use closure magic.  The only thing we are left with is
+can try to jump under.  We cannot write $\Omega$ this way nor can we write
+Y.  We cannot use closure magic.  The only option left is
 adding a new construct to our language with a different execution
 behavior.
 
@@ -284,16 +286,17 @@ evalM env (Fix f) = do { (ClosureV i b e) <- (evalM env f) ;
 ```
 
 To better understand how the `fix` operation works, let's evaluate
-factorial of `3` using our new operation.  First, let's define `f`,
+factorial of `3` using our new operation.  First, let's define `fact`,
 the function we will use to implement factorial:
 
 ```text
 bind fact = (lambda g in (lambda x in (if x=0 then 1 else x * (g x-1)))) in ...
 ```
 
-`fact` is not recursive.  It takes a function that it will call in the
-recursive case and return something that looks a great deal like
-factorial.  Let's do a quick thought experiment to see what `fact`
+`fact` is no longer recursive.  It takes a parameter that will contain
+the function that it will call in the  recursive case. When given that
+paraneter, `fact` returns something that looks a great deal like
+factorial.  Let's do a quick thought experiment to see what `fact` 
 would look like if it were called on itself:
 
 ```text
@@ -302,10 +305,9 @@ would look like if it were called on itself:
 ```
 
 That looks exactly like what we want, but it won't work until we use
-`fix` to perform the instantiation of `f`.
-
-After evaluating `f` and pulling the resulting closure apart, we have
-the following bindings that will get used in the substitution:
+`fix` to perform the instantiation of `fact`. After evaluating `fact`
+and pulling the resulting closure apart, we have the following
+definitions that get used in the evaluation:
 
 ```text
 i = g
@@ -326,9 +328,9 @@ evaluation by applying the fixed point of `fact` to `3`:
 
 Note that we are not applying `fact` to `3`, but instead applying the
 fixed point of `fact` to `3` to build a recursive function.  To
-evaluate the application we evaluate `fact` and apply the resulting value to
-`3`.  Let's evaluate `(fix fact)` using the definition from above by
-replacing `g` with `(fix (lambda g in b)):
+evaluate the application we evaluate `(fix fact)` and apply the
+resulting value to `3`.  Let's evaluate `(fix fact)` using the
+definition from above by replacing `g` with `(fix (lambda g in b)):
 
 ```text
 == [g->(fix (lambda g in b))]b 3
@@ -397,7 +399,8 @@ for the recursive call.  Where `fact` appears in the initial
 definition, the function `g` from the outer `lambda` appears.  This is
 the general form for any recursive construction we would like to
 create.  Specifically, create the recursive function and replace the
-recursive instance with a variable created by an outer `lambda`.
+recursive instance with a variable created by an outer `lambda`. This
+will give you the value for the `g` parameter in the fixpoint.
 
 ## Typing fix
 

@@ -10,7 +10,7 @@ $$
 \newcommand\parse{\mathsf{parse}\;}
 \newcommand\typeof{\mathsf{typeofM}\;}
 \newcommand\interp{\mathsf{interp}\;}
-\newcommand\eval{\mathsf{evalM}\;}
+\newcommand\eval{ \Downarrow }
 \newcommand\NUM{\mathsf{NUM}\;}
 \newcommand\ID{\mathsf{ID}\;}
 \newcommand\iif{\mathsf{if}\;}
@@ -272,6 +272,10 @@ problem.
 The rule for the general recursive structure is:
 
 $$\frac{}{\eval \ffix \llambda i\; b = \eval [i\mapsto (\ffix (\llambda i\; b))]\; b}$$
+
+$$\frac{}{\ffix \llambda i\; b \eval v =
+[i\mapsto (\ffix (\llambda i\; b))]\; b \eval v}$$
+
 
 Evaluating `fix` uses substitution to replace the called function with
 `fix` over the called function.  Note that `evalM` appears on both

@@ -271,10 +271,7 @@ problem.
 
 The rule for the general recursive structure is:
 
-$$\frac{}{\eval \ffix \llambda i\; b = \eval [i\mapsto (\ffix (\llambda i\; b))]\; b}$$
-
-$$\frac{}{\ffix \llambda i\; b \eval v =
-[i\mapsto (\ffix (\llambda i\; b))]\; b \eval v}$$
+$$\frac{[i\mapsto (\ffix (\llambda i\; b))]\; b \eval v}{\ffix \llambda i\; b \eval v}$$
 
 
 Evaluating `fix` uses substitution to replace the called function with

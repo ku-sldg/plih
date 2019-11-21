@@ -273,13 +273,12 @@ The rule for the general recursive structure is:
 
 $$\frac{[g\mapsto (\ffix (\llambda g\; b))]\; b \eval v}{\ffix \llambda g\; b \eval v}$$
 
+$g$ is _not_ the argument to the factorial function. It's easy to make
+this mistake because of how we've always looked at factorial.  $g$ is
+the function that is called in the recursive case.  Evaluating `fix`
+does not perform one step of the recursion, but instead sets up what
+will replace the recursive call.  `fix` is not recursive at all.
 
-Evaluating `fix` uses substitution to replace the called function with
-`fix` over the called function.  Note that `evalM` appears on both
-sides of the definition.
-
-The bind evaluates `t` to get a closure.  The body of the closure is
-evaluated in `e` replacing `i` with `lambda i b`.  What the heck?
 
 ```haskell
 evalM env (Fix f) = do { (ClosureV i b e) <- (evalM env f) ;

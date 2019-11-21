@@ -271,7 +271,7 @@ problem.
 
 The rule for the general recursive structure is:
 
-$$\frac{[i\mapsto (\ffix (\llambda i\; b))]\; b \eval v}{\ffix \llambda i\; b \eval v}$$
+$$\frac{[g\mapsto (\ffix (\llambda g\; b))]\; b \eval v}{\ffix \llambda g\; b \eval v}$$
 
 
 Evaluating `fix` uses substitution to replace the called function with

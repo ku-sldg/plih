@@ -307,7 +307,7 @@ type of the `lambda` is `D->R`.
 
 The formal type rule can be written:
 
-$$\frac{(x,D):\Gamma\vdash b:R}{\Gamma\vdash (\llambda (x:D)\;\ b):D\rightarrow R}$$
+$$\frac{(x,D):\Gamma\vdash b:R}{\Gamma\vdash (\llambda (x:D)\;\iin b):D\rightarrow R}$$
 
 ## Typing Applications
 
@@ -336,7 +336,7 @@ Let's make this way simpler.  Given some `f:D->R` and `a:D`, then
 `(f a):R`.  Simple as that.  Here's the type rule that captures
 this:
 
-$$\frac{\Gamma\vdash f:D \rightarrow R, \Gamma\vdash a:D}{\Gamma\vdash(f\; a):R}$$
+$$\frac{\Gamma\vdash f:D \rightarrow R\;\;\; \Gamma\vdash a:D}{\Gamma\vdash(f\; a):R}$$
 
 What does this say about the problem that motivated the chapter?
 Specifically, what is the type of:

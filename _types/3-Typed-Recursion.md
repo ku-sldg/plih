@@ -262,7 +262,7 @@ behavior.
 
 ## The Fix
 
-In this case, the fix is adding a _fixed point_, concrete syntax `fix
+In this case, the fix is adding a _fixed point_ with concrete syntax `fix
 t`, to our statically scoped language.  Instead of using the language
 to write a fixed point construct like Y, we will build the fixed point
 into the language directly and take advantage of controlling
@@ -272,11 +272,11 @@ Fixed points are common structures in mathematics, but we only need to
 understand what a basic fixed point structure looks like to solve our
 problem.
 
-The rule for the general recursive structure is:
+The inference rule defining the general recursive fixed point structure is:
 
 $$\frac{}{\eval \ffix \llambda i\; b = \eval [i\mapsto (\ffix (\llambda i\; b))]\; b}$$
 
-Evaluating `fix` uses substitution to replace the called function with
+Evaluating `fix` uses substitution to replace the recursive function with
 `fix` over the called function.  Note that `evalM` appears on both
 sides of the definition.
 

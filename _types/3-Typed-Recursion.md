@@ -70,8 +70,7 @@ Let's add a type placeholder, call it `T->T`, to the `lambda` and
 determine what a typed version of the $\Omega$ would look like:
 
 ```text
-((lambda (x:T->T) in (x x))
-	 (lambda (x:T->T) in (x x)))
+((lambda (x:T->T) in (x x))(lambda (x:T->T) in (x x)))
 ```
 
 Will this work?  Remember that to determine the type of an `f a`
@@ -79,7 +78,7 @@ we find the type of `f`. First, `f` must be a function type. Then if `a`
 has the same type as the domain of `f`, `f a` has the same type as
 the range of `f`.
 
-Unfortunately, we will never find a type for `x x` be the type of `x` must be the domain type of `x`.  Do you see the problem?  If
+Unfortunately, we will never find a type for `x x` because the type of `x` must be the domain type of `x`.  This is a problem.  If
 `x` has type `T->T`, then for `x x` to have type `T`, `x` must
 also have type `T`.  This will never work as `x` would need to have
 both type `T` and `T->T`.  `T = T->T`, something that is not possible in our type system and would break the datatype representation if it were.
@@ -99,10 +98,7 @@ In all the languages we have written so far, values and
 normal forms are the same.  What if we removed the evaluation case for
 `+` implying that `1+1` would not evaluate further?  Now terms
 involving `+` join values as normal forms.  Unlike values, `+` terms
-should reduce.  Normal forms that are not values are referred to as
-_stuck_ values and represent errors in a language definition.  It is
-always desirable to show that the only normal forms in a language are
-values.
+should reduce and not be treated as values.  Normal forms that are not values are referred to as _stuck_ values and represent errors in a language definition.  It is always desirable to show that the only normal forms in a language are values.
 
 Normalization is the property that evaluating any term in a
 language always terminates resulting in a value.  No non-termination
@@ -141,8 +137,7 @@ figure out how.
 
 ## Manipulating Closures
 
-Lets revisit our original problem by going back and revisiting our most
-famous of all recursive function, factorial:
+Lets revisit our original problem by going back and revisiting factorial:
 
 ```text
 bind fact = (lambda x in (if (isZero x) then 1 else x * (fact x-1)))
@@ -159,8 +154,7 @@ bind fact = (lambda (x:TNum) in (if (isZero x) then 1 else x * (fact x-1)))
 
 Because `fact` is not in scope, technically there is also no type for this
 expression.  If we can get `fact` in scope, maybe this will
-work. We need `fact` to be in its closure's environment.  That's a fancy way
-of saying `fact` needs to know about itself.  Let's look at the
+work. We need `fact` to be in its closure's environment.  That's a fancy way of saying `fact` needs to know about itself.  Let's look at the
 closure resulting from evaluating  the `lambda` defining `fact`:
 
 ```text
@@ -209,8 +203,7 @@ lookup of `fact` will find it.  Let's give it a try:
 ```
 
 There are two closures here.  The outer closure is what we will
-evaluate during the initial application and the inner closure defines the value of `fact` in the outer closure's environment.  Now `fact` will work for `0` as
-it did before and should work for other values as well.  Let's give it
+evaluate during the initial application and the inner closure defines the value of `fact` in the outer closure's environment.  Now `fact` will work for `0` as it did before and should work for other values as well.  Let's give it
 a shot for `1`:
 
 ```text
@@ -240,7 +233,7 @@ environment:  (Say that fast 5 times)
 ```
 
 Bingo.  Now the closure in the environment for the closure knows about
-the closure.  Now we can call `fact` on 0, 1, and 2. But not 3. Bummer Do
+the closure.  Now we can call `fact` on 0, 1, and 2. But not 3. Do
 you see why?
 
 The innermost closure can never have `fact` in its
@@ -250,7 +243,7 @@ nested closures you choose can always be exceeded by 1.  Build 10 and
 No matter how deep the nesting, eventually the recurse call to `fact`
 fails.  We cannot pre-seed a closure's environment to contain copies of itself.
 
-In the immortal words of Dr. Seuss, "turtles all the way down". No
+In the immortal words of Dr. Seuss, "it’s turtles all the way down". No
 matter how many turtles we add there is always one at the bottom we
 can try to jump under.  We cannot write $\Omega$ this way nor can we write
 Y.  We cannot use closure magic.  The only option left is
@@ -259,33 +252,26 @@ behavior.
 
 ## The Fix
 
-In this case, the fix is adding a _fixed point_ with concrete syntax `fix
+The fix is adding a _fixed point_ operator with concrete syntax `fix
 t`, to our statically scoped language.  Instead of using the language
 to write a fixed point construct like Y, we will build the fixed point
 into the language directly and take advantage of controlling
 evaluation more precisely.
 
-Fixed points are common structures in mathematics, but we only need to
-understand what a basic fixed point structure looks like to solve our
-problem.
-
 The inference rule defining the general recursive fixed point structure is:
 
 $$\frac{[g\mapsto (\ffix (\llambda g\; b))]\; b \eval v}{\ffix \llambda g\; b \eval v}$$
 
-Evaluating `fix` uses substitution to replace the recursive function with
-`fix` over the called function.  Note that `evalM` appears on both
-sides of the definition.
-$g$ is _not_ the argument to the factorial function. It's easy to make
-this mistake because of how we've always looked at factorial.  $g$ is
+Evaluating `fix` uses substitution to replace the function associated with recursion with `fix` over that same function.
+
+First note that $g$ is _not_ the argument to the factorial function. $g$ is
 the function that is called in the recursive case.  Evaluating `fix`
 does not perform one step of the recursion, but instead sets up what
-will replace the recursive call.  `fix` is not recursive at all.
-
+will replace the recursive call.  `fix` is not recursive.
 
 ```haskell
 evalM env (Fix f) = do { (ClosureV i b e) <- (evalM env f) ;
-                         evalM e (subst i (Fix (Lambda i b)) b) }
+                        evalM e (subst i (Fix (Lambda i b)) b) }
 ```
 
 To better understand how the `fix` operation works, let's evaluate
@@ -293,11 +279,13 @@ factorial of `3` using our new operation.  First, let's define `fact`,
 the function we will use to implement factorial:
 
 ```text
-bind fact = (lambda g in (lambda x in (if x=0 then 1 else x * (g x-1)))) in ...
+bind fact = (lambda g in
+             (lambda x in
+               (if x=0 then 1 else x * (g x-1)))) in ...
 ```
 
-`fact` is no longer recursive.  It takes a parameter that will contain
-the function that it will call in the  recursive case. When given that
+`fact` is no longer recursive.  It takes a parameter that will be
+the function that it will call in the recursive case. When given that
 paraneter, `fact` returns something that looks a great deal like
 factorial.  Let's do a quick thought experiment to see what `fact` 
 would look like if it were called on itself:
@@ -330,7 +318,7 @@ evaluation by applying the fixed point of `fact` to `3`:
 ```
 
 Note that we are not applying `fact` to `3`, but instead applying the
-fixed point of `fact` to `3` to build a recursive function.  To
+fixed point of `fact` to `3`.  To
 evaluate the application we evaluate `(fix fact)` and apply the
 resulting value to `3`.  Let's evaluate `(fix fact)` using the
 definition from above by replacing `g` with `(fix (lambda g in b)):
@@ -348,7 +336,7 @@ Now we have something we understand.  Specifically, application of a
 == 3 * ((fix (lambda g in b)) 2)
 ```
 
-Well look at that.  We got exactly what we want!  We started by
+We got exactly what we want!  We started by
 applying the fixed point of the lambda to a value and we just got the
 same thing here.  Exactly the same thing with the argument decremented
 by 1.  Let's keep going by applying the same steps again:
@@ -367,6 +355,7 @@ need to worrying about termination.  Same steps again:
 == 3 * 2 * ([g->(fix (lambda g b))] b 1)
 == 3 * 2 * ((lambda x in (if x=0 then 1 else x * ((fix (lambda g in b)) x-1) 1)
 == 3 * 2 * (if 1=0 then 1 else 1 * ((fix (lambda g in b)) 1-1))))
+== 3 * 2 * 1 * ((fix (lambda g in b)) 0)
 ```
 
 ... and again:
@@ -414,15 +403,14 @@ extending the core language to include a `fix` operator.  We now have
 a statically scoped `fix` expression that will create recursive
 constructs for us.
 
-One task remains.  What is the type of `fix`?  Looking at how we
-created factorial from `fact` gives is a great clue:
+What now is the type of `fix`?  Looking at how we created factorial from `fact` gives is a great clue:
 
 ```text
 bind fact = (lambda g in (lambda x in (if x=0 then 1 else x * (g x-1)))) in
    ((fix fact) 3)
 ```
 
-`fix fact` gives us the factorial fucntion.  The previous definition
+`fix fact` gives us the actual factorial fucntion.  The previous definition
 could be rewritten as:
 
 ```text
@@ -434,7 +422,7 @@ bind fact = (lambda g in (lambda x in (if x=0 then 1 else x * (g x-1)))) in
 Looking at factorial this way, it should be clear the type of
 `factorial` must be `TNat->TNat`.  Given a number, factorial will
 return another number.  What then is the type of `fact`?  It takes a
-value `g` and returns a function that calls `g`.  So, the argument to
+value `g` and returns a function that calls `g`.  So, the first argument to
 `fact` must be a function.  The result must also be a function because
 it is applied to a value.  `fact` takes a function and returns a
 function.  If we call `typeofM` on just `fact` we learn:
@@ -443,7 +431,7 @@ function.  If we call `typeofM` on just `fact` we learn:
 typeofM [] (lambda (ie:Nat->Nat) in
              (lambda (x:Nat) in
                 (if (isZero x) then x else x + (ie (x-1))))
- == (Nat->Nat) -> (Nat->Nat)
+ == (TNat :->: TNat) -> (TNat :->: TNat)
  ```
 
 `fix` takes `fact` and creates `factorial`.  Instead of applying `fix`
@@ -453,7 +441,20 @@ going straight to the substitution.  Given a function like `fact`,
 function itself.  Just like an application, the type of `fix` is the range
 of the input function:
 
+$$\frac{\Gamma\vdash f:D->R}{\Gamma\vdash (\ffix f):R}$$
+
+The code for typing `fix` follows directly from the inference rule:
+
 ```haskell
 typeofM cont (Fix t) = do { (d :->: r) <- typeofM cont t ;
-                            return r }
+                           return r }
 ```
+
+Now we have a type for `fix`.  The factorial function defined using fix also has a type.  The `lambda` used to create factorial has the type:
+
+```text
+(TNat :->: TNat) :->: (TNat :->: TNat)
+```
+
+Thus the type of `(fix fact)` is the domain of `fact`, or just `TNat :->: TNat`.  Exactly the type we expect for our factorial function.
+

@@ -1,6 +1,6 @@
 # EECS 662 - Programming Languages
 
-Programming Languages is an introduction to basic principles of defining, describing and implementing interpreters for programming languages. The fundamental goal is establishing a vocabulary for discussing what programming languages and programs written in them do.  Topics covered to accomplish this are data representation and types; decelarations, bindings and variable assignment; parameter passing and function evaluation; statements; and objects and types;  The course uses an implementation-based approach with students developing type checkers, interpreters for languages that demonstrate features presented in class.
+Programming Languages is an introduction to basic principles of defining, describing and implementing interpreters for programming languages. The fundamental goal is establishing a vocabulary for discussing what programming languages and programs written in them do.  Topics covered to accomplish this are data representation and types; declarations, bindings and variable assignment; parameter passing and function evaluation; statements; and objects and types;  The course uses an implementation-based approach with students developing type checkers, interpreters for languages that demonstrate features presented in class.
 
 # Class Information 
 
@@ -103,21 +103,25 @@ Pretty simple.  Follow them and we'll be great friends!
 2. Don't cheat
 3. Don't tell me what you don't need to know
 
+#### COVID
+
+Masks and social distancing are required in the classroom.  You will be asked to leave if you do not adhere to KU policies.  If you are concerned about attending class or office hours, contact me and we will make arrangements.  This is a strange time
+
 #### Class Participation
 
-I do not take attendance in class; however participation in class is important to your success, however participation in class is important to its success. How much homework and how rigorously it is graded will definitely depend on class participation. Please ask questions and participate in class discussions. When assigning final grades, borderline cases will be decided based on class participation. 
+I do not take attendance in class; however participation in class is important to your success, however participation in class is important to its success. How much homework and how rigorously it is graded will depend on class participation. Please ask questions and participate in class discussions. When assigning final grades, borderline cases will be decided based on class participation. 
 
 #### Grading Errors
-If I have made an error in grading an exam or assignment, you have two weeks following the date the item is available to see me about correcting the problem. Note that this includes the final! After that time, your grade is set and will not be changed. I also request that you wait 24 hours after an exam is returned before coming to me with questions. 
+If I have made an error in grading an exam or assignment, you have two weeks following the date the item is available to see me about correcting the problem. Note that this includes the final! After that time, your grade is set and will not be changed. I request that you wait 24 hours after an exam is returned before coming to me with questions. 
 
 #### Curving
-I may decide to curve final scores when the quarter is over. Whether I curve and how much I curve is at my discretion. I will never curve up, but may curve down. Specifically, 90% and above will always be an "A", but I may choose to lower the cutoff percentage. Whether I curve and how much I curve is at my discretion. I will never curve scores on an individual graded assignment, lab or exam. 
+I may decide to curve final scores when the quarter is over. Whether I curve and how much I curve is at my discretion. I will never curve up, but may curve down. 90% and above will always be an "A", but I may choose to lower the cutoff percentage. Whether I curve and how much I curve is at my discretion. I will never curve scores on an individual graded assignment, lab or exam. 
 
 #### Email
-I encourage you to use email to contact me. I am logged in whenever I am working and check my mail frequently. Email is my preferred means of communication. 
+I encourage you to use email to contact me. I am logged in when I am working and check my mail frequently. Email is my preferred means of communication. 
 
 #### Blog
-The course blog is available on the website and via an RSS feed. I will post late-breaking news about projects, homework and class administration on the blog. Either subscribe to the RSS feed, or check the website frequently. 
+The course blog is available on the website and via an RSS feed. I will post late-breaking news about projects, homework and class administration on the blog. Either subscribe to the RSS feed, or check the website. 
 
 #### Phone
 Feel free to call me in any of my office at any time. I would prefer not to be called at home. 
@@ -132,7 +136,7 @@ Academic misconduct of any kind will automatically result in a 0 score on the ho
 Excusing a missed exam or assignment is left to the discretion of the instructor. Illness, family emergencies, and religious observances are examples of acceptable excuses. Computer down time, over sleeping, and social events are examples of unacceptable excuses. Please try to let me know of problems in advance when possible and be prepared to provide verification of your excuse. 
 
 #### Extensions
-As a policy, I do not extend due dates of homework and projects. If I choose to do so, I will only announce the extension in class, via email or on the blog. If you hear an extension has been granted and I have not announced it, your information is incorrect. Remember that if I grant extensions early in the semester, it will necessarily compress due dates the end of the semester.
+As a policy, I do not extend due dates of homework and projects. If I choose to do so, I will only announce the extension in class, via email or on the blog. If you hear an extension has been granted and I have not announced it, your information is incorrect. Remember that if I grant extensions early in the semester, it will compress due dates the end of the semester.
 
 ## Grading 
 
@@ -152,7 +156,7 @@ Classroom tasks are weighted using the following scale
 
 ## Topics
 
-We will cover topics in roughly the same order as our text.  I will also add miscellaneous topics throughout the semester.  Specific topics are subject to change without notice and topics marked “(tentative)” will be covered as time permits.
+We will cover topics in roughly the same order as our text.  I will add miscellaneous topics throughout the semester.  Specific topics are subject to change without notice and topics marked “(tentative)” will be covered as time permits.
 
 *	Introduction
 *	Scheme Tutorial

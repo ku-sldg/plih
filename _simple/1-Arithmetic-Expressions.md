@@ -264,7 +264,7 @@ liftNum f (Num l) (Num r) = (Num (f l r))
 `liftNum` takes a binary function over integers and two `Num` constructions.  It lifts the binary operation into `Num` by extracting the `Int` values, applying the operation, and putting the result back in `Num`.  While we could not use `+` on `Num` constructions directly, we can use `liftNum` to define addition in `AE`:
 
 ```haskell
-(Num n) + (Num m) == (liftNum (+) n m
+(Num n) + (Num m) == (liftNum (+) n m)
 ```
 
 We can define other `AE` operations similarly.

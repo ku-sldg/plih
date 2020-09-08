@@ -326,7 +326,7 @@ Before we say more about `AE`, lets put all the pieces together into a single de
 First we defined a concrete syntax for terms:
 
 $$\begin{align*}
-t ::= & \NUM \mid t \underline{+} t \mid t \underline{-} t \\
+t ::= & \mathsf{NUM} \mid t \underline{+} t \mid t \underline{-} t \\
 \end{align*}$$
 
 and syntactic definition of values:

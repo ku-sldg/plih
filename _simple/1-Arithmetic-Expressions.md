@@ -27,7 +27,8 @@ Concrete syntax is always described by a grammar consisting of an alphabet and a
 
 $$L = \{s:string\; \mid\; G(s)\}$$
 
-where $G$ is a predicate that is true when $s$ satisfies $L$'s grammar rules.
+where $$G$$ is a predicate that is true when $$s$$ satisfies $$L$$'s
+grammar rules.
 
 Let's define the concrete syntax for our first language that we will call `AE` for _Arithmetic Expressions_.  Terms in `AE` are defined by the following grammar:
 

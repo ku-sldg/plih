@@ -107,7 +107,7 @@ Several standard notations are used throughout for various kinds of things we ne
 
 ## Math
 
-Throughout this document mathematical statements are formatted using embedded $\LaTeX$ using Mathjax:  
+Throughout this document mathematical statements are formatted using embedded $$\LaTeX$$ using Mathjax:  
 
 $$\{s:string\mid P(s)\}$$
 
@@ -149,27 +149,27 @@ t ::=\; & \NUM \\
 \end{align*}
 $$
 
-Any symbol to the left of the `::=` definition symbol is a meta-variable defined by the definition to the right.  The symbol $t$ represents anything defined by the expression to the right.  Note also that any subscripted or superscripted $t$ such as $t\_k$ or $t'$ is definitionally the same as $t$.
+Any symbol to the left of the `::=` definition symbol is a meta-variable defined by the definition to the right.  The symbol $$t$$ represents anything defined by the expression to the right.  Note also that any subscripted or superscripted $$t$$ such as $$t\_k$$ or $$t'$$ is definitionally the same as $$t$$.
 
-There are a few pre-defined meta-variables that include $\NUM$ for integer numbers and $\NAT$ for natural numbers.  We're not worried about writing parsers in this book, but specifying them proves useful.
+There are a few pre-defined meta-variables that include $$\NUM$$ for integer numbers and $$\NAT$$ for natural numbers.  We're not worried about writing parsers in this book, but specifying them proves useful.
 
 ### Inference Rules
 
-Inference rules define immediate consequences like the definition of $\wedge$-introduction:
+Inference rules define immediate consequences like the definition of $$\wedge$$-introduction:
 
 $$\frac{A,B}{A \wedge B}$$
 
-This says that if we know $A$ and we know $B$, then we immediately know $A \wedge B$.  More generally:
+This says that if we know $$A$$ and we know $$B$$, then we immediately know $$A \wedge B$$.  More generally:
 
 $$\frac{A_0,A_1,\ldots,A_n}{C}$$
 
-says if $A_0$ through $A_n$ are known to hold, then $C$ is known to hold.  $A_k$ are called _antecedents_ and $C$ is called a _consequent_.
+says if $$A_0$$ through $$A_n$$ are known to hold, then $$C$$ is known to hold.  $$A_k$$ are called _antecedents_ and $$C$$ is called a _consequent_.
 
 An inference rule having no preconditions defines an _axiom_:
 
 $$\frac{}{A}$$
 
-If nothing need be true to know $A$, then $A$ is always true.
+If nothing need be true to know $$A$$, then $$A$$ is always true.
 
 ### Derivations
 
@@ -177,15 +177,15 @@ A derivation strings inference rules together by using the consequent of one or 
 
 $$\frac{\frac{A\wedge B}{B}\;\frac{A\wedge B}{A}}{B\wedge A}$$
 
-1. $A \wedge B \vdash B$ **by** $\wedge$-elim
-2. $A \wedge B \vdash A$ **by** $\wedge$-elim
-3. $B, A \vdash B \wedge A$ **by** $\wedge$-intro
+1. $$A \wedge B \vdash B$$ **by** $$\wedge$$-elim
+2. $$A \wedge B \vdash A$$ **by** $$\wedge$$-elim
+3. $$B, A \vdash B \wedge A$$ **by** $$\wedge$$-intro
 
 When such a derivation exists, we can say the following:
 
 $$A\wedge B \vdash B\wedge A$$
 
-This is read $A\wedge B$ _derives_ $B\wedge A$.  If a derivation has no precondition it defines a _theorem_.  For example, the symmetric property of conjunction is expressed as:
+This is read $$A\wedge B$$ _derives_ $$B\wedge A$$.  If a derivation has no precondition it defines a _theorem_.  For example, the symmetric property of conjunction is expressed as:
 
 $$\vdash A\wedge B \Leftrightarrow B \wedge A$$
 

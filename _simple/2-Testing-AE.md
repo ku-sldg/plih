@@ -32,7 +32,7 @@ If we want to say that `p` holds for all `f`, we would prove the following prope
 
 $$\forall x:Int \cdot (p (f x))$$
 
-This tells us that for every integer $$x$$, $$p$$ holds for $$f x$$.  (This is actually an easy proof, but for discussion let's assume we  have only testing available to us.)
+This tells us that for every integer $x$, $p$ holds for $f x$.  (This is actually an easy proof, but for discussion let's assume we  have only testing available to us.)
 
 To test `p` we can easily write a function:
 
@@ -232,7 +232,7 @@ Let's first look at our parser for some ideas.  If the parser and pretty printer
 
 $$\forall t:AE \cdot (parseAE\; (pprint\; t)) == t$$
 
-To turn this into an input for QuickCheck we simply remove the universal quantifier and pass in a value for $$t$$.  The Haskell representation is:
+To turn this into an input for QuickCheck we simply remove the universal quantifier and pass in a value for $t$.  The Haskell representation is:
 
 ```haskell
 \t -> parseAE (pprint t) == t

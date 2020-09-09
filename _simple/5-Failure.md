@@ -169,11 +169,11 @@ If we want to predict failure, we need to predict constructors.  `t1 + t1` will 
 $$\eval t_1 \in \{(\nnum x) \mid x\in Int\}$$
 $$\eval t_2 \in \{(\nnum x) \mid x\in Int\}$$
 
-where $Int$ is the Haskell `Int` type.  Note that both $t_1$ and $t_2$ must belong to the same set of nuymber values created with $\nnum$.  Let's give this set a name, $\tnum$:
+where $$Int$$ is the Haskell `Int` type.  Note that both $$t_1$$ and $$t_2$$ must belong to the same set of nuymber values created with $$\nnum$$.  Let's give this set a name, $$\tnum$$:
 
 $$\tnum == \{(\nnum x) \mid x\in Int\}$$
 
-Now the question becomes whether we can predict $\tnum$ from $t_1$ and $t_2$ without executing either.  `eval` is defined by including one case for each language constructor in its definition.  Can we do the same here?  Let's try by defining a function we'll never implement called `predict`.  First, let's take care of our values:
+Now the question becomes whether we can predict $$\tnum$$ from $$t_1$$ and $$t_2$$ without executing either.  `eval` is defined by including one case for each language constructor in its definition.  Can we do the same here?  Let's try by defining a function we'll never implement called `predict`.  First, let's take care of our values:
 
 ```haskell
 predict (Num _) = TNum
@@ -204,7 +204,7 @@ The `typeof` function is simply another interpreter for the `ABE` language.  `ty
 
 ### Type Rules
 
-Like `eval` earlier, let's define a set of rules for our new `typeof` function before implementing it.  These rules will define the relation $t:T$ that is read _t of type T_. The same notation defining antecedents and consequents can be used to define each rule.
+Like `eval` earlier, let's define a set of rules for our new `typeof` function before implementing it.  These rules will define the relation $$t:T$$ that is read _t of type T_. The same notation defining antecedents and consequents can be used to define each rule.
 
 First the constant values:
 
@@ -239,13 +239,13 @@ The `if` expression is a bit more interesting:
 $$\frac{t_0 : \tbool,\; t_1 : T,\; t_2 : T
 }{\iif t_0 \tthen t_1 \eelse t_2 : T}\;[IfT]$$
 
-The condition is required to be `TBool` as expected.  However, the then and else cases are both required to be of unknown type $T$.  $T$ in this context is a *type variable* that can take any type value.  Thus, the arms of an `if` expression can be either Boolean or numbers as long as they are the same.  Unlike all other terms, all instances of `if` do not have the same type.  Is this a problem?
+The condition is required to be `TBool` as expected.  However, the then and else cases are both required to be of unknown type $$T$$.  $$T$$ in this context is a *type variable* that can take any type value.  Thus, the arms of an `if` expression can be either Boolean or numbers as long as they are the same.  Unlike all other terms, all instances of `if` do not have the same type.  Is this a problem?
 
-The $IfT$ rule ensures that any specific `if` expression has only one type.  If the two cases were allowed to have different types, the `if`'s type cannot be predicted without knowing the value of the conditional.  This will only be known *dynamically* and we are trying to predict errors *statically*.  By requiring true and false cases to have the same type, we know that the $\iif$ expression will have that single type.
+The $$IfT$$ rule ensures that any specific `if` expression has only one type.  If the two cases were allowed to have different types, the `if`'s type cannot be predicted without knowing the value of the conditional.  This will only be known *dynamically* and we are trying to predict errors *statically*.  By requiring true and false cases to have the same type, we know that the $$\iif$$ expression will have that single type.
 
-The $\typeof$ function implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function `typecheck` would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $t$, is *well-typed* if `typeof t` is defined or `typecheck e t` is true for some type `t` and `e`.
+The $$\typeof$$ function implements *type inference* where we calculate a type for an expression.  Haskell uses type inference extensively, but you're likely more familiar with languages that implement *type checking*.  In type checking we don't necessarily calculate a type, but instead annotate expressions with types and check to see if those annotations hold.  A function `typecheck` would accept an expression and a type as arguments and return a Boolean value if the expression has that type.  We'll say that an expression, $$t$$, is *well-typed* if `typeof t` is defined or `typecheck e t` is true for some type `t` and `e`.
 
-Back to comparison with `eval`.  Do you see the parallel between $\eval$ rules and $\typeof$ rules?  There is a one-to-one correspondence between the rules.  They are structured the same way and as we'll see soon, they will be implemented in roughly the same way.  This is not always true, but the similarity is something we'll revisit in later discussions.
+Back to comparison with `eval`.  Do you see the parallel between $$\eval$$ rules and $$\typeof$$ rules?  There is a one-to-one correspondence between the rules.  They are structured the same way and as we'll see soon, they will be implemented in roughly the same way.  This is not always true, but the similarity is something we'll revisit in later discussions.
 
 ### Typeof
 

@@ -63,7 +63,7 @@ t ::= & \NUM \mid t + t \mid t - t \\
       & \mid t \lleq t \mid t \aand t \mid \iisZero t \\
 \end{align*}$$
 
-We also need to update our concept of a value to include $\ttrue$ and $\ffalse$:
+We also need to update our concept of a value to include $$\ttrue$$ and $$\ffalse$$:
 
 $$\begin{align*}
 v := \NUM \mid \ttrue \mid \ffalse \\
@@ -85,23 +85,23 @@ $$\frac{t_1\eval v_1,\; t_2\eval v_2}{t_1 \underline{-} t_2 \eval v_1-v_2}\; [Mi
 
 Boolean values are just like numerical values.  So much so that we do
 no not need another rule for values.  However, we will rename the
-$NumE$ rule to reflect that it now covers all values: 
+$$NumE$$ rule to reflect that it now covers all values: 
 
 $$\frac{}{\underline{v} \eval v}\; [ValueE]$$
 
-Rules for $\aand$ and $\lleq$ follow the same pattern as rules for $+$
-and $-$: 
+Rules for $$\aand$$ and $$\lleq$$ follow the same pattern as rules for $$+$$
+and $$-$$: 
 
 $$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 \aand t_2 \eval v_1 \wedge v_2}\; [AndE]$$
 
 $$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 \lleq t_2 \eval v_1\leq v_2}\; [LeqE]$$
 
-The rule for $\iisZero$ is only modestly different because it is a
+The rule for $$\iisZero$$ is only modestly different because it is a
 unary operation.  Unsurprisingly it has only one antecedent: 
 
 $$\frac{t \eval v}{\iisZero t\eval v==0}\; [isZeroE]$$
 
-Finally, let's deal with $\iif$.  Thinking of $\iif$ as simply an
+Finally, let's deal with $$\iif$$.  Thinking of $$\iif$$ as simply an
 operation with three arguments, we can follow our previous pattern
 giving us this pair of rules: 
 
@@ -109,7 +109,7 @@ $$\frac{t_0 \eval \ttrue,\; t_1 \eval v_1}{\iif t_0 \tthen t_1 \eelse t_2 \eval 
 
 $$\frac{t_0 \eval \ffalse,\; t_2 \eval v_2}{\iif t_0 \tthen t_1 \eelse t_2 \eval v_2}\;[IfFalseE]$$
 
-The $IfTrueE$ only applies when $t_0$ evaluates to $\ttrue$ while $IfFalseE$ applies when $t_0$ evaluates to $\ffalse$.  Note that only one arm of the if expression is evaluated in each rule.  In $IfTrueE$ the expression associated with true is evaluated while in $IfFalseE$ only the expression associated with false.
+The $$IfTrueE$$ only applies when $$t_0$$ evaluates to $$\ttrue$$ while $$IfFalseE$$ applies when $$t_0$$ evaluates to $$\ffalse$$.  Note that only one arm of the if expression is evaluated in each rule.  In $$IfTrueE$$ the expression associated with true is evaluated while in $$IfFalseE$$ only the expression associated with false.
 
 ## Abstract Syntax
 

@@ -37,11 +37,11 @@ v ::=\; & \ttrue \mid \ffalse \\
 \end{align*}
 $$
 
-This format should be familiar from the previous chapter and from earlier studies.  The alphabet includes terminal symbols including $$\ttrue$$ and $$\ffalse$$, but also symbols such as $$\wedge$$ and $$\vee$$.  The $$\ID$$ term is a shorthand for all identifiers representing propositions.  Grammar rules define $$\Rightarrow$$, $$\Leftrightarrow$$, $$\vee$$, and $$\wedge$$ as binary operations and $$\neg$$ as a unary operator.  The recursive nature of grammar rules over $$t$$ allows arbitrary nesting of terms.
+This format should be familiar from the previous chapter and from earlier studies.  The alphabet includes terminal symbols including $\ttrue$ and $\ffalse$, but also symbols such as $\wedge$ and $\vee$.  The $\ID$ term is a shorthand for all identifiers representing propositions.  Grammar rules define $\Rightarrow$, $\Leftrightarrow$, $\vee$, and $\wedge$ as binary operations and $\neg$ as a unary operator.  The recursive nature of grammar rules over $t$ allows arbitrary nesting of terms.
 
 ## Inference System
 
-_Inference systems_ are defined by _axioms_ and _inference rules_. They allow derivation of true statements form other true statements.  You do this whenever you use mathematics to simplify a formula or solve equations for a quantity.  We all know, for example, that $$(x+y)^2 = x^2+2xy+y^2$$.  We also know that $$(x+y)^2 = x^2+2xy+y^2$$ is true in algebra regardless of what $$x$$ and $$y$$ represent.  We could define this relationship using inference rules:
+_Inference systems_ are defined by _axioms_ and _inference rules_. They allow derivation of true statements form other true statements.  You do this whenever you use mathematics to simplify a formula or solve equations for a quantity.  We all know, for example, that $(x+y)^2 = x^2+2xy+y^2$.  We also know that $(x+y)^2 = x^2+2xy+y^2$ is true in algebra regardless of what $x$ and $y$ represent.  We could define this relationship using inference rules:
 
 $$\frac{(x+y)^2}{x^2+2xy+y^2}\;\;\;\;\frac{x^2+2xy+y^2}{(x+y)^2}$$
 
@@ -53,62 +53,62 @@ The classical notation for inference rules was defined in the previous chapter. 
 
 $$\frac{A_0,A_1,\ldots,A_n}{C}$$
 
-states that when $$A_0$$ through $$A_n$$ are true, then $$C$$ is also true.  The $$A_k$$'s are often referred to as _antecedents_ while $$C$$ is the _consequent_.  The set of antecedents may be arbitrarily large, but there is only one consequent associated with a rule.  The special case when the set of antecedents is empty:
+states that when $A_0$ through $A_n$ are true, then $C$ is also true.  The $A_k$'s are often referred to as _antecedents_ while $C$ is the _consequent_.  The set of antecedents may be arbitrarily large, but there is only one consequent associated with a rule.  The special case when the set of antecedents is empty:
 
 $$\frac{}{A}$$
 
-defines an axiom.  Nothing need be true for $$A$$ to be true, therefore it is always true.
+defines an axiom.  Nothing need be true for $A$ to be true, therefore it is always true.
 
-As an example inference system we'll look at _propositional logic_, the logic of true and false propositions that defines the heart of classical logic.  We'll start with one axiom that $$\ttrue$$ is always true:
+As an example inference system we'll look at _propositional logic_, the logic of true and false propositions that defines the heart of classical logic.  We'll start with one axiom that $\ttrue$ is always true:
 
 $$\frac{}{true}$$
 
-Nothing need be known to assert $$\ttrue$$ is trivially true.  It turns out that $$\ttrue$$ doesn't tell us much, but it does serve as a value in our logic.  The other value $$\ffalse$$.  Consider what axioms or inference rules might have $$\ffalse$$ as a consequent.  Are there any?
+Nothing need be known to assert $\ttrue$ is trivially true.  It turns out that $\ttrue$ doesn't tell us much, but it does serve as a value in our logic.  The other value $\ffalse$.  Consider what axioms or inference rules might have $\ffalse$ as a consequent.  Are there any?
 
-Other inference rules define introduction and elimination rules for various operators.  Introduction rules introduce their associated operation in an expression.  The introduction rule for $$X\wedge Y$$ is:
+Other inference rules define introduction and elimination rules for various operators.  Introduction rules introduce their associated operation in an expression.  The introduction rule for $X\wedge Y$ is:
 
 $$\frac{X,Y}{X\wedge Y}$$
 
-If $$X$$ and $$Y$$ are both known, then $$X\wedge Y$$ is immediately true.
+If $X$ and $Y$ are both known, then $X\wedge Y$ is immediately true.
 
-Elimination rules are the inverse of introduction rules.  There are two for $$X\wedge Y$$:
+Elimination rules are the inverse of introduction rules.  There are two for $X\wedge Y$:
 
 $$\frac{X\wedge Y}{X}\;\;\;\;\frac{X\wedge Y}{Y}$$
 
 Each rule allows one conjunct to be inferred from the conjunction.  The first giving the left conjunct and the second the right.  Note that introduction rules make larger terms from smaller term while elimination rules make smaller terms from larger terms.  This will have important consequences when we talk about proofs.
 
 Speaking of proofs, we now have a tiny subset of the inference rules defining propositional logic.  How do we use them?  Let's do a quick derivation that
-combines inference rules.  Specifically, let's prove the commutative property of conjunction, $$A\wedge B \vdash B \wedge A$$.  We start by assuming $$A\wedge B$$ and using derivation rules to make inferences:
+combines inference rules.  Specifically, let's prove the commutative property of conjunction, $A\wedge B \vdash B \wedge A$.  We start by assuming $A\wedge B$ and using derivation rules to make inferences:
 
 $$\cfrac{\cfrac{A\wedge B}{B}\;\;\;\; \cfrac{A\wedge B}{A}}{B\wedge A}$$
 
-Note how the inference rules click together like Legos.  Consequents of rules plug into the antecedents of others.  With a derivation from antecedents to consequents we can say $$A\wedge B \vdash B\wedge A$$ or  $$A\wedge B$$ _derives_ $$B\wedge A$$.  The $$X\vdash Y$$ operator indicates there is a derivation from $$X$$ to $$Y$$ and we can skip the details in other derivations.  If $$X$$ is empty, we say that $$\vdash Y$$ is a _theorem_.  Because it assumes nothing to start with, a theorem can be used anywhere.
+Note how the inference rules click together like Legos.  Consequents of rules plug into the antecedents of others.  With a derivation from antecedents to consequents we can say $A\wedge B \vdash B\wedge A$ or  $A\wedge B$ _derives_ $B\wedge A$.  The $X\vdash Y$ operator indicates there is a derivation from $X$ to $Y$ and we can skip the details in other derivations.  If $X$ is empty, we say that $\vdash Y$ is a _theorem_.  Because it assumes nothing to start with, a theorem can be used anywhere.
 
 We can also derive the inverse:
 
 $$\cfrac{\cfrac{B\wedge A}{A}\;\;\;\; \cfrac{B\wedge A}{B}}{A\wedge B}$$
 
-Of course this is kind of silly if $$A$$ and $$B$$ are just names or variables.  We are effectively doing the same derivation again.  
+Of course this is kind of silly if $A$ and $B$ are just names or variables.  We are effectively doing the same derivation again.  
 
-We can add other inference rules for remaining logical operations.  The elimination rule for $$\neg$$ is the double negative rule from classical logic:
+We can add other inference rules for remaining logical operations.  The elimination rule for $\neg$ is the double negative rule from classical logic:
 
 $$\frac{\neg\neg X}{X}$$
 
-The introduction rule for $$\neg$$ is more interesting as a derivation is one of the antecedents.  The antecedent of the elimination rule says that assuming $$X$$ gives $$Y$$ and $$\neg Y$$ is also known.  This is a contradiction because $$X$$ and $$\neg X$$ cannot be simultaneously true.  Thus, $$X$$ must be false:
+The introduction rule for $\neg$ is more interesting as a derivation is one of the antecedents.  The antecedent of the elimination rule says that assuming $X$ gives $Y$ and $\neg Y$ is also known.  This is a contradiction because $X$ and $\neg X$ cannot be simultaneously true.  Thus, $X$ must be false:
 
 $$\frac{X\vdash Y, \neg Y}{\neg X}$$
 
-This is the classic proof by contradiction.  It also suggests that if $$\ffalse$$ is ever true, we have big problems because we can derive anything.
+This is the classic proof by contradiction.  It also suggests that if $\ffalse$ is ever true, we have big problems because we can derive anything.
 
-The rules for implication again perform eliminate and introduction of $$X\Rightarrow Y$$.  The elimination rule is known as _modus ponens_ and says that if $$X$$ and $$X\Rightarrow Y$$ are known, then $$Y$$ is also known:
+The rules for implication again perform eliminate and introduction of $X\Rightarrow Y$.  The elimination rule is known as _modus ponens_ and says that if $X$ and $X\Rightarrow Y$ are known, then $Y$ is also known:
 
 $$\frac{X,X\Rightarrow Y}{Y}$$
 
-The introduction rule has a derivation in the antecedent.  It says that if we can derived $$Y$$ from $$X$$, then $$X$$ implies $$Y$$ or $$X\Rightarrow Y$$:
+The introduction rule has a derivation in the antecedent.  It says that if we can derived $Y$ from $X$, then $X$ implies $Y$ or $X\Rightarrow Y$:
 
 $$\frac{X\vdash Y}{X\Rightarrow Y}$$
 
-If assuming $$X$$ allows us to derive $$Y$$, then we also know that $$X\Rightarrow Y$$.
+If assuming $X$ allows us to derive $Y$, then we also know that $X\Rightarrow Y$.
 
 Finally, we have introduction and elimination rules for logical equivalence.
 
@@ -146,7 +146,7 @@ For propositional logic we can use the common notion of a truth table to define 
   }
 </style>
 <table>
-	<tr><th>X</th> <th>Y</th> <th>X $$\wedge$$ Y</th></tr>
+	<tr><th>X</th> <th>Y</th> <th>X $\wedge$ Y</th></tr>
 	<tr><td>F</td> <td>F</td> <td>F</td></tr>
 	<tr><td>F</td> <td>T</td> <td>F</td></tr>
 	<tr><td>T</td> <td>F</td> <td>F</td></tr>
@@ -154,7 +154,7 @@ For propositional logic we can use the common notion of a truth table to define 
 </table>
 
 <table>
-	<tr><th>X</th> <th>Y</th> <th>X $$\vee$$ Y</th></tr>
+	<tr><th>X</th> <th>Y</th> <th>X $\vee$ Y</th></tr>
 	<tr><td>F</td> <td>F</td> <td>F</td></tr>
 	<tr><td>F</td> <td>T</td> <td>T</td></tr>
 	<tr><td>T</td> <td>F</td> <td>T</td></tr>
@@ -162,7 +162,7 @@ For propositional logic we can use the common notion of a truth table to define 
 </table>
 
 <table>
-	<tr><th>X</th> <th>Y</th> <th>X $$\Rightarrow$$ Y</th></tr>
+	<tr><th>X</th> <th>Y</th> <th>X $\Rightarrow$ Y</th></tr>
 	<tr><td>F</td> <td>F</td> <td>T</td></tr>
 	<tr><td>F</td> <td>T</td> <td>T</td></tr>
 	<tr><td>T</td> <td>F</td> <td>F</td></tr>
@@ -170,7 +170,7 @@ For propositional logic we can use the common notion of a truth table to define 
 </table>
 
 <table>
-	<tr><th>X</th> <th>Y</th> <th>X $$\Leftrightarrow$$ Y</th></tr>
+	<tr><th>X</th> <th>Y</th> <th>X $\Leftrightarrow$ Y</th></tr>
 	<tr><td>F</td> <td>F</td> <td>T</td></tr>
 	<tr><td>F</td> <td>T</td> <td>F</td></tr>
 	<tr><td>T</td> <td>F</td> <td>F</td></tr>
@@ -178,7 +178,7 @@ For propositional logic we can use the common notion of a truth table to define 
 </table>
 
 <table>
-	<tr><th>X</th> <th>$$\neg$$ X</th></tr>
+	<tr><th>X</th> <th>$\neg$ X</th></tr>
 	<tr><td>T</td> <td>F</td></tr>
 	<tr><td>F</td> <td>T</td></tr>
 </table>
@@ -187,7 +187,7 @@ We can't easily derive new truths using simple truth tables, but we can with the
 
 $$\frac{Y,X\Rightarrow Y}{X}$$
 
-The rule says that if $$Y$$ and $$X\Rightarrow Y$$ are both true, then  $$X$$ must also be true.  Looking at the truth table for $$\Rightarrow$$ clearly says otherwise.  When $$Y$$ is true and $$X\Rightarrow Y$$ is true in the second row, $$X$$ is false.
+The rule says that if $Y$ and $X\Rightarrow Y$ are both true, then  $X$ must also be true.  Looking at the truth table for $\Rightarrow$ clearly says otherwise.  When $Y$ is true and $X\Rightarrow Y$ is true in the second row, $X$ is false.
 
 ## Discussion
 

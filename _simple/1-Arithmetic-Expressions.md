@@ -23,7 +23,7 @@ Let's start our investigation with an interpreter for a very simple language of 
 
 _Concrete Syntax_ is the textual language written by programmers as input to compilers and interpreters.  When you think of a programming language, you think first of its concrete syntax.  The block structure of C, s-expressions defining Lisp, and the functional syntax of Haskell are examples of concrete syntax that immediately associates with a particular language.
 
-Concrete syntax is always described by a grammar consisting of an alphabet and a collection of grammar rules.  As discussed in the introduction, the alphabet defines basic symbols or tokens in the concrete syntax while grammar rules define how those tokens are sequenced defining elements of the language. A _term_ is any text string defined by the grammar.  Similarly, a _language_ is the smallest set of terms that satisfy a set of grammar rules.  It is quite useful to think of a language as a set and a grammar as a specifier for that set.  Using traditional set comprehension we can define a language, $L$, as:
+Concrete syntax is always described by a grammar consisting of an alphabet and a collection of grammar rules.  As discussed in the introduction, the alphabet defines basic symbols or tokens in the concrete syntax while grammar rules define how those tokens are sequenced defining elements of the language. A _term_ is any text string defined by the grammar.  Similarly, a _language_ is the smallest set of terms that satisfy a set of grammar rules.  It is quite useful to think of a language as a set and a grammar as a specifier for that set.  Using traditional set comprehension we can define a language, $$L$$, as:
 
 $$L = \{s:string\; \mid\; G(s)\}$$
 

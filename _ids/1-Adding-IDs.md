@@ -198,15 +198,18 @@ rules.  To define `bind` evaluation we will add one new inference
 rule:
 
 $$
-\frac{a {\eval} v\; [i\mapsto v]s {\eval} v}{(\bbind\; i\; = a\;\iin s) {\eval} v}\;[BindE]
+\frac{a {\eval} v_a\; [i\mapsto v_a]s {\eval} v_s}{(\bbind\; i\; = a\;\iin s) {\eval} v_s}\;[BindE]
 $$
 
 $BindE$ is not significantly different from earlier evaluation rules
-with the exception of a new notation for substitution.  The antecedent
-requires the argument, $a$, evaluate to $v$.  The consequent uses the
-standard notation $[i\mapsto v]s$ for specify that $i$ is replaced by
-$v$ in $s$.  Specifically, $[i\mapsto v]s$ is defined as $s$ with all
-free instances of $i$ replaced by $v$.  When evaluating `bind`, the
+with the exception of a new notation for substitution.  The first antecedent
+requires the argument, $a$, evaluate to $v_a$.  The second uses the
+standard notation $[i\mapsto v_a]s$ to specify that $i$ is replaced by
+$v_a$ in $s$.  Specifically, $[i\mapsto v_a]s$ is defined as $s$ with all
+free instances of $i$ replaced by $v_a$.  The substitution result then
+evaluates to $v_b$, the value to be associated with the `bind`.  This
+evaluation occurs after the substitution and evaluates the term with
+the new value.  When evaluating `bind`, the
 `bind` itself falls away and instances of its identifier are replaced
 with its value.
 

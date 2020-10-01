@@ -292,7 +292,7 @@ represent addition of new binding to a context.  $(x,T)\in\Gamma$ represents fin
 
 Using this new machinery the rule for `bind` adds the newly bound identifier with its type to the context and finds the type of the `bind` body: 
 
-$$\frac{\Gamma\vdash v : T_1, ((i,T_1):\Gamma)\vdash b : T_2}{\Gamma\vdash\bbind i=v \iin b : T_2}\;[BindT]$$
+$$\frac{\Gamma\vdash v : T_1, ((i,T_1):\Gamma)\vdash b : T_2}{\Gamma\vdash\bbind i=v\; \iin b : T_2}\;[BindT]$$
 
 The type of the body becomes the type of the `bind`.  This makes sense
 as the body is what gets evaluated when the `bind` is evaluated.  It is

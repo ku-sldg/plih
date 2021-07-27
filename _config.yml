@@ -1,8 +1,8 @@
-baseurl: http://ku-sldg.github.io/plih/
+baseurl: https://ku-sldg.github.io/plih/
 title: Programming Languages in Haskell
 subtitle: Support for EECS 662 at KU
 markdown: kramdown
-url: http://ku-sldg.github.io/plih
+url: https://ku-sldg.github.io/plih
 collections:
   intro:
     output: true

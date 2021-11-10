@@ -260,7 +260,7 @@ evaluation more precisely.
 
 The inference rule defining the general recursive fixed point structure is:
 
-$$\frac{[g\mapsto (\ffix (\llambda g\; b))]\; b \eval v}{\ffix \llambda g\; b \eval v}$$
+$$\frac{[g\mapsto (\ffix (\llambda g\iin b))]\; b \eval v}{\ffix \llambda g\iin b \eval v}$$
 
 Evaluating `fix` uses substitution to replace the function associated with recursion with `fix` over that same function.
 

@@ -250,7 +250,7 @@ Y.  We cannot use closure magic.  The only option left is
 adding a new construct to our language with a different execution
 behavior.
 
-## The Fix
+## The Fixer
 
 The fix is adding a _fixed point_ operator with concrete syntax `fix
 t`, to our statically scoped language.  Instead of using the language

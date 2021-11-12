@@ -32,7 +32,7 @@ $$
 \newcommand\ffix{\mathsf{fix}\;}
 $$
 
-# Typed Recursion
+# Typed Recursion Test
 
 ## Typing Omega
 

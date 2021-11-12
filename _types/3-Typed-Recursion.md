@@ -18,7 +18,7 @@ $$
 \newcommand\eelse{\;\mathsf{else}\;}
 \newcommand\iisZero{\mathsf{isZero}\;}
 \newcommand\bbind{\mathsf{bind}\;}
-\newcommand\iin{\mathsf{in}\;}
+\newcommand\iin{\;\mathsf{in}\;}
 \newcommand\aand{\;\mathsf{\&\&}\;}
 \newcommand\lleq{\;\mathtt{<=}\;}
 \newcommand\ttrue{\;\mathsf{true}}

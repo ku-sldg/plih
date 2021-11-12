@@ -5,7 +5,7 @@ use_math: true
 categories: chapter
 ---
 
-## Reader and Type Inference
+## Reader Monad and Type Inference
 
 As you might have guessed, the `Reader` is also quite effective at
 type checking.  What is particularly interesting is the similarly

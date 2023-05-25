@@ -2,4 +2,7 @@ _site/*
 *.plist
 _ids/test.tex
 _ids/test.pdf
+*.hi
+*.o
+
 

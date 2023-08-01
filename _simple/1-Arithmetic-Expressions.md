@@ -17,18 +17,17 @@ $$
 
 # Simple Expression Interpreters
 
-Let's start our investigation with an interpreter for a very simple language of calculations involving only `+` and `-` over numbers.  We'll use this first discussion to define an interpreter that calculates a value from such expressions.  The language is quite basic, but we can start discussing important concepts of abstract and concrete syntax, abstract syntax trees, parsing, interpretation and testing.  Pay less attention to the language than to the underlying methodology and concepts used to define an interpreter.
+Let's start our investigation with an interpreter for a simple language of calculations involving only `+` and `-` over numbers.  We'll use this first discussion to define an interpreter that calculates a value from such expressions.  The language is basic, but we can start discussing important concepts of abstract and concrete syntax, abstract syntax trees, parsing, interpretation and testing.  Pay less attention to the language than to the underlying methodology and concepts used to define an interpreter.
 
 ## Concrete Syntax
 
 _Concrete Syntax_ is the textual language written by programmers as input to compilers and interpreters.  When you think of a programming language, you think first of its concrete syntax.  The block structure of C, s-expressions defining Lisp, and the functional syntax of Haskell are examples of concrete syntax that immediately associates with a particular language.
 
-Concrete syntax is always described by a grammar consisting of an alphabet and a collection of grammar rules.  As discussed in the introduction, the alphabet defines basic symbols or tokens in the concrete syntax while grammar rules define how those tokens are sequenced defining elements of the language. A _term_ is any text string defined by the grammar.  Similarly, a _language_ is the smallest set of terms that satisfy a set of grammar rules.  It is quite useful to think of a language as a set and a grammar as a specifier for that set.  Using traditional set comprehension we can define a language, $L$, as:
+Concrete syntax is always described by a grammar consisting of an alphabet and a collection of grammar rules.  As discussed in the introduction, the alphabet defines basic symbols or tokens in the concrete syntax while grammar rules define how those tokens are sequenced defining elements of the language. A _term_ is any text string defined by the grammar.  Similarly, a _language_ is the smallest set of terms that satisfy a set of grammar rules.  It is useful to think of a language as a set and a grammar as a specifier for that set.  Using traditional set comprehension we can define a language, $L$, as:
 
 $$L = \{s:string\; \mid\; G(s)\}$$
 
-where $G$ is a predicate that is true when $s$ satisfies $L$'s
-grammar rules.
+where $G$ is a predicate that is true when $s$ satisfies $L$'s grammar rules.
 
 Let's define the concrete syntax for our first language that we will call `AE` for _Arithmetic Expressions_.  Terms in `AE` are defined by the following grammar:
 
@@ -36,7 +35,7 @@ $$\begin{align*}
 t ::= & \NUM \mid t + t \mid t - t \\
 \end{align*}$$
 
-This is hopefully familiar.  Terms, $t$, in `AE` are either numbers or sums and differences nested arbitrarily.
+Hopefully this is familiar.  Terms, $t$, in `AE` are either numbers or sums and differences nested arbitrarily.
 
 The language `AE` is the set of all strings that can be created with the grammar.  The strings:
 
@@ -63,49 +62,33 @@ v ::= & \NUM \\
 
 The set of values is a subset of the set of terms.  It represents terms that result from interpretation.  The set of values define what we should get when we run an interpreter.  We will define this more formally later, but for now simply remember that $v$ is an interpretation result.
 
-If we define the predicate $ae(t)$ to be true whenever $t$ satisfies `AE`'s grammar rules, then the language can be defined as a set:
+If we define the predicate $ae(t)$ to be true when $t$ satisfies `AE`'s grammar rules, then the language can be defined as a set:
 
 $$AE = \{t:string\; \mid\; ae(t)\}$$
 
-In `AE` we can express precisely three things: (i) a number; (ii) adding two terms; and (iii) subtracting two terms.  Not the most useful of languages, but we have to start somewhere.
+In `AE` we can express three things: (i) a number; (ii) adding two terms; and (iii) subtracting two terms.  Not the most useful of languages, but we have to start somewhere.
 
-Hopefully this discussion is review of your formal language theory or theory of computing studies.  If it isn't, I strongly suggest stopping now and studying some formal language theory.  In addition to being foundational, it is beautiful and useful.
+This discussion is hopefully review of your formal language theory or theory of computing studies.  If it isn't, I suggest stopping now and studying some formal language theory.  In addition to being foundational, it is beautiful and useful.
 
 ## Inference Rules and Axioms
 
-Knowing what `AE` looks like, let's now define how terms in `AE` are
-interpreted.  Before writing a Haskell interpreter, we should define
-formally the meaning of terms.  We will use inference rules for this
-purpose. $\eval$ is the _evaluation relation_ and $x \eval y$ is read
-_x evaluates to y_.  As the name implies the relation states that
-evaluating $x$ results in $y$.
+Knowing what `AE` looks like, let's now define how terms in `AE` are interpreted.  Before writing a Haskell interpreter, we should define formally the meaning of terms.  We will use inference rules for this purpose. $\eval$ is the _evaluation relation_ and $x \eval y$ is read _x evaluates to y_.  As the name implies the relation states that evaluating $x$ results in $y$.
 
-Our first inference rule tells us how to interpret numbers buy
-defining $\eval$ for $v$:
+Our first inference rule tells us how to interpret numbers buy defining $\eval$ for $v$:
 
 $$\frac{}{\underline{v} \eval v}\; [NumE]$$
 
-The $NumE$ rule says evaluating numeral syntax in gives us the
-corresponding number.  Remember that $v$ is a number and as such
-cannot be evaluated further.  What we're saying is that interpreting a
-constant number value gives back the constant number value.  Note that
-when an ambiguity exists between syntax and terms used to define
-meaning, the underscore notation indicates syntax. For example,
+The $NumE$ rule says evaluating numeral syntax in gives us the corresponding number.  Remember that $v$ is a number and what we're saying is interpreting a constant number value gives back the constant number value.  Note that when an ambiguity exists between syntax and terms used to define meaning, the underscore notation indicates syntax. For example,
+
 $\underline{v}$ is number syntax while $v$ is number value.
 
 Addition and subtraction are more interesting and hint at how all our interpreters will be structured.  The rule, $PlusE$ defines the interpretation of terms of the form $t_1+t_2$:
 
 $$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 \underline{+} t_2 \eval v_1+v_2}\; [PlusE]$$
 
-$PlusE$'s antecedents and consequent work together to define a
-recursive interpreter.  The first antecedent states that $t_1
-\eval v_1$ must be true before the consequent can be true.  But
-$v_1$ is a variable whose value is the result of evaluating $t_1$.  In
-effect, this antecedent says that $v_1$ must be the result of that evaluation.  The second antecedent behaves similarly for $t_2$ and $v_2$.  Both antecedents name the results of interpreting $t_1$ and $t_2$ as $v_1$ and $v_2$ respectively.
+$PlusE$'s antecedents and consequent work together to define a recursive interpreter.  The first antecedent states that $t_1 \eval v_1$ must be true before the consequent can be true.  But $v_1$ is a variable whose value is the result of evaluating $t_1$.  In effect, this antecedent says that $v_1$ must be the result of that evaluation.  The second antecedent behaves similarly for $t_2$ and $v_2$.  Both antecedents name the results of interpreting $t_1$ and $t_2$ as $v_1$ and $v_2$ respectively.
 
-Now that we know the results of evaluating $t_1$ and $t_2$, defining
-their sum is simple.  Values in `AE` are numbers, so we simply use
-Haskell's notion of addition to define the sum.  Thus the consequent
+Now that we know the results of evaluating $t_1$ and $t_2$, defining their sum is simple.  Values in `AE` are numbers,           thus we use Haskell's notion of addition to define the sum.  Thus the consequent
 is $t_1 \underline{+} t_2 \eval v_1 + v_2$.
 
 We define subtraction similarly in the $MinusE$ rule:
@@ -113,64 +96,38 @@ We define subtraction similarly in the $MinusE$ rule:
 $$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 \underline{-}
 t_2 \eval v_1-v_2}\; [MinusE]$$
 
-According to this rule $2\underline{-}1$ evaluates to $1$ as it
-should. However, $1\underline{-}2$ evaluates to $-1$. As $\NUM$ values
-are defined to be non-negative, this is a problem. It's easy enough to fix
+Using this rule $2\underline{-}1$ evaluates to $1$ as it
+should. However, $1\underline{-}2$ evaluates to $-1$. As $\NUM$ values are defined to be non-negative, this is a problem. It's easy enough to fix
 the $MinusE$ rule to only generate positin values:
 
-$$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1\geq v_2}{t_1 \underline{-}
-t_2 \eval v_1-v_2}\; [MinusE+]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1\geq v_2}{t_1 \underline{-} t_2 \eval v_1-v_2}\; [MinusE+]$$
 
-The new ruile $MinusE+$ adds a third antecedent that specifies $v_1$
-must be greater than or equal to $v_2$ The $MinusE+$ only applies when
-$v_1\geq v_2$ thus $v_1 - v_2$ will always be non-negative as
+The new rule $MinusE+$ adds a third antecedent that specifies $v_1$ must be greater than or equal to $v_2$ The $MinusE+$ applies when: $v_1\geq v_2$ thus $v_1 - v_2$ will always be non-negative as
 required.
 
-What does happen when $v_2 > v_1$? The new $MinusE+$ does not apply
-nor does any other evaluation rule.  Subtraction when
-$v_2 > v_1$ is _undefined_.  Specifically, there is no rule that
-applies and thus no evaluation results.  When evaluation is not
-complete in this way and the term being evaluated is not a value, we say that
-interpretation is _stuck_ and the evaluation relation defined by
-$\eval$ is _not total_.
+What does happen when $v_2 > v_1$? The new $MinusE+$ does not apply nor does any other evaluation rule.  Subtraction when
+$v_2 > v_1$ is _undefined_.  Specifically, there is no rule that applies and thus no evaluation results.  When evaluation is not complete in this way and the term being evaluated is not a value, we say that interpretation is _stuck_ and the evaluation relation defined by $\eval$ is _not total_.
 
-One way to fix this problem is to simply return $0$ when the result
-would be negative.  This fix is captured with the rule $MinusEZero$:
+One way to fix this problem is to simply return $0$ when the result would be negative.  This fix is captured with the rule $MinusEZero$:
 
 $$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1 < v_2}{t_1 \underline{-}
 t_2 \eval 0}\; [MinusEZero]$$
 
-Evaluation is now total, but subtraction in $AE$ has properties that
-might prove problematic.  $0$ could be a legitimate subtraction result
-or it could indicate a problem.  We call these designated values "magic values" and they often prove problematic.  An alternative is returning an
-error value:
+Evaluation is now total, but subtraction in $AE$ has properties that might prove problematic.  $0$ could be a legitimate subtraction result or it could indicate a problem.  We call these designated values "magic values" and they often prove problematic.  An alternative is returning an error value:
 
-$$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1 < v_2}{t_1 \underline{-}
-t_2 \eval \bot}\; [MinusEBottom]$$
+$$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1 < v_2}{t_1 \underline{-} t_2 \eval \bot}\; [MinusEBottom]$$
 
-This introduces a new value, $\bot$, called bottom that represents
-an error value.  As a result, $\bot$ must be included in all other
-inference rules.  What is $5+\bot$?  Simply defining the result
-of any expression involving $\bot$ as $\bot$ requires new rules
-for each operator.
+This introduces a new value, $\bot$, called bottom that represents an error value.  As a result, $\bot$ must be included in all other inference rules.  What is $5+\bot$?  Simply defining the result of any expression involving $\bot$ as $\bot$ requires new rules for each operator.
 
-Often the best approach is to simply leave the relation as is and wait
-until implementation time to deal with errors.  For now, this is the
-approach we will take here.
+Often the best approach is to simply leave the relation as is and wait until implementation time to deal with errors.  For now, this is the approach we will take here.
 
-Understanding the structure of these rules before moving forward is
-vital.  They both define antecedents that effectively name the results
-of other calculations.  More specifically, other _recursive_
-calculations.  When writing and defining interpreters, recursion is
-your best friend.  We needn't think now about calculating the values
-of $t_1$ and $t_2$, only that their values are calculated the same way
-all other values are calculated.
+Understanding the structure of these rules before moving forward is vital.  They both define antecedents that name the results of other calculations.  More specifically, other _recursive_ calculations.  When writing and defining interpreters, recursion is your best friend.  We needn't think now about calculating the values of $t_1$ and $t_2$, only that their values are calculated the same way all other values are calculated.
 
 ## Abstract Syntax
 
 Now we have both a concrete syntax and an evaluation semantics for  `AE` defined using mathematical techniques.  We need to transform both definitions into Haskell structures to build our first interpreter for `AE`.  To do this, we will first define an _abstract syntax_ for `AE`.
 
-Concrete syntax is nice on the user side, but painful to work with directly when writing interpreters and compilers.  If you want to try an experiment, write a Haskell program that will interpret the `AE` language directly.  It can be done, but making changes or extending the language is quite laborious and potentially painful.
+Concrete syntax is nice on the user side, but painful to work with directly when writing interpreters and compilers.  If you want to try an experiment, write a Haskell program that will interpret the `AE` language directly.  It can be done, but making changes or extending the language is laborious and potentially painful.
 
 _Abstract Syntax_ is a data structure representing parsed terms.  This data structure is far more useful than concrete syntax when writing interpreters and compilers. Programs are data and abstract syntax is the data structure that represents them.  An abstract syntax for `AE` written using a Haskell data type is:
 
@@ -182,12 +139,11 @@ data AE where
   deriving (Show,Eq)
 ```
 
-where `Num`, `Plus` and `Minus` are the _constructors_ of the data type `AE` that correspond with numbers, sums and differences in the `AE` concrete syntax.  We use the term constructor because all values of type `AE` are constructed with one of these operations.  By definition, the `AE` type contains all constructions using `Plus`, `Minus` and `Num`, and no more.
+where `Num`, `Plus` and `Minus` are the _constructors_ of the data type `AE` that correspond with numbers, sums and differences in the `AE` concrete syntax.  We use the term constructor because _all_ values of type `AE` are constructed with one of these operations.  By definition, the `AE` type contains all constructions using `Plus`, `Minus` and `Num`, and no more.
 
-All terms in AE have associated data structures in the abstract
-syntax.  For example `(Num 1)` is the abstract syntax for 1. `(Plus (Num 1) (Num 3))` is the abstract syntax for `1+3`. `(Minus (Plus (Num 3 (Num 5)) (Num 1))` is the abstract syntax for `3+5-1`.  For the abstract syntax to be effective, every term in the concrete syntax must have an associated term in the abstract syntax.  Remember the properties of relations you learned in your discrete math class?  They come in handy right now.  The relationship between concrete syntax and associated abstract syntax should be a total function. Specifically, concrete syntax terms should have exactly one abstract syntax value and all concrete syntax terms should be associated with some abstract syntax value. Remember that errors are outputs.
+All terms in AE have associated data structures in the abstract syntax.  For example `(Num 1)` is the abstract syntax for `1`. `(Plus (Num 1) (Num 3))` is the abstract syntax for `1+3`. `(Minus (Plus (Num 3 (Num 5)) (Num 1))` is the abstract syntax for `3+5-1`.  For the abstract syntax to be effective, every term in the concrete syntax must have an associated term in the abstract syntax.  Remember the properties of relations you learned in your discrete math class?  They come in handy right now.  The relationship between concrete syntax and associated abstract syntax should be a total function. Concrete syntax terms should have exactly one abstract syntax value and all concrete syntax terms should be associated with an abstract syntax value. Always remember that errors are outputs.
 
-From this point forward I will use the TLA[^1] _AST_ when referring to abstract syntax data structures.  AST literally means _abstract syntax tree_.  It turns out that Haskell data types naturally form trees and trees are perfect representations for abstract syntax.  I'll come back to this later, but for now remember that AST, abstract syntax, and abstract syntax tree refer to the same Haskell data type.
+From this point forward I will use the TLA[^1] _AST_ when referring to abstract syntax data structures.  AST literally means _abstract syntax tree_.  Haskell data types naturally form trees and trees are perfect representations for abstract syntax.  I'll come back to this later, but for now remember that AST, abstract syntax, and abstract syntax tree refer to the same Haskell data type.
 
 ## Parsers and Pretty Printers
 
@@ -197,7 +153,7 @@ A _parser_ is a program that translates concrete syntax into an AST.  It checks 
 parseAE :: String -> AE
 ```
 
-Give `parseAE` a string and it will return an `AE` if it does not crash.  More generally, the parser's signature for any language will be a string to the datatype for that language's abstract syntax.
+Give `parseAE` a string and it will return an `AE` if it does not crash.  A parser's signature for any language will be a string to the datatype for that language's abstract syntax.
 
 A _pretty printer_ is the inverse of a parser.  It translates an `AE` data structure into a string representing the concrete syntax.  The signature of a pretty printer for the _AE_ language is:
 
@@ -205,7 +161,7 @@ A _pretty printer_ is the inverse of a parser.  It translates an `AE` data struc
 pprintAE :: AE -> String
 ```
 
-Give `pprintAE` an `AE` data structure and it will return a string.  More generally, the pretty printer's signature for any language will be the datatype for that langauge's abstract syntax to a string.
+Give `pprintAE` an `AE` data structure and it will return a string.  The pretty printer's signature for any language will be the datatype for that language's abstract syntax to a string.
 
 If `parseAE` and `pprintAE` are correct, then the following equivalence should hold for any string representing legal concrete syntax:
 
@@ -215,7 +171,7 @@ pprintAE (parseAE s) == s
 
 If we parse a string and pretty print the result, we back the string.  A useful relationship for testing these tools.
 
-This course is not about building parsers and pretty printers.  This task is largely automated and Haskell provides several tools for building parsers.  I will provide examples using [Parsec](https://wiki.haskell.org/Parsec), a monadic parser combinator tool for writing and composing parsers.  After a bit of setup, Parsec is not difficult to extend to the languages we would like to discuss.  For more details there are a number of online tutorials as well as chapters in major Haskell texts.  For now, let's assume we have the `parseAE` and `pprintAE` functions available.
+This course is not about building parsers and pretty printers.  This task is largely automated and Haskell provides several tools for building parsers.  I will provide examples using [Parsec](https://wiki.haskell.org/Parsec), a monadic parser combinator tool for writing and composing parsers.  After some setup, Parsec is not difficult to extend to the languages we would like to discuss.  For more details there are a number of online tutorials and chapters in major Haskell texts.  For now, let's assume we have the `parseAE` and `pprintAE` functions available.
 
 ## Evaluator
 
@@ -223,7 +179,7 @@ An _evaluator_ converts an abstract syntax term into a value.  As noted earlier,
 
 How should the evaluator be constructed?  The data type defined for the abstract syntax gives us a big clue.  If the constructors from the data type define every possible AST element, then defining an evaluator for each element of the data type should do the trick.  We need to define how the interpreter behaves on each constructor from the `AE` datatype.
 
-First, let's get the `eval` signature down.  Our evaluator will take an element of `AE` and produce a value, where a value is defined as a number.  In the AST, numbers are of the form `(Num n)` where `n` is a Haskell `Int`.  Unfortunately, we can't capture value-ness in our signature, so we'll just say that `eval` returns  `Maybe AE`.  We'll use `Maybe` to allow `eval` to return a value or an error.  The signature for `eval` is:
+First, let's get the `eval` signature down.  Our evaluator will take an element of `AE` and produce a value, where a value is defined as a number.  In the AST, numbers are of the form `(Num n)` where `n` is a Haskell `Int`.  Unfortunately, we can't capture value-ness in our signature, so we'll say that `eval` returns  `Maybe AE`.  We'll use `Maybe` to allow `eval` to return a value or an error.  The signature for `eval` is:
 
 ```haskell
 eval :: AE -> Maybe AE
@@ -233,8 +189,7 @@ We now define `eval`'s cases, one for each `AE` constructor starting with the `N
 
 $$\frac{}{\underline{v} \eval v}\; [NumE]$$
 
-The value associated with an `AE` number is the Haskell equivalent.
-Thus, the `eval` case for `(Num n)` just returns its argument: 
+The value associated with an `AE` number is the Haskell equivalent. Thus, the `eval` case for `(Num n)` just returns its argument: 
 
 ```haskell
 (Num n) = return (Num n)
@@ -244,12 +199,11 @@ Because `return = Just`, `eval (Num 3)` returns `(Just (Num 3))`
 
 We now have an evaluator for literal numbers, but nothing more.
 
-The next constructor, `Plus` represents a more interesting case.  We
-have a rule named $PlusE$ that defines evaluation of `t1+t2`:
+The next constructor, `Plus` represents a more interesting case.  We have a rule named $PlusE$ that defines evaluation of `t1+t2`:
 
 $$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{\eval t_1 \underline{+} t_2 = v_1+v_2}\; [PlusE]$$
 
-The inference rule is defined in terms of concrete rather than abstract syntax, so we have to do a bit of translation work. $t_1\underline{+}t_2$ translates quickly into `(Plus t1 t2)`. If `t1` evaluates to `(Num v1)` and `t2` evaluates to `(Num v2)` then `(Plus t1 t2)` evalautes to `(Num v1)+(Num v2)`.  There is no `+` operation in Haskell for `(Num n)` constructions, this we need to write one to define addition in `AE`.  We can define addition in `AE` in terms of addition in Haskell.  Specifically:
+The inference rule is defined in terms of concrete rather than abstract syntax, so we have to do a bit of translation work. $t_1\underline{+}t_2$ translates quickly into `(Plus t1 t2)`. If `t1` evaluates to `(Num v1)` and `t2` evaluates to `(Num v2)` then `(Plus t1 t2)` evaluates to `(Num v1)+(Num v2)`.  There is no `+` operation in Haskell for `(Num n)` constructions, this we need to write one to define addition in `AE`.  We can define addition in `AE` in terms of addition in Haskell.  Specifically:
 
 ```Haskell
 (Num n) + (Num m) == (Num n+m)
@@ -274,11 +228,11 @@ Now we have everything needed to define `Plus`.  This inference rule can be almo
 
 ```haskell
 (Plus t1 t2) = do v1 <- eval t1
-                 v2 <- eval t2
-                 return (liftNum (+) v1 v2)
+                  v2 <- eval t2
+                  return (liftNum (+) v1 v2)
 ```
 
-The translation from inference rule to Haskell follows standard rule of thumb.  The `do` bindings manage the rule antecedents, performing evaluation and binding variables.  The `return` is the consequent and evaluates the term.  While only a rule-of-thumb, it will prove highly useful.
+The translation from inference rule to Haskell follows standard rule of thumb.  The `do` bindings manage the rule antecedents, performing evaluation and binding variables.  The `return` is the consequent and evaluates the term.  While only a rule-of-thumb, it will prove useful.
 
 Finally, The `Minus` constructor case is identical to the `Plus` constructor case except values are subtracted rather than added together.  For completeness, here is the subtraction case:
 
@@ -288,8 +242,7 @@ Finally, The `Minus` constructor case is identical to the `Plus` constructor cas
                   return (liftNum (-) v1 v2)
 ```
 
-We'll not worry about error conditions in this interpreter and return
-to that later.
+We'll not worry about error conditions in this interpreter and return to that later.
 
 Putting the cases together in the following evaluator for `AE` that reduces every abstract syntax term to a value:
 
@@ -306,23 +259,23 @@ eval (Minus t1 t2) = do v1 <- (eval t1)
 
 The evaluator follows a pattern that every evaluator we write will follow.  Each constructor from the AST definition has a case in the `eval` function that evaluates that constructor.  This pattern and the accompanying `data` construct gives us three nice language properties - completeness, determinicity, and normalization
 
-Completeness says that every term constructed in `AE` will be evaluated by `eval`.  Can we prove that? As it turns out, the Haskell `data` construct gives us some exceptionally nice properties for free, without direct proof. By definition, every value in the abstract syntax for `AE` is constructed with `Num`, `Plus`, and `Minus `.  There are no other `AE` values.   This is generally true of any type defined using `data` in Haskell.  All values of the type are constructed with its constructors.
+Completeness says that every term constructed in `AE` will be evaluated by `eval`.  Can we prove that? The Haskell `data` construct gives us exceptionally nice properties for free, without direct proof. By definition, every value in the abstract syntax for `AE` is constructed with `Num`, `Plus`, and `Minus `.  There are no other `AE` values.   This is true of any type defined using `data` in Haskell.  All values of the type are constructed with its constructors.
 
-We know `AE` is complete because there is one inference rule for every syntax construct and one case in `eval` for each inference rule.  Specifically, the `eval` function has one case for each constructor from `AE`.  Because all `AE` values are built with those constructors, there is a case for every `AE` value in the `eval` function.  While not quite a proof, this gives strong evidence that our language definition is complete.
+We know `AE` is complete because there is one inference rule for every syntax construct and one case in `eval` for each inference rule.  The `eval` function has one case for each constructor from `AE`.  Because all `AE` values are built with those constructors, there is a case for every `AE` value in the `eval` function.  While not a proof, this gives strong evidence that our language definition is complete.
 
-Determinicity says that if we call `eval` on any term, we will get the same result.  This is an exceptionally important property as we do bit want the same call to `eval` resulting in different values.  We know `AE` is deterministic because there is precisely one inference rule for interpreting each element of the concrete syntax.  In turn we know that `eval` is deterministic because there is precisely one case in the definition for each `AE` constructor.  Given `(Num n)` there is one rule and one `eval` case.  Given `Plus` there is one rule and one `eval` case.
+Determinicity says that if we call `eval` on any term, we will get the same result.  This is an exceptionally important property as we do bit want the same call to `eval` resulting in different values.  We know `AE` is deterministic because there is one inference rule for interpreting each element of the concrete syntax.  In turn we know that `eval` is deterministic because there is precisely one case in the definition for each `AE` constructor.  Given `(Num n)` there is one rule and one `eval` case.  Given `Plus` there is one rule and one `eval` case.
 
 Normalization says that a call to `eval` on any term constructed in `AE` will terminate.  Again, a pretty bold statement.  Can we prove it?  The elements of a Haskell `data` type specifically and algebraic types generally have are `well-ordered`.  In mathematics, well-ordered means that every subset of a set has a least element.  Getting from well-ordered to guaranteed termination takes a bit of work, but the gist is that components of a constructor are smaller than the constructor itself.  Each recursive call on the parts of a term is made on a smaller term.  Consider `eval (Plus t1 t2)` where `t1` and `t2` can be viewed as smaller than `(Plus t1 t2)`.  Because every set of `AE` terms has a least element, pulling a term apart into its pieces will eventually get to that least element.
 
-The least elements of `AE` are those constructed by `(Num n)`.  When the evaluator reaches the least element, it cannot go further and terminates.  Every call to `eval` gets closer to the least element.  Note that those those least elements are what we defined as values.  This is not a coincidence.  Not only does `AE` terminate, it always terminates with a value.  Said in terms we all understand, the `AE` evaluator never crashes for any element of `AE`.
+The least elements of `AE` are those constructed by `(Num n)`.  When the evaluator reaches the least element, it cannot go further and terminates.  Every call to `eval` gets closer to the least element.  Note that those least elements are what we defined as values.  This is not a coincidence.  Not only does `AE` terminate, it always terminates with a value.  Said in terms we all understand, the `AE` evaluator never crashes for any element of `AE`.
 
 ## All Together Now
 
-Before we say more about `AE`, lets put all the pieces together into a single definition.  Definition of `AE` is now complete syntactically, semantically and operationally:
+Before we say more about `AE`, let's put all the pieces together into a single definition.  Definition of `AE` is now complete syntactically, semantically and operationally:
 
-* Syntax is defined by the `AE` grammar
-* Semantics is defined by the `AE` inference rules
-* Operations are defined by `eval` and `parse`.
+- Syntax is defined by the `AE` grammar
+- Semantics is defined by the `AE` inference rules
+- Operations are defined by `eval` and `parse`.
 
 First we defined a concrete syntax for terms:
 
@@ -372,17 +325,17 @@ If you are unfamiliar with the point-free style and the use of function composit
 interp x = eval (parseAE x)
 ```
 
-Use the notation you are most comfortable with.  There is no advantage to either, but function composition more closely resembles the mathematics of interpreter construction.
+Use the notation you are comfortable with.  There is no advantage to either, but function composition more closely resembles the mathematics of interpreter construction.
 
 ## Discussion
 
-`AE` is a rather silly language that is less powerful than one of those bank calculators you get when you open a checking account.  It adds and subtracts numbers.  However, we need to start somewhere and `AE` is good for that.
+`AE` is a silly language that is less powerful than one of those bank calculators you get when you open a checking account.  It adds and subtracts numbers.  However, we need to start somewhere and `AE` is good for that.
 
 ### Completeness, Determinicity, and Normalizing
 
-We said earlier that `eval` is complete, deterministic and normalizing.  Complete in that any element of `AE` can be interpreted, deterministic in that there is only one way to interpret any element of `AE`, and normalizing in that every interpretation of and `AE` element terminates.
+We said earlier that `eval` is complete, deterministic and normalizing.  Complete in that any element of `AE` can be interpreted, deterministic in that there is one way to interpret any element of `AE`, and normalizing in that every interpretation of and `AE` element terminates.
 
-Unfortunately, these nice properties result from `AE` being such a trivial language.  Completeness and deterministic are properties we will seek to preserve as we add features.  However, normalizing will prove problematic when we add recursion and looping.
+Unfortunately, these nice properties result from `AE` being a trivial language.  Completeness and deterministic are properties we will seek to preserve as we add features.  However, normalizing will prove problematic when we add recursion and looping.
 
 ### Correctness
 Another important question, one might say the most important question is whether `eval` is correct.  How do we define correctness?  We have the evaluation relation, $t\eval v$ that relates terms to values and we have `eval :: AE -> AE` that is a function from terms to values.  The simplest correctness definition is:

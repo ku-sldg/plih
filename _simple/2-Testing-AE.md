@@ -16,9 +16,9 @@ $$
 
 # Testing AE
 
-Haskell provides [QuickCheck](https://hackage.haskell.org/package/QuickCheck-2.8.2/docs/Test-QuickCheck.html) a domain-specific language widely used for testing and adapted to many other languages.  Like Parsec, QuickCheck takes a bit of time to learn, but is a worthwhile tool to have available.
+Haskell provides [QuickCheck](https://hackage.haskell.org/package/QuickCheck-2.8.2/docs/Test-QuickCheck.html) a domain-specific language widely used for testing and adapted to many other languages.  Like Parsec, QuickCheck takes time to learn, but is a worthwhile tool to have available.
 
-What QuickCheck does is rather ingenious.  Let's assume that we've written a function and would like to test that a property holds for a set of arbitrary inputs to that function.  As a concrete example, let's define a function `f x = x * x` and a property `p v = v >= 0`.  `f` is the *function under test* and `p` is the *property being tested*.  Note the signatures of `f` and `p`:
+What QuickCheck does is ingenious.  Let's assume that we've written a function and would like to test that a property holds for a set of arbitrary inputs to that function.  As a concrete example, let's define a function `f x = x * x` and a property `p v = v >= 0`.  `f` is the _function under test_ and `p` is the _property being tested_.  Note the signatures of `f` and `p`:
 
 ```haskell
 f::Int -> Int
@@ -32,9 +32,9 @@ If we want to say that `p` holds for all `f`, we would prove the following prope
 
 $$\forall x:Int \cdot (p (f x))$$
 
-This tells us that for every integer $x$, $p$ holds for $f x$.  (This is actually an easy proof, but for discussion let's assume we  have only testing available to us.)
+This tells us that for every integer $x$, $p$ holds for $f x$.  (This isan easy proof, but for discussion let's assume we only have testing available to us.)
 
-To test `p` we can easily write a function:
+To test `p` we can write a function:
 
 ```haskell
 \x -> (p (f x))
@@ -42,7 +42,7 @@ To test `p` we can easily write a function:
 
 and call that function with numerous random values of `x`.  The more  tests run, the more confident we are in the result.
 
-This is precisely what QuickCheck does.  Specifically:
+This is exactly what QuickCheck does:
 
 ```haskell
 quickCheck (\x -> (p (f x)))
@@ -54,7 +54,7 @@ will generate 100 arbitrary `Int` values and call `(\x -> (p (f x)))` on each.  
 +++ OK, passed 100 tests.
 ```
 
-Choosing a test that is false for some integers:
+Alternatively, choosing a test that is false for some integers:
 
 ```haskell
 p' v = (v /= 100)
@@ -72,7 +72,7 @@ In this case, 100 random tests were enough to discover that 100 is the square of
 
 ### Arbitrary and Generators
 
-Part of the magic of QuickCheck is the ability to generate random test cases.  In this example, QuickCheck must generate random `Int` values.  Because `Int` is a commonly used type, the ability to generate random `Int` values is built-in to QuickCheck.  In contrast `AE` is a custom, user-defined type that is not built-in.
+The magic of QuickCheck is the ability to generate random test cases.  In this example, QuickCheck must generate random `Int` values.  Because `Int` is a commonly used type, the ability to generate random `Int` values is built-in to QuickCheck.  In contrast `AE` is a custom, user-defined type that is not built-in.
 
 QuickCheck requires that the domain of any function it is called on be an instance of class `Arbitrary` providing a function `arbitrary` that generates an arbitrary value of that type.  We must make  `AE` and instance of `Arbitrary`:
 
@@ -99,7 +99,7 @@ genNumFirst =
 
 There is quite a bit going on here.  First note that `Arbitrary` is a monad allowing use of the `do` notation to bind identifiers and sequence generators.  Using `do`, `genNumFirst` calls `arbitrary`, binds the result to `t`, and then returns `(Num t)`.  Now we see `arbitrary` at work.  The `Num` constructor in the `return` statement constrains `t` to be of type `Int`.  This is how the correct `arbitrary` instance is identified for `t`. `Int` is an instance of `Arbitrary` and its associated `arbitrary` function is used to generate a value for `t`.  `genNumFirst` generates arbitrary `Num` values ofby lifting arbitrary `Int` values into our AST.
 
-Suppose we don't want to look at all `Int` values, but only a range.  The built in `choose` operation does exactly this by restricting the range of `arbitrary`.  `genNum` uses `choose` to generate arbitrary `Num` values over a subrange of `Int`:
+Suppose we don't want to look at all `Int` values, but a range.  The built in `choose` operation does this by restricting the range of `arbitrary`.  `genNum` uses `choose` to generate arbitrary `Num` values over a subrange of `Int`:
 
 ```haskell
 genNum =
@@ -114,7 +114,7 @@ instance Arbitrary AE where
   arbitrary = genNum
 ```
 
-Of course our arbitrary values of `AE` are not so arbitrary as they will only include number values ranging from 0 to 100.  We need some terms that involve `Plus` and `Minus` if our intent is testing an interpreter.
+Our arbitrary values of `AE` are not arbitrary as they will only include number values ranging from 0 to 100.  We need terms that involve `Plus` and `Minus` if our intent is testing an interpreter.
 
 Let's start with `Plus` and think about how we might generate arbitrary terms.  The simplest approach is to generate `Plus` terms over arbitrary numbers:
 
@@ -125,9 +125,9 @@ genPlusFirst =
      return (Plus t1 t2)
 ```
 
-This generator gets us part way there, but only generates terms of the form `(Plus (Num v1) (Num v2))` where `v1` and `v2` are arbitrary `Int` values.  A term of the form `(Plus (Plus (Num 1) (Num 2)) (Num 3))` would never be generated.  What we need is to generate terms recursively in the `Plus` generator.  Unfortunately we don't have a generator for terms yet, so we'll have to set this aside and just use `genPlusFirst`.
+This generator gets us part way there, but only generates terms of the form `(Plus (Num v1) (Num v2))` where `v1` and `v2` are arbitrary `Int` values.  A term of the form `(Plus (Plus (Num 1) (Num 2)) (Num 3))` would never be generated.  What we need is to generate terms recursively in the `Plus` generator.  Unfortunately we don't have a generator for terms yet. We'll have to set this aside and use `genPlusFirst`.
 
-`Minus` is identical to `Plus` modulo the constructor name, so we'll defer that generator as well and assume we have `genMinusFirst` available.
+`Minus` is identical to `Plus` modulo the constructor name, thus we'll defer that generator and assume we have `genMinusFirst` available.
 
 Now let's put our generators together to generate a more complete set of terms using `genAE`.  The simplest way to compose generators for our individual terms is to use the `oneof` operator that chooses one generator arbitrarily from a list of generators:
 
@@ -144,7 +144,7 @@ genPlusSecond =
      return (Plus s t)
 ```
 
-If we do the same thing with `genMinusSecond` we will now generate arbitrary `AE` terms.  Unfortunately, those arbitrary `AE` terms are of *arbitrary size*.  Mathematically this is perfectly fine as really big things don't bother us in the symbolic world.  Pragmatically this is not perfectly fine as `genAEFirst` can now generate arbitrarily huge test cases.  If you want to see what this does, use `sample` to generate a few test cases and be prepared to terminate your Haskell process!
+If we do the same thing with `genMinusSecond` we will now generate arbitrary `AE` terms.  Unfortunately, those arbitrary `AE` terms are of *arbitrary size*.  Mathematically this is perfectly fine as huge things don't bother us in the symbolic world.  Pragmatically this is not perfectly fine as `genAEFirst` can now generate arbitrarily huge test cases.  If you want to see what this does, use `sample` to generate a few test cases and be prepared to terminate your Haskell process!
 
 How do we make our generator for `AE` not go into the weeds generating huge test cases?  The easiest way is to add a size limit to the `AE` generator function by adding a size parameter to `genAE` that is decremented on each call to `genAE`.
 
@@ -160,10 +160,7 @@ genAE n =
      return term
 ```
 
-This new function takes a size counter and produces a generator.  If
-the size counter is zero, then the generator will only produce a
-number and will not recurse.  If the size counter is not zero, then
-the generator will produce an arbitrary (TODO: term?) while decrementing the size counter.  `genPlus` and `genMinus` must be similarly extended to include the size counter:
+This new function takes a size counter and produces a generator.  If the size counter is zero, then the generator will produce a number and will not recurse.  If the size counter is not zero, the generator will produce an arbitrary term while decrementing the size counter.  `genPlus` and `genMinus` must be similarly extended to include the size counter:
 
 ```haskell
 genPlus n =
@@ -172,7 +169,7 @@ genPlus n =
      return (Plus s t)
 ```
 
-The counter is simply passed to `genAE` where it will be decremented in any mutually recursive call to `genPlus` or `genMinus`.  Note that it is always an option to call `genNum` when the counter is not zero.  This allows for any term whose size is less than the counter, not just equal to it.
+The counter is passed to `genAE` where it will be decremented in any mutually recursive call to `genPlus` or `genMinus`.  Note that it is always an option to call `genNum` when the counter is not zero.  This allows for any term whose size is less than the counter, not just equal to it.
 
 Now we make `AE` and instance of `Arbitrary` by using `genAE` to define the `arbitrary` function:
 
@@ -182,7 +179,7 @@ instance Arbitrary AE where
     sized $ \n -> genAE (rem n 10)
 ```
 
-What's going on here is obfuscated by underlying construction of generators, but let's see if we can make sense of it. `sized` is a function that accepts an argument of type `Int -> Gen a`.  `sized` then chooses an arbitrary positive integer and calls its argument on that value to produce a generator.  In effect, the parameter `n` is an arbitrary value that we can use to produce a generator.  We could just use `n` as an argument to `genAE`.  What I've done is use the `rem` function to convert `n` into an arbitrary value less than 10.  This is a bit of overkill, but demonstrates how we can use `sized` to arbitrarily size a structure.  Another alternative would define `arbitrary` this way:
+What's going on here is obfuscated by underlying construction of generators, but let's see if we can make sense of it. `sized` is a function that accepts an argument of type `Int -> Gen a`.  `sized` then chooses an arbitrary positive integer and calls its argument on that value to produce a generator.  In effect, the parameter `n` is an arbitrary value that we can use to produce a generator.  We could just use `n` as an argument to `genAE`.  What I've done is use the `rem` function to convert `n` into an arbitrary value less than 10.  This is overkill, but demonstrates how we can use `sized` to arbitrarily size a structure.  Another alternative would define `arbitrary` this way:
 
 ```haskell
 arbitrary = sized $ \n -> genAE (rem n 10) + 10
@@ -226,13 +223,13 @@ An idiom is emerging even in this simple interpreter that merits attention.  We 
 
 Now that we can generate arbitrary `AE` values, we can start our testing.  Like many things in Haskell, once the preparatory work is done, using what we built is rather simple.
 
-Before we can run QuickCheck, we need to determine what it is we're going to test for.  For a traditional test case, we provide an input and an expected output.  QuickCheck performs *random testing* meaning that we need to express correctness in terms of an unknown test case.  We can't simply find `eval n` and compare it to a known value.
+Before we can run QuickCheck, we need to determine what it is we're going to test for.  For a traditional test case, we provide an input and an expected output.  QuickCheck performs *random testing* meaning that we need to express correctness in terms of an unknown test case.  We can't find `eval n` and compare it to a known value.
 
-Let's first look at our parser for some ideas.  If the parser and pretty printer are working correctly, pretty printing an `AE` structure and parsing the result, should give us the same `AE` structure.  Formally:
+Let's first look at our parser for ideas.  If the parser and pretty printer are working correctly, pretty printing an `AE` structure and parsing the result, should give us the same `AE` structure.  Formally:
 
 $$\forall t:AE \cdot (parseAE\; (pprint\; t)) == t$$
 
-To turn this into an input for QuickCheck we simply remove the universal quantifier and pass in a value for $t$.  The Haskell representation is:
+To turn this into an input for QuickCheck we remove the universal quantifier and pass in a value for $t$.  The Haskell representation is:
 
 ```haskell
 \t -> parseAE (pprint t) == t
@@ -245,7 +242,7 @@ quickCheck (\t -> parseAE (pprint t) == t)
 +++ OK, passed 100 tests.
 ```
 
-We can play with parameters to QuickCheck that adjust the number of test cases to some larger or smaller set of test cases:
+We can play with parameters to QuickCheck that adjust the number of test cases to a larger or smaller set of test cases:
 
 ```haskell
 quickCheckWith stdArgs {maxSuccess=500} (\t -> parseAE (pprint t) == t)
@@ -262,7 +259,7 @@ testParser n = quickCheckWith stdArgs {maxSuccess=n}
 
 This final function is included in the source for `AE` as an example test function.  Note the type of `testParser` taking an `Int` and generating something that is printed.
 
-Lets move forward and test the evaluator in a similar way.  Again, what to test?  There's not much to work with here, so let's test another property that is interesting, but does not represent correctness:
+Lets move forward and test the evaluator in a similar way.  Again, what to test?  There's not much to work with here. Let's test another property that is interesting, but does not represent correctness:
 
 ```haskell
 \t -> interp . pprint t == eval t

@@ -79,7 +79,6 @@ Our first inference rule tells us how to interpret numbers buy defining $\eval$ 
 $$\frac{}{\underline{v} \eval v}\; [NumE]$$
 
 The $NumE$ rule says evaluating numeral syntax in gives us the corresponding number.  Remember that $v$ is a number and what we're saying is interpreting a constant number value gives back the constant number value.  Note that when an ambiguity exists between syntax and terms used to define meaning, the underscore notation indicates syntax. For example,
-
 $\underline{v}$ is number syntax while $v$ is number value.
 
 Addition and subtraction are more interesting and hint at how all our interpreters will be structured.  The rule, $PlusE$ defines the interpretation of terms of the form $t_1+t_2$:
@@ -88,7 +87,7 @@ $$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{t_1 \underline{+} t_2 \eval v_1+v_2}\; [
 
 $PlusE$'s antecedents and consequent work together to define a recursive interpreter.  The first antecedent states that $t_1 \eval v_1$ must be true before the consequent can be true.  But $v_1$ is a variable whose value is the result of evaluating $t_1$.  In effect, this antecedent says that $v_1$ must be the result of that evaluation.  The second antecedent behaves similarly for $t_2$ and $v_2$.  Both antecedents name the results of interpreting $t_1$ and $t_2$ as $v_1$ and $v_2$ respectively.
 
-Now that we know the results of evaluating $t_1$ and $t_2$, defining their sum is simple.  Values in `AE` are numbers,           thus we use Haskell's notion of addition to define the sum.  Thus the consequent
+Now that we know the results of evaluating $t_1$ and $t_2$, defining their sum is simple.  Because values in `AE` are numbers we use Haskell's notion of addition to define the sum.  Thus, the consequent
 is $t_1 \underline{+} t_2 \eval v_1 + v_2$.
 
 We define subtraction similarly in the $MinusE$ rule:
@@ -106,20 +105,20 @@ The new rule $MinusE+$ adds a third antecedent that specifies $v_1$ must be grea
 required.
 
 What does happen when $v_2 > v_1$? The new $MinusE+$ does not apply nor does any other evaluation rule.  Subtraction when
-$v_2 > v_1$ is _undefined_.  Specifically, there is no rule that applies and thus no evaluation results.  When evaluation is not complete in this way and the term being evaluated is not a value, we say that interpretation is _stuck_ and the evaluation relation defined by $\eval$ is _not total_.
+$v_2 > v_1$ is _undefined_.  There is no rule that applies and thus no evaluation results.  When evaluation is not complete in this way and the term being evaluated is not a value, we say that interpretation is _stuck_ and the evaluation relation defined by $\eval$ is _not total_.
 
 One way to fix this problem is to simply return $0$ when the result would be negative.  This fix is captured with the rule $MinusEZero$:
 
 $$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1 < v_2}{t_1 \underline{-}
 t_2 \eval 0}\; [MinusEZero]$$
 
-Evaluation is now total, but subtraction in $AE$ has properties that might prove problematic.  $0$ could be a legitimate subtraction result or it could indicate a problem.  We call these designated values "magic values" and they often prove problematic.  An alternative is returning an error value:
+Evaluation is now total, but subtraction in $AE$ has properties that might prove problematic.  $0$ could be a legitimate subtraction result or it could indicate a problem.  We call these designated values "magic values" and they prove problematic.  An alternative is returning an error value:
 
 $$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1 < v_2}{t_1 \underline{-} t_2 \eval \bot}\; [MinusEBottom]$$
 
-This introduces a new value, $\bot$, called bottom that represents an error value.  As a result, $\bot$ must be included in all other inference rules.  What is $5+\bot$?  Simply defining the result of any expression involving $\bot$ as $\bot$ requires new rules for each operator.
+This introduces a new value, $\bot$, called _bottom_ that represents an error value.  As a result, $\bot$ must be included in all other inference rules.  What is $5+\bot$?  Simply defining the result of any expression involving $\bot$ as $\bot$ requires new rules for each operator.
 
-Often the best approach is to simply leave the relation as is and wait until implementation time to deal with errors.  For now, this is the approach we will take here.
+Often the best approach is to leave the relation as is and wait until implementation time to deal with errors.  For now, this is the approach we will take here.
 
 Understanding the structure of these rules before moving forward is vital.  They both define antecedents that name the results of other calculations.  More specifically, other _recursive_ calculations.  When writing and defining interpreters, recursion is your best friend.  We needn't think now about calculating the values of $t_1$ and $t_2$, only that their values are calculated the same way all other values are calculated.
 
@@ -143,7 +142,7 @@ where `Num`, `Plus` and `Minus` are the _constructors_ of the data type `AE` tha
 
 All terms in AE have associated data structures in the abstract syntax.  For example `(Num 1)` is the abstract syntax for `1`. `(Plus (Num 1) (Num 3))` is the abstract syntax for `1+3`. `(Minus (Plus (Num 3 (Num 5)) (Num 1))` is the abstract syntax for `3+5-1`.  For the abstract syntax to be effective, every term in the concrete syntax must have an associated term in the abstract syntax.  Remember the properties of relations you learned in your discrete math class?  They come in handy right now.  The relationship between concrete syntax and associated abstract syntax should be a total function. Concrete syntax terms should have exactly one abstract syntax value and all concrete syntax terms should be associated with an abstract syntax value. Always remember that errors are outputs.
 
-From this point forward I will use the TLA[^1] _AST_ when referring to abstract syntax data structures.  AST literally means _abstract syntax tree_.  Haskell data types naturally form trees and trees are perfect representations for abstract syntax.  I'll come back to this later, but for now remember that AST, abstract syntax, and abstract syntax tree refer to the same Haskell data type.
+From this point forward I will use the TLA[^1] _AST_ when referring to abstract syntax data structures.  AST stands for _abstract syntax tree_.  Haskell data types naturally form trees and trees are perfect representations for abstract syntax.  I'll come back to this later, but for now remember that AST, abstract syntax, and abstract syntax tree refer to the same Haskell data type.
 
 ## Parsers and Pretty Printers
 

@@ -17,7 +17,7 @@ $$
 
 # Simple Expression Interpreters
 
-Let's start our investigation with an interpreter for a simple language of calculations involving only `+` and `-` over numbers.  We'll use this first discussion to define an interpreter that calculates a value from such expressions.  The language is basic, but we can start discussing important concepts of abstract and concrete syntax, abstract syntax trees, parsing, interpretation and testing.  Pay less attention to the language than to the underlying methodology and concepts used to define an interpreter.
+Let's start our investigation with an interpreter for a simple language of calculations involving `+` and `-` over numbers.  We'll use this first discussion to define an interpreter that calculates a value from such expressions.  The language is basic, but we can start discussing important concepts of abstract and concrete syntax, abstract syntax trees, parsing, interpretation and testing.  Pay less attention to the language than to the underlying methodology and concepts used to define an interpreter.
 
 ## Concrete Syntax
 
@@ -54,13 +54,13 @@ A+B-C
 
 are not terms in `AE`.
 
-Let's also define _values_ in `AE` as the numbers:
+Let's also define _values_ in `AE` as numbers:
 
 $$\begin{align*}
 v ::= & \NUM \\
 \end{align*}$$
 
-The set of values is a subset of the set of terms.  It represents terms that result from interpretation.  The set of values define what we should get when we run an interpreter.  We will define this more formally later, but for now simply remember that $v$ is an interpretation result.
+The set of values is a subset of the set of terms and represents terms that result from interpretation.  The set of values define what we should get when we run an interpreter.  We will define this more formally later, but for now remember that $v$ is an interpretation result.
 
 If we define the predicate $ae(t)$ to be true when $t$ satisfies `AE`'s grammar rules, then the language can be defined as a set:
 
@@ -97,7 +97,7 @@ t_2 \eval v_1-v_2}\; [MinusE]$$
 
 Using this rule $2\underline{-}1$ evaluates to $1$ as it
 should. However, $1\underline{-}2$ evaluates to $-1$. As $\NUM$ values are defined to be non-negative, this is a problem. It's easy enough to fix
-the $MinusE$ rule to only generate positin values:
+the $MinusE$ rule to only generate positive values:
 
 $$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1\geq v_2}{t_1 \underline{-} t_2 \eval v_1-v_2}\; [MinusE+]$$
 
@@ -107,7 +107,7 @@ required.
 What does happen when $v_2 > v_1$? The new $MinusE+$ does not apply nor does any other evaluation rule.  Subtraction when
 $v_2 > v_1$ is _undefined_.  There is no rule that applies and thus no evaluation results.  When evaluation is not complete in this way and the term being evaluated is not a value, we say that interpretation is _stuck_ and the evaluation relation defined by $\eval$ is _not total_.
 
-One way to fix this problem is to simply return $0$ when the result would be negative.  This fix is captured with the rule $MinusEZero$:
+One way to fix this problem is to return $0$ when the result would be negative.  This fix is captured with the rule $MinusEZero$:
 
 $$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1 < v_2}{t_1 \underline{-}
 t_2 \eval 0}\; [MinusEZero]$$
@@ -118,7 +118,7 @@ $$\frac{t_1 \eval v_1,\; t_2 \eval v_2,\; v_1 < v_2}{t_1 \underline{-} t_2 \eval
 
 This introduces a new value, $\bot$, called _bottom_ that represents an error value.  As a result, $\bot$ must be included in all other inference rules.  What is $5+\bot$?  Simply defining the result of any expression involving $\bot$ as $\bot$ requires new rules for each operator.
 
-Often the best approach is to leave the relation as is and wait until implementation time to deal with errors.  For now, this is the approach we will take here.
+Often the best approach is to leave the relation as is and wait until implementation time to deal with errors.  For now, this is the approach we will take.
 
 Understanding the structure of these rules before moving forward is vital.  They both define antecedents that name the results of other calculations.  More specifically, other _recursive_ calculations.  When writing and defining interpreters, recursion is your best friend.  We needn't think now about calculating the values of $t_1$ and $t_2$, only that their values are calculated the same way all other values are calculated.
 
@@ -152,7 +152,7 @@ A _parser_ is a program that translates concrete syntax into an AST.  It checks 
 parseAE :: String -> AE
 ```
 
-Give `parseAE` a string and it will return an `AE` if it does not crash.  A parser's signature for any language will be a string to the datatype for that language's abstract syntax.
+Give `parseAE` a string and it will return an `AE` if it does not throw an error.  A parser's signature for any language will be a string to the datatype for that language's abstract syntax.
 
 A _pretty printer_ is the inverse of a parser.  It translates an `AE` data structure into a string representing the concrete syntax.  The signature of a pretty printer for the _AE_ language is:
 
@@ -170,7 +170,7 @@ pprintAE (parseAE s) == s
 
 If we parse a string and pretty print the result, we back the string.  A useful relationship for testing these tools.
 
-This course is not about building parsers and pretty printers.  This task is largely automated and Haskell provides several tools for building parsers.  I will provide examples using [Parsec](https://wiki.haskell.org/Parsec), a monadic parser combinator tool for writing and composing parsers.  After some setup, Parsec is not difficult to extend to the languages we would like to discuss.  For more details there are a number of online tutorials and chapters in major Haskell texts.  For now, let's assume we have the `parseAE` and `pprintAE` functions available.
+This course is not about building parsers and pretty printers.  This task is largely automated, Haskell provides tools for building parsers, and parser generators are widely available for other languages.  I will provide examples using [Parsec](https://wiki.haskell.org/Parsec), a monadic parser combinator tool for writing and composing parsers.  After some setup, Parsec is not difficult to extend to the languages we would like to discuss.  For more details there are a number of online tutorials and chapters in major Haskell texts.  For now, let's assume we have the `parseAE` and `pprintAE` functions available.
 
 ## Evaluator
 
@@ -198,7 +198,7 @@ Because `return = Just`, `eval (Num 3)` returns `(Just (Num 3))`
 
 We now have an evaluator for literal numbers, but nothing more.
 
-The next constructor, `Plus` represents a more interesting case.  We have a rule named $PlusE$ that defines evaluation of `t1+t2`:
+The next constructor, `Plus`, represents a more interesting case.  We have a rule named $PlusE$ that defines evaluation of `t1+t2`:
 
 $$\frac{t_1 \eval v_1,\; t_2 \eval v_2}{\eval t_1 \underline{+} t_2 = v_1+v_2}\; [PlusE]$$
 
@@ -208,7 +208,7 @@ The inference rule is defined in terms of concrete rather than abstract syntax, 
 (Num n) + (Num m) == (Num n+m)
 ```
 
-There are many ways to construct this operation in Haskell, but we will use a lifting function that will allow us to define any operation in `AE` using an operation from Haskell:
+There are many ways to construct this operation in Haskell. Let's use a lifting function that will allow us to define any operation in `AE` using an operation from Haskell:
 
 ```haskell
 liftNum :: (Int -> Int -> Int) -> AE -> AE -> AE
@@ -231,29 +231,37 @@ Now we have everything needed to define `Plus`.  This inference rule can be almo
                   return (liftNum (+) v1 v2)
 ```
 
+While the lifting function is pretty cool, there is a potentially better way.  We can use Haskell's pattern matching capability to extract good values and filter out bad values.  Consider this use of the do notation:
+
+```haskell
+(Plus t1 t2) = do (Num v1) <- eval t1
+                  (Num v2) <- eval t2
+                  return (Num v1+v2)
+```
+
+It turns out that the `<-` notation is not a simple assignment operator.  `eval t1` and `eval t2` behave as they always have returning values of type `AE`.  However, the notation `(Num v1) <- eval t1` causes the result from `eval t1` to be _matched_ with `(Num v1)`.  `v1` is a variable, but `Num` is a constructor.  If `eval t1` returns a value `(Num 3)` pattern matching succeeds and `v1` is bound to `3`.  If a match fails, the result is an error and the monadic value `Nothing` gets returned.  
+
 The translation from inference rule to Haskell follows standard rule of thumb.  The `do` bindings manage the rule antecedents, performing evaluation and binding variables.  The `return` is the consequent and evaluates the term.  While only a rule-of-thumb, it will prove useful.
 
 Finally, The `Minus` constructor case is identical to the `Plus` constructor case except values are subtracted rather than added together.  For completeness, here is the subtraction case:
 
 ```haskell
-(Minus t1 t2) = do v1 <- eval t1
-                  v2 <- eval t2
-                  return (liftNum (-) v1 v2)
+(Minus t1 t2) = do (Num v1) <- eval t1
+                   (Num v2) <- eval t2
+                   return (Num v1-v2)
 ```
-
-We'll not worry about error conditions in this interpreter and return to that later.
 
 Putting the cases together in the following evaluator for `AE` that reduces every abstract syntax term to a value:
 
 ```haskell
 eval :: AE -> Maybe AE
 eval (Num x) = return (Num x)
-eval (Plus t1 t2) = do v1 <- (eval t1)
-                       v2 <- (eval t2)
-                       return (liftNum (+) v1 v2)
-eval (Minus t1 t2) = do v1 <- (eval t1)
-                        v2 <- (eval t2)
-                        return (liftNum (-) v1 v2)
+eval (Plus t1 t2) = do (Num v1) <- (eval t1)
+                       (Num v2) <- (eval t2)
+                       return (Num v1+v2)
+eval (Minus t1 t2) = do (Num v1) <- (eval t1)
+                        (Num v2) <- (eval t2)
+                        return (Num v1-v2)
 ```
 
 The evaluator follows a pattern that every evaluator we write will follow.  Each constructor from the AST definition has a case in the `eval` function that evaluates that constructor.  This pattern and the accompanying `data` construct gives us three nice language properties - completeness, determinicity, and normalization
@@ -301,12 +309,12 @@ We implemented a parser from the grammar and an evaluator from the inference rul
 ```haskell
 eval :: AE -> Maybe AE
 eval (Num x) = return (Num x)
-eval (Plus t1 t2) = do v1 <- (eval t1)
-                       v2 <- (eval t2)
-                       return (liftNum (+) v1 v2)
-eval (Minus t1 t2) = do v1 <- (eval t1)
-                        v2 <- (eval t2)
-                        return (liftNum (-) v1 v2)
+eval (Plus t1 t2) = do (Num v1) <- (eval t1)
+                       (Num v2) <- (eval t2)
+                       return (Num v1+v2)
+eval (Minus t1 t2) = do (Num v1) <- (eval t1)
+                        (Num v2) <- (eval t2)
+                        return (Num v1-v2)
 ```
 
 Given the parser and evaluator for `AE`, we can now define a language interpreter, `interp`, that puts everything together:

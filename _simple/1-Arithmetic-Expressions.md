@@ -353,7 +353,7 @@ This states that evaluating any $t$ results in a value that is related to $t$ by
 
 ### Induction and Extensionality
 
-There is one property of `AE` structures that underlies most of our discussion.  The `AE` abstract syntax specifically and algebraic types generally have both inductive and extensionality principles.  The inductive principle allows us to prove properties over `AE` and the extensionality principle allows us to determine if two `AE` structures are equivalent.  We won't use either principle yet, so let's define them informally for now.
+There is one property of `AE` structures that underlies our discussion.  The `AE` abstract syntax and algebraic types have both inductive and extensionality principles.  The inductive principle allows us to prove properties over `AE` and the extensionality principle allows us to determine if two `AE` structures are equivalent.  We won't use either principle yet, so let's define them informally for now.
 
 Induction over `AE` says that some property, $p$, is true for all elements of `AE` if we can:
 

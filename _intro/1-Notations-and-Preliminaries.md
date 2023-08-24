@@ -31,14 +31,33 @@ data IntList where
   Cons :: Int -> IntList -> IntList 
 {% endhighlight %}
 
-we also a recursion framework for processing instances of the type.  If we want to write a `size` function for `IntList` we can simply define `size` over every `IntList` constructor:
+`IntList` is the new data type and `Null` and `Cons` are constructors for that type.  All values of `IntList` are constructed with `Null` and `Cons`.  The constructs:
 
 {% highlight haskell %}
+Null
+Cons 1 Null
+Cons 1 (Cons 2 Null)
+{% endhighlight %}
+
+all define _values_ of type `IntList`.
+
+We also get a recursive framework for processing values from the new type.  If we want to write a `size` function for `IntList` we define `size` over every `IntList` constructor:
+
+{% highlight haskell %}
+size :: IntList -> Int
 size Null = 0
 size Cons x xs = size xs + 1
 {% endhighlight %}
 
-`Null` is the base case and `Cons` the recursive case for this definition.  The structure of `IntList` and any type created with `data` is such that a recursive function can be written using this pattern to process any such structure.  This is a powerful principle we will use repeatedly throughout this text.
+`Null` is the base case and `Cons` the recursive case for this definition.   We an similarly define a function that sums the values in `IntList`:
+
+{% highlight haskell %}
+sum :: IntList -> Int
+sum Null = 0
+sum Cons x xs = x _ (sum xs)
+{% endhighlight %}
+
+The structure of `IntList` allows us to build any such function using the same approach.  In fact, any type created with `data` is such that a recursive function can be written using this pattern to process any such structure.  This is a powerful principle we will use repeatedly throughout this text.
 
 ## The do Notation
 
